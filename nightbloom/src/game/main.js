@@ -311,11 +311,16 @@ requestAnimationFrame(function loop() {
 // actually saw (canvas is preserved; luma judged in sRGB) for contrast.
 const LEGIBLE = {
   minPx: 14, minSep: 0.09,        // a chaff threat at combat range
-  eliteMinPx: 56, eliteMinSep: 0.12, // an elite must read AS an elite
+  eliteMinPx: 56, eliteMarkerPx: 10, // an elite must read AS an elite: real
+                                  // marker pixels on screen (contrast alone
+                                  // cannot measure identity — a dark blob on
+                                  // lit ground is "contrasty" and still
+                                  // wears a 20 HP silhouette)
   combatRange: 12,                // m — the threats that can kill you soon
 };
 let _idRT = null, _idBuf = null, _lumaCanvas = null, _idBlack = null;
 const _idMats = [];
+const _idMarkMats = [];   // marker pixels carry green=1 on top of the id red
 function measureLegibility() {
   if (!battle) return null;
   const W = 320, H = Math.max(2, Math.round(W / camera.aspect / 2) * 2);
@@ -333,7 +338,11 @@ function measureLegibility() {
   // ID pass: threats flat-colored by index, everything else black, no sky/fog
   const pairs = [...battle.critters.entries()];   // [enemy, critter]
   const owner = new Map();
-  pairs.forEach(([, c], i) => c.root.traverse((o) => { if (o.isMesh) owner.set(o, i); }));
+  const isMarker = new Set();
+  pairs.forEach(([, c], i) => {
+    c.root.traverse((o) => { if (o.isMesh) owner.set(o, i); });
+    if (c._marker) c._marker.mk.traverse((o) => { if (o.isMesh) isMarker.add(o); });
+  });
   _idBlack ??= new THREE.MeshBasicMaterial({ fog: false });
   _idBlack.color.setRGB(0, 0, 0);
   const restore = [];
@@ -342,7 +351,11 @@ function measureLegibility() {
       restore.push([o, o.material]);
       const i = owner.get(o);
       if (i === undefined) o.material = _idBlack;
-      else {
+      else if (isMarker.has(o)) {
+        if (!_idMarkMats[i]) { _idMarkMats[i] = new THREE.MeshBasicMaterial({ fog: false, depthTest: false }); }
+        _idMarkMats[i].color.setRGB((i + 1) / 255, 1, 0);
+        o.material = _idMarkMats[i];
+      } else {
         if (!_idMats[i]) { _idMats[i] = new THREE.MeshBasicMaterial({ fog: false }); }
         _idMats[i].color.setRGB((i + 1) / 255, 0, 0);
         o.material = _idMats[i];
@@ -363,16 +376,17 @@ function measureLegibility() {
   // per-enemy pixel share + bbox + own luma (RT rows are y-flipped vs canvas)
   const n = pairs.length;
   const px = new Array(n).fill(0);
-  const rgb = Array.from({ length: n }, () => [0, 0, 0]);
+  const markPx = new Array(n).fill(0);
+  const pixels = Array.from({ length: n }, () => []);
   const box = Array.from({ length: n }, () => [W, H, -1, -1]);
   for (let p = 0; p < W * H; p++) {
     const id = _idBuf[p * 4];
     if (!id || id > n) continue;
     const i = id - 1;
     const x = p % W, ry = (p / W) | 0, y = H - 1 - ry;
-    const k = (y * W + x) * 4;
     px[i]++;
-    rgb[i][0] += shown[k]; rgb[i][1] += shown[k + 1]; rgb[i][2] += shown[k + 2];
+    if (_idBuf[p * 4 + 1] > 200) markPx[i]++;    // green channel: marker pixels
+    pixels[i].push((y * W + x) * 4);
     const b = box[i];
     if (x < b[0]) b[0] = x; if (y < b[1]) b[1] = y;
     if (x > b[2]) b[2] = x; if (y > b[3]) b[3] = y;
@@ -399,12 +413,22 @@ function measureLegibility() {
           bn++;
         }
       }
-      if (bn) sep = redmean(rgb[i].map((v) => v / px[i]), back.map((v) => v / bn));
+      if (bn) {
+        // p90 of per-pixel distance from the backdrop mean: a threat is
+        // legible if SOMETHING about it catches the eye — a bright marker
+        // on a dark body counts, a uniformly murky blob does not
+        const bm = back.map((v) => v / bn);
+        const dists = pixels[i].map((k) => redmean([shown[k], shown[k + 1], shown[k + 2]], bm)).sort((a, b) => a - b);
+        sep = dists[Math.floor(dists.length * 0.9)] ?? 0;
+      }
     }
     const elite = !!e.def.elite;
-    const okPx = px[i] >= (elite ? LEGIBLE.eliteMinPx : LEGIBLE.minPx);
-    const okSep = sep >= (elite ? LEGIBLE.eliteMinSep : LEGIBLE.minSep);
-    out.set(e, { px: px[i], sep: +sep.toFixed(3), elite, legible: okPx && okSep });
+    // an elite reads AS an elite only through dedicated marker pixels
+    // actually on screen; chaff reads through size + contrast
+    const legible = elite
+      ? px[i] >= LEGIBLE.eliteMinPx && markPx[i] >= LEGIBLE.eliteMarkerPx
+      : px[i] >= LEGIBLE.minPx && sep >= LEGIBLE.minSep;
+    out.set(e, { px: px[i], markPx: markPx[i], sep: +sep.toFixed(3), elite, legible });
   });
   return out;
 }

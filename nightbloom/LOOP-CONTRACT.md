@@ -34,7 +34,7 @@ as numbers, never passes).
 | Balance winnable-but-hard | charforge `simulate-run.mjs` | 4 checks, ALL PASS |
 | Every event heard/felt | `scripts/check-feel.mjs` + `__feelCheck()` | 0 unwired |
 | Threats visible in the PLAY camera | `__playCheck()` | visibleFrac ≥0.8, p10 ≥0.4, p90 first-sight ≤4s |
-| Threats LEGIBLE in the PLAY camera | `__playCheck()` legibility terms | legibleFrac ≥0.6 (ID-pass px ≥14 + redmean sep ≥0.09 at ≤12m), elite frames ≥0.9 legible (px ≥56, sep ≥0.12); segment must cross the first elite (default 140s) |
+| Threats LEGIBLE in the PLAY camera | `__playCheck()` legibility terms | legibleFrac ≥0.6 (ID-pass px ≥14 + p90 redmean sep ≥0.09 at ≤12m), elite frames ≥0.9 legible (px ≥56 AND ≥10 dedicated marker pixels on screen — identity, not just contrast); segment must cross the first elite (default 140s) |
 | Audio deterministic + produced | charforge `check-audio.mjs` | ALL PASS, byte-identical runs |
 | Town integrity under the game | `scripts/check-city.mjs` | RESULT: PASS |
 | Arena stays an arena | festival district contract | no collider in x 29..53, z −3..15 |

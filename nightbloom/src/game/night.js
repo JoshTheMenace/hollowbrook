@@ -54,6 +54,18 @@ export class NightBattle {
     this.orbGeo = new THREE.BoxGeometry(0.1, 0.34, 0.16);
     this.orbMat = toonMaterial('#b08aff', { rim: 0.9, rimColor: '#ffffff' });
     this.arcMat = new THREE.MeshBasicMaterial({ color: '#cfe8ff', transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false });
+    // elite marker + HP bar: a 739 HP threat wearing a 20 HP silhouette is
+    // unreadable (review r1, gap 8). Unlit materials so they burn through
+    // the night grade; the bar is world-space, billboarded, above the body.
+    this.eliteMarkGeo = new THREE.OctahedronGeometry(0.2);
+    this.eliteMarkMat = new THREE.MeshBasicMaterial({ color: '#ffd76a' });
+    this.barBackGeo = new THREE.PlaneGeometry(1.2, 0.13);
+    this.barFillGeo = new THREE.PlaneGeometry(1.2, 0.13);
+    this.barFillGeo.translate(0.6, 0, 0);          // anchor left so scale.x drains rightward
+    this.barBackMat = new THREE.MeshBasicMaterial({ color: '#1c1626', transparent: true, opacity: 0.85, depthTest: false });
+    this.barFillMat = new THREE.MeshBasicMaterial({ color: '#ff5a6e', depthTest: false });
+    this._camQ = new THREE.Quaternion();
+    this._rootQ = new THREE.Quaternion();
 
     this.run = new Run({
       character,
@@ -88,7 +100,22 @@ export class NightBattle {
         c.root.position.set(e.pos.x, this.groundY, e.pos.z);
         this.dyn.add(c.root);
         this.critters.set(e, c);
-        if (e.def.elite) this.onEvent('elite-spawn', { pos: up(e.pos) });
+        if (e.def.elite) {
+          const mk = new THREE.Group();
+          mk.name = 'elite-marker';
+          const gem = new THREE.Mesh(this.eliteMarkGeo, this.eliteMarkMat);
+          gem.position.y = 0.42;
+          const back = new THREE.Mesh(this.barBackGeo, this.barBackMat);
+          const fill = new THREE.Mesh(this.barFillGeo, this.barFillMat);
+          fill.position.x = -0.6;
+          fill.position.z = 0.005;
+          back.renderOrder = 20; fill.renderOrder = 21; gem.renderOrder = 20;
+          mk.add(back, fill, gem);
+          mk.position.y = 1.8;
+          c.root.add(mk);                       // part of the threat: the ID pass counts it
+          c._marker = { mk, fill, gem };
+          this.onEvent('elite-spawn', { pos: up(e.pos) });
+        }
       },
       hit: (e, dmg) => {
         const c = this.critters.get(e);
@@ -183,6 +210,14 @@ export class NightBattle {
         c._pop -= dt;
         c.root.scale.setScalar(1 + 0.3 * Math.sin(Math.max(0, c._pop / 0.14) * Math.PI));
       } else if (c.root.scale.x !== 1) c.root.scale.setScalar(1);
+      if (c._marker) {
+        // billboard in world space despite the rotating root
+        this.hero.camera.getWorldQuaternion(this._camQ);
+        c.root.getWorldQuaternion(this._rootQ).invert();
+        c._marker.mk.quaternion.copy(this._rootQ).multiply(this._camQ);
+        c._marker.fill.scale.x = Math.max(0.001, e.hp / e.maxHp);
+        c._marker.gem.position.y = 0.42 + Math.sin(t * 4) * 0.06;
+      }
       c.update(dt, t);
     }
     for (let i = this.dying.length - 1; i >= 0; i--) {
