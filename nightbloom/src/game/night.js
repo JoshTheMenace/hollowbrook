@@ -22,8 +22,10 @@ const CENTER = { x: (ARENA.x0 + ARENA.x1) / 2, z: (ARENA.z0 + ARENA.z1) / 2 };
 // measured the old clamp (x0+1 = 30) dropping every town arrival into the
 // yagura's camera-blind strip (nightbloom-play-review-r1, highest-impact).
 export function arenaEntry(x, z) {
+  // west clamp is x0+4, not x0+1: the yagura stands just west of the rect,
+  // and the old clamp put every town arrival in its camera shadow
   return {
-    x: THREE.MathUtils.clamp(x, ARENA.x0 + 1, ARENA.x1 - 1),
+    x: THREE.MathUtils.clamp(x, ARENA.x0 + 4, ARENA.x1 - 1),
     z: THREE.MathUtils.clamp(z, ARENA.z0 + 1, ARENA.z1 - 1),
   };
 }

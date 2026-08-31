@@ -22,13 +22,22 @@ export function resolveCamera({ px, pz, eyeY, camYaw, pitch, dist, groundAt, ray
   const floor = groundAt(bx, bz) + 0.35;
   if (by < floor) by = floor;
   if (raycast) {
-    // head -> boom: if town geometry blocks the line, pull the camera in
-    // along the ray to just in front of the hit (0.3m margin, min 1.2m out)
-    const from = { x: px, y: cy, z: pz };
-    const hit = raycast(from, { x: bx, y: by, z: bz });
-    if (hit) {
+    // body -> boom: if town geometry blocks either probe line (head AND
+    // waist — a shutter can block the body while the head ray clears over
+    // it), pull the camera in along the boom to just in front of the
+    // nearest hit fraction (0.3m margin, min 0.5m out — a laundry towel at
+    // 1m must not leave the camera parked behind it)
+    let s = 1;
+    for (const fy of [cy, eyeY + 0.9]) {
+      const hit = raycast({ x: px, y: fy, z: pz }, { x: bx, y: by, z: bz });
+      if (hit) {
+        const probeLen = Math.hypot(bx - px, by - fy, bz - pz);
+        s = Math.min(s, (hit.distance - 0.3) / probeLen);
+      }
+    }
+    if (s < 1) {
       const full = Math.hypot(bx - px, by - cy, bz - pz);
-      const t = Math.max(1.2 / full, (hit.distance - 0.3) / full);
+      const t = Math.max(0.5 / full, s);
       if (t < 1) {
         bx = px + (bx - px) * t;
         by = cy + (by - cy) * t;

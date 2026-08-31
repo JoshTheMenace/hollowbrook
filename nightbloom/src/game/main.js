@@ -83,6 +83,7 @@ hero = new Hero({
   actor, camera, canvas,
   colliders: vignette.colliders,
   groundAt: vignette.groundAt,
+  occluderRoot: vignette.root, // camera pulls in along the boom when town geometry blocks the player
   spawn: [-30, 0, 0],
   yaw: -Math.PI / 2,           // camera behind, looking east down the street
 });
