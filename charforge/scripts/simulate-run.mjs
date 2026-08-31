@@ -17,8 +17,34 @@ const mulberry32 = (a) => () => {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
 
-function simulate({ character = 'ronin', seed = 1, upgrade = true, maxTime = 480 } = {}) {
+// Actuation-noise wrapper — ported from battery/src/juicebox/rules.js
+// (makeNoisy + NOVICE): the SAME policy, played with human imperfections.
+// The move vector is re-decided only after a reaction delay (~340ms, jittered
+// ±30%) and each decision's direction carries aim error (±16°). A clean-
+// information, zero-latency bot plays a different game than the player has —
+// winnability is judged by the novice referee (review r1, finding 5).
+const UP = new THREE.Vector3(0, 1, 0);
+export const NOVICE = { delay: 0.34, jitterDeg: 16, seed: 5 };
+function makeNoisyMove({ delay, jitterDeg, seed }) {
+  const r = mulberry32(seed);
+  const held = new THREE.Vector3();
+  let idle = true;
+  let nextDecideAt = 0;
+  return (run, desired) => {
+    if (run.time >= nextDecideAt) {
+      nextDecideAt = run.time + delay * (0.7 + r() * 0.6);
+      if (desired && desired.lengthSq() > 0) {
+        held.copy(desired).applyAxisAngle(UP, (r() - 0.5) * 2 * (jitterDeg * Math.PI / 180));
+        idle = false;
+      } else idle = true;
+    }
+    return idle ? null : held;
+  };
+}
+
+function simulate({ character = 'ronin', seed = 1, upgrade = true, maxTime = 480, noise = null } = {}) {
   const rng = mulberry32(seed);
+  const noisy = noise ? makeNoisyMove(noise) : null;
   // designed-curve instrumentation: enemy lifetimes + level-up timestamps
   const born = new Map();
   const ttkByKind = {};
@@ -76,7 +102,8 @@ function simulate({ character = 'ronin', seed = 1, upgrade = true, maxTime = 480
     if (Math.abs(P.x) > 8.5 || Math.abs(P.z) > 8.5) {
       move.addScaledVector(P.clone().negate().normalize(), 2.0);
     }
-    run.update(dt, move.lengthSq() > 0 ? move : null);
+    const applied = noisy ? noisy(run, move.lengthSq() > 0 ? move : null) : (move.lengthSq() > 0 ? move : null);
+    run.update(dt, applied);
     while (upgrade && run.pendingLevelUps > 0) {
       run.pendingLevelUps--;
       const ch = run.choices();
@@ -102,22 +129,35 @@ const detail = process.argv.includes('--detail');
 const results = [];
 const checks = [];
 const check = (id, pass, note) => { checks.push({ id, pass, note }); };
+const info = (id, note) => { checks.push({ id, info: true, note }); };
 
-// 1. every character baseline
+// 1. every character baseline. A baseline that DIES partway is a NUMBER,
+// never a pass — "survived 212.6s" with a green check certified 44% of the
+// objective as success (review r1, finding 5). Only a victory earns the
+// checkmark; dying before 90s is the hopeless floor and fails.
 for (const c of Object.keys(PLAYABLES)) {
   const r = simulate({ character: c, seed: 7, upgrade: true });
   results.push(r);
-  check(`baseline:${c}`, r.time >= 90, `${c} survived ${r.time}s (level ${r.level}, ${r.kills} kills)`);
+  if (r.outcome === 'victory') check(`baseline:${c}`, true, `${c} VICTORY at ${r.time}s (level ${r.level}, ${r.kills} kills)`);
+  else if (r.time < 90) check(`baseline:${c}`, false, `${c} dead at ${r.time}s — hopeless (< 90s floor)`);
+  else info(`baseline:${c}`, `${c} survived ${r.time}s of 480s (${(r.time / 480 * 100).toFixed(0)}% of objective, level ${r.level}, ${r.kills} kills) — partial survival, not a pass`);
 }
-// 2+4. upgrading ronin across seeds
+// 2. upgrading ronin across seeds — the ECONOMY/CURVE instrument (clean bot:
+// these are measurements of the design, not a claim a player wins)
 const seeds = [1, 2, 3, 4, 5, 6];
 const upruns = seeds.map((s) => simulate({ character: 'ronin', seed: s, upgrade: true }));
 results.push(...upruns);
-const times = upruns.map((r) => r.time).sort((a, b) => a - b);
-const median = times[Math.floor(times.length / 2)];
-const wins = upruns.filter((r) => r.outcome === 'victory').length;
 check('economy', upruns.every((r) => r.levelAt180 >= 5), `levels at 3:00 = ${upruns.map((r) => r.levelAt180).join(',')}`);
-check('winnable', median >= 300 && wins >= 1, `median ${median}s, wins ${wins}/${seeds.length}`);
+// 4. WINNABILITY is refereed by the NOVICE actuation-noise bot — reaction
+// ~340ms, aim error ±16° — because the clean bot plays a game where you can
+// see and react to everything instantly, which no player has.
+const novruns = seeds.map((s) => simulate({ character: 'ronin', seed: s, upgrade: true, noise: { ...NOVICE, seed: NOVICE.seed + s } }));
+results.push(...novruns);
+const times = novruns.map((r) => r.time).sort((a, b) => a - b);
+const median = times[Math.floor(times.length / 2)];
+const wins = novruns.filter((r) => r.outcome === 'victory').length;
+check('winnable', median >= 300 && wins >= 1,
+  `NOVICE referee (340ms/16°): median ${median}s, wins ${wins}/${seeds.length} (times ${times.join(',')})`);
 // 3. no-upgrade bot must die
 const nu = simulate({ character: 'ronin', seed: 3, upgrade: false });
 results.push(nu);
@@ -178,7 +218,7 @@ for (const [kind, min, lo, hi] of DESIGN_CURVE.ttk) {
 }
 
 if (detail) console.table(results);
-const failed = checks.filter((c) => !c.pass);
-for (const c of checks) console.log(`${c.pass ? '✓' : '✗'} ${c.id}: ${c.note}`);
+const failed = checks.filter((c) => !c.info && !c.pass);
+for (const c of checks) console.log(`${c.info ? '·' : c.pass ? '✓' : '✗'} ${c.id}: ${c.note}`);
 console.log(failed.length ? `FAIL (${failed.length})` : 'ALL PASS');
 process.exit(failed.length ? 1 : 0);

@@ -6,8 +6,11 @@ against a plan. GAME.md describes intent; THIS page is the part gates hold.
 **Skill axis: HYBRID (planning + execution).** Planning: the upgrade draft
 and pack-splitting routes (instrument: the designed-curve sim with the
 random-pick bot as the planning floor). Execution: kiting precision
-(instrument: actuation-noise profiles — NOT YET APPLIED to this game;
-recorded as an open gate to add).
+(instrument: actuation-noise profiles — applied post-review-r1: the NOVICE
+profile ported from battery juicebox rules, reaction ~340ms / aim ±16°, is
+the winnability referee in charforge simulate-run.mjs; the clean bot remains
+the curve/economy instrument only. Baselines that die partway are reported
+as numbers, never passes).
 
 ## The loop
 
