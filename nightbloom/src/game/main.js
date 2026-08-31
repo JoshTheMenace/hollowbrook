@@ -148,9 +148,9 @@ const _move = new THREE.Vector3();
 const cardsEl = document.querySelector('#cards');
 const levelupEl = document.querySelector('#levelup');
 
-function startNight() {
+function startNight(rng) {
   battle = new NightBattle({
-    scene, hero, character: 'ronin', groundY: 0,
+    scene, hero, character: 'ronin', groundY: 0, rng,
     onEvent: (type, data) => {
       feel.emit(type, data);
       if (type === 'arc' && actor && hero.velocity.lengthSq() < 0.3) actor.attack();
@@ -400,8 +400,32 @@ window.__legibility = () => {
 //   timeToSee   — frames until the nearest threat was on screen at spawn
 // default 140s: the segment must cross the first elite spawn (120s) or the
 // elite-legibility term never gets a frame to judge
+const mulberry32 = (a) => () => {
+  a |= 0; a = (a + 0x6D2B79F5) | 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
 window.__playCheck = async (seconds = 140) => {
-  if (!battle) { daynight.set('night'); startNight(); }
+  // CANONICAL START — the result must not depend on how the game was driven
+  // before the call. The review ran this mid-battle (their fights were live)
+  // and got FAIL where the bundle's fresh-start run recorded PASS: a 20s
+  // segment at t=0 samples the sparse opening wave, a mid-fight segment
+  // samples dense waves whose slow spawns take >4s to walk into frame
+  // (TRAPS.md, gate calibration). So: dispose any running battle, place the
+  // hero on the canonical town->arena entry, seed the run (instrument
+  // exemption — players always fight Math.random).
+  if (battle) {
+    battle.dispose();
+    battle = null;
+    hero.external = false;
+    hero.battleCam = false;
+    choosing = false;
+    levelupEl.style.display = 'none';
+  }
+  hero.place(-30, 0, -Math.PI / 2);
+  daynight.set('night');
+  startNight(mulberry32(97));
   const frustum = new THREE.Frustum();
   const mat = new THREE.Matrix4();
   const pt = new THREE.Vector3();
@@ -413,7 +437,9 @@ window.__playCheck = async (seconds = 140) => {
   let eliteFrames = 0, eliteLegible = 0;
   const frames = Math.round(seconds * 60);
   for (let i = 0; i < frames; i++) {
-    // circle-strafe bot so the segment is a real fight
+    // the sim's kiting bot (circle-strafe + hard dodge + gem sweep + wall
+    // bias) — it must survive past the first elite (120s) or the elite
+    // legibility term has nothing to judge
     const r = battle.run;
     const P = r.playerPos;
     let mx = 0, mz = 0, cx = 0, cz = 0, n = 0, nearest = 1e9;
@@ -421,13 +447,35 @@ window.__playCheck = async (seconds = 140) => {
       const d = Math.hypot(P.x - e.pos.x, P.z - e.pos.z);
       nearest = Math.min(nearest, d);
       if (d < 7) { cx += e.pos.x; cz += e.pos.z; n++; }
+      if (d < 1.5) {
+        const l = d || 1;
+        mx += ((P.x - e.pos.x) / l) * (1.5 - d) * 3.5;
+        mz += ((P.z - e.pos.z) / l) * (1.5 - d) * 3.5;
+      }
     }
     if (n) {
       cx /= n; cz /= n;
       let ox = P.x - cx, oz = P.z - cz;
       const ol = Math.hypot(ox, oz) || 1; ox /= ol; oz /= ol;
       const press = Math.max(-0.35, Math.min(2.5, (3.0 - nearest) / 1.4));
-      mx = ox * press - oz; mz = oz * press + ox;
+      mx += ox * press - oz; mz += oz * press + ox;
+    }
+    if (r.gems.length) {
+      let best = null, bd = 1e9;
+      for (const g of r.gems) {
+        const d = (g.pos.x - P.x) ** 2 + (g.pos.z - P.z) ** 2;
+        if (d < bd) { bd = d; best = g; }
+      }
+      const l = Math.sqrt(bd) || 1, w = nearest < 1.8 ? 0.6 : 1.4;
+      mx += ((best.pos.x - P.x) / l) * w;
+      mz += ((best.pos.z - P.z) / l) * w;
+    }
+    // stay off the arena walls: bias to centre near the edge
+    const CX = (r.bounds.x0 + r.bounds.x1) / 2, CZ = (r.bounds.z0 + r.bounds.z1) / 2;
+    if (Math.min(P.x - r.bounds.x0, r.bounds.x1 - P.x) < 2.5 || Math.min(P.z - r.bounds.z0, r.bounds.z1 - P.z) < 2.5) {
+      const l = Math.hypot(CX - P.x, CZ - P.z) || 1;
+      mx += ((CX - P.x) / l) * 2.0;
+      mz += ((CZ - P.z) / l) * 2.0;
     }
     const ml = Math.hypot(mx, mz) || 1;
     hero.virtual.move = { x: mx / ml, z: mz / ml };

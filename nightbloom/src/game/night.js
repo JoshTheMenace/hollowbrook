@@ -29,8 +29,10 @@ export function arenaEntry(x, z) {
 }
 
 export class NightBattle {
-  // opts: { scene, hero, character, onEvent(type, data), groundY }
-  constructor({ scene, hero, character = 'ronin', onEvent = () => {}, groundY = 0 }) {
+  // opts: { scene, hero, character, onEvent(type, data), groundY, rng }
+  // rng: players always fight Math.random; a MEASUREMENT bot may pass a
+  // seeded rng (the no-RNG rule binds players, not instruments — TRAPS.md)
+  constructor({ scene, hero, character = 'ronin', onEvent = () => {}, groundY = 0, rng = Math.random }) {
     this.scene = scene;
     this.hero = hero;
     this.onEvent = onEvent;
@@ -55,6 +57,7 @@ export class NightBattle {
       character,
       bounds: ARENA,
       fx: this.adapter(),
+      rng,
     });
     const entry = arenaEntry(hero.position.x, hero.position.z);
     this.run.playerPos.set(entry.x, 0, entry.z);
