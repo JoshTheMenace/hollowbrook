@@ -19,7 +19,7 @@ import { Actor } from '@forge/game/actor.js';
 const canvas = document.querySelector('#view');
 const promptEl = document.querySelector('#prompt');
 const phaseEl = document.querySelector('#phase');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.NoToneMapping;

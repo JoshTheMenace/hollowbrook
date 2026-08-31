@@ -7,7 +7,7 @@ import { Juice } from '../engine/juice.js';
 import { Shell, Save, Input } from '../engine/shell.js';
 
 // ---- renderer / scene -----------------------------------------------------
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
@@ -349,6 +349,13 @@ window.__tick = tick;
 window.__game = {
   actors, get player() { return player; }, elder, mika, fox, input, interact, item, juice, shell,
   get quest() { return quest; }, save,
+};
+// evidence capture: game frames POST to the dev server like the lab's
+window.__shot = async (name, opts = {}) => {
+  tick(1 / 60);
+  const dataUrl = renderer.domElement.toDataURL('image/png');
+  const res = await fetch('/__shot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, dataUrl }) });
+  return res.json();
 };
 shell.go('title');
 tick(1 / 60);

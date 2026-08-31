@@ -14,7 +14,7 @@ import { Shell, Save, Input } from '../engine/shell.js';
 // scripts/simulate-run.mjs); this file is pure presentation + shell.
 
 // ---- renderer / scene -----------------------------------------------------
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -485,7 +485,14 @@ shell.scene('paused', {
 shell.scene('gameover', {
   domId: 'gameover',
   enter() { $('hud').style.display = 'none'; },
-  update() { if (input.pressed('interact') || input.pressed('attack')) { juice.emit('ui', {}); shell.go('title'); } },
+  update() { if (input.pressed('interact') || input.pressed('attack')) { juice.emit('ui', {}); // evidence capture: game frames POST to the dev server like the lab's
+window.__shot = async (name, opts = {}) => {
+  tick(1 / 60);
+  const dataUrl = renderer.domElement.toDataURL('image/png');
+  const res = await fetch('/__shot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, dataUrl }) });
+  return res.json();
+};
+shell.go('title'); } },
 });
 
 // ---- per-frame visual sync ------------------------------------------------
@@ -576,5 +583,12 @@ window.__tick = tick;
 window.__game = {
   get run() { return run; }, get player() { return player; }, get meta() { return meta; },
   input, juice, shell, startRun, save,
+};
+// evidence capture: game frames POST to the dev server like the lab's
+window.__shot = async (name, opts = {}) => {
+  tick(1 / 60);
+  const dataUrl = renderer.domElement.toDataURL('image/png');
+  const res = await fetch('/__shot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, dataUrl }) });
+  return res.json();
 };
 shell.go('title');
