@@ -100,7 +100,8 @@ const hero = new Hero({
   colliders,
   groundAt: () => 0,
   spawn: [2.5, 0, 6],
-  yaw: Math.PI + 0.35,
+  yaw: 0.15,               // forward = (-sin, -cos): face the ronin, not empty street
+  occluderRoot: scene,
 });
 // the hero here is a walking CAMERA; the ronin is the subject standing still
 const daynight = new DayNight({ scene, sun, fill, hemi, pipeline, root: scene });

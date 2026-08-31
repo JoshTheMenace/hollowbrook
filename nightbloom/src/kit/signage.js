@@ -129,7 +129,10 @@ export const TENANT_IDS = Object.freeze(Object.keys(TENANTS));
 /** Resolve a tenant by id, or deterministically by index. */
 export function tenantOf(key) {
   if (typeof key === 'number') return TENANTS[TENANT_IDS[((key % TENANT_IDS.length) + TENANT_IDS.length) % TENANT_IDS.length]];
-  return TENANTS[key] ?? TENANTS.soba;
+  // an unknown id is an authoring error, not a preference for soba — the
+  // silent fallback swallowed a display string for a whole review round
+  if (!TENANTS[key]) throw new Error(`unknown tenant id "${key}" — ids: ${TENANT_IDS.join(', ')}`);
+  return TENANTS[key];
 }
 
 /* ---- tenant faces (native aspects noted, honoured by `printed`) ------ */

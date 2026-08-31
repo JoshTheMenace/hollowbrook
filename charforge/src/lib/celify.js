@@ -8,42 +8,56 @@
 // rim lighting and ramp (the world's ink pass + cel bands replace them —
 // keeping both is the double-outline artifact the look contract bans).
 //
-// v2 (B2 art review r1): the census judges EFFECTIVE color — material color
-// × vertex colors — so a #ffffff + vertexColors hair can no longer hide from
-// the gate. The guard now pushes HUE out of forbidden bands (not just
-// saturation down: a quieter trespasser is still a trespasser), and grading
-// caps effective saturation into the WORLD's measured band, with exactly one
-// declared owned accent exempt.
+// v3 (B2 art reviews r1+r2): the census judges EFFECTIVE color — material
+// color × vertex colors — so a #ffffff + vertexColors hair can no longer
+// hide from the gate. The guard caps saturation into the WORLD's measured
+// band and pushes VALUE (never hue) inside scene-owned bands; the one owned
+// accent keeps its hue but carries its own saturation cap. The guard is a
+// budgeted safety net — celify reports every correction it makes, and the
+// gate fails a character whose authoring leans on the guard.
 
 export function celify(root, cel, {
   keepEmissive = true,
   accentGuard = [],          // [[name, hue0..1, tol, maxSat]] scene-owned bands
   worldSatCap = null,        // world's measured max saturation; cap everything...
-  ownedAccent = null,        // ...except { name, hue, tol } — the ONE owned accent
+  ownedAccent = null,        // ...except { name, hue, tol, satCap } — the ONE owned accent
 } = {}) {
   const inOwned = (h) => ownedAccent && Math.abs(shortHue(h - ownedAccent.hue)) < (ownedAccent.tol ?? 0.05);
+  // corrections are ACCOUNTED: the guard is a safety net with a budget the
+  // gate enforces, never the authoring mechanism (review r2: a guard that
+  // silently absorbs authoring problems means the gate can't surface them)
+  const corrections = { count: 0, total: 0, maxSatDelta: 0 };
   const gradeHsv = ({ h, s, v }) => {
+    const s0 = s;
     for (const [, fh, tol, maxSat] of accentGuard) {
-      const d = shortHue(h - fh);
-      if (s > (maxSat ?? 0.62) && Math.abs(d) < (tol ?? 0.05)) {
-        // push the hue to the band edge AND cap saturation — out of the band,
-        // not merely quieter inside it
-        h = (fh + Math.sign(d || 1) * (tol ?? 0.05) * 1.15 + 1) % 1;
+      if (s > (maxSat ?? 0.62) && Math.abs(shortHue(h - fh)) < (tol ?? 0.05)) {
+        // in a scene-owned band: cap saturation and push VALUE down (hue is
+        // kept — a hue push is semantically blind and turned amber irises
+        // olive in r2; deep amber-brown is the graceful degrade)
         s = Math.min(s, maxSat ?? 0.62);
+        v *= 0.78;
       }
     }
-    if (worldSatCap != null && !inOwned(h)) s = Math.min(s, worldSatCap);
+    if (worldSatCap != null) {
+      // the owned accent keeps its hue identity but is NOT unlimited
+      s = Math.min(s, inOwned(h) ? (ownedAccent.satCap ?? worldSatCap + 0.1) : worldSatCap);
+    }
+    if (s !== s0) {
+      corrections.count += 1;
+      corrections.maxSatDelta = Math.max(corrections.maxSatDelta, s0 - s);
+    }
+    corrections.total += 1;
     return { h, s, v };
   };
   const guardHex = (hexColor) => {
     const { h, s, v } = hexToHsv(hexColor);
     const g = gradeHsv({ h, s, v });
-    return g.h === h && g.s === s ? hexColor : hsvToHex(g.h, g.s, g.v);
+    return g.h === h && g.s === s && g.v === v ? hexColor : hsvToHex(g.h, g.s, g.v);
   };
 
   const cache = new Map();      // source material -> cel material (shared stays shared)
   const gradedGeo = new WeakSet();
-  const report = { meshes: 0, converted: 0, skipped: 0, colors: new Map() };
+  const report = { meshes: 0, converted: 0, skipped: 0, colors: new Map(), corrections };
   root.traverse((o) => {
     if (!o.isMesh || o.userData.isOutline) return;
     report.meshes++;

@@ -31,7 +31,9 @@ export const BRIDGE = Object.freeze({
     ['lantern-amber', hsv(M.amber).h, 0.04],
     ['blossom-pink', hsv(M.blossom).h, 0.04],
   ],
-  // the character's ONE owned accent: the ronin's indigo hair (the scarf is
-  // graded into the world band — one accent, deliberately, not two)
-  ownedAccent: { name: 'hair-indigo', hue: 225 / 360, tol: 0.05 },
+  // the character's ONE owned accent: the ronin's indigo hair — as a HUE.
+  // satCap is a coarse albedo-space backstop (closes r2's unlimited-sat
+  // hole); the authoritative judgement is the RENDERED gate vs the world's
+  // rendered band (check-celbridge-rendered.mjs).
+  ownedAccent: { name: 'hair-indigo', hue: 225 / 360, tol: 0.05, satCap: base + 0.1 },
 });

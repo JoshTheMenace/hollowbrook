@@ -10,8 +10,9 @@ import { normalizePlan } from '../../../src/contract.js';
 
 export const ERRAND_EVENTS = [
   'dialogue-open', 'dialogue-line', 'dialogue-close',
-  'quest-accept', 'candle-pickup', 'string-dark', 'lanterns-lit', 'quest-complete',
+  'quest-accept', 'candle-pickup', 'string-dark', 'string-glow', 'lanterns-lit', 'quest-complete',
 ];
+export const STAGES = ['meet', 'find', 'relight', 'return', 'done'];
 
 export const RADIUS = 1.7;
 export const LAYOUT = Object.freeze({
@@ -97,6 +98,10 @@ export class ErrandRun {
         this.fx.emit('lanterns-lit', { pos: { x: a.x, z: a.z } });
         return { ok: true, type: 'string', lit: true };
       }
+      if (this.lit) {   // a burning string is never "dark" (truthful state)
+        this.fx.emit('string-glow', { pos: { ...LAYOUT.string } });
+        return { ok: true, type: 'string', lit: true };
+      }
       this.fx.emit('string-dark', { missing: 3 - this.candles.size, pos: { ...LAYOUT.string } });
       return { ok: true, type: 'string', lit: false };
     }
@@ -110,10 +115,15 @@ export class ErrandRun {
       this.fx.emit('dialogue-line', { line: d.lines[d.i], i: d.i });
       return { ok: true, type: 'line', i: d.i };
     }
+    // mutate THEN emit: dialogue-close handlers save and sync UI, so every
+    // state change lands before the first handler runs (B3 review r1: the
+    // tracker was stale and the save said "meet" at the moment of accept)
     this.dialogue = null;
+    if (d.key === 'intro') this.stage = 'find';
+    if (d.key === 'thanks') this.stage = 'done';
     this.fx.emit('dialogue-close', { key: d.key });
-    if (d.key === 'intro') { this.stage = 'find'; this.fx.emit('quest-accept', { pos: { ...LAYOUT.npc } }); }
-    if (d.key === 'thanks') { this.stage = 'done'; this.fx.emit('quest-complete', { pos: { ...LAYOUT.npc } }); }
+    if (d.key === 'intro') this.fx.emit('quest-accept', { pos: { ...LAYOUT.npc } });
+    if (d.key === 'thanks') this.fx.emit('quest-complete', { pos: { ...LAYOUT.npc } });
     return { ok: true, type: 'close', key: d.key };
   }
 
@@ -123,9 +133,13 @@ export class ErrandRun {
   // Persistence contract: snapshots are taken at stable states (no open
   // dialogue box — the shell closes/never saves mid-line).
   serialize() { return { v: 1, stage: this.stage, candles: [...this.candles].sort(), lit: this.lit }; }
+  // A corrupt save yields a FRESH run, never a bricked one: unknown stages
+  // and unknown candle ids are rejected wholesale (B3 review r1).
   static restore(snap, fx) {
     const run = new ErrandRun(fx);
-    if (!snap || snap.v !== 1) return run;
+    if (!snap || snap.v !== 1 || !STAGES.includes(snap.stage) || !Array.isArray(snap.candles)) return run;
+    const known = new Set(LAYOUT.candles.map((c) => c.id));
+    if (!snap.candles.every((id) => known.has(id))) return run;
     run.stage = snap.stage;
     run.candles = new Set(snap.candles);
     run.lit = !!snap.lit;

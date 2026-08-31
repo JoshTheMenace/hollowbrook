@@ -34,7 +34,7 @@ export function buildCorner(scene) {
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   scene.add(ground);
-  const shop = machiya({ tenant: '喫茶 月見', seed: 3, w: 6.4 });
+  const shop = machiya({ tenant: 'kissaten', seed: 3, w: 6.4 });
   shop.position.set(-2.5, 0, -5.4);
   scene.add(shop);
   for (const r of machiya.footprint({ w: 6.4 })) collide(r.x0 - 2.5, r.z0 - 5.4, r.x1 - 2.5, r.z1 - 5.4);
