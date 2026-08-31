@@ -17,6 +17,8 @@ that is why this file exists.)
 | "TTK" measured spawn→death graded geography: it included the ~6s walk from the spawn ring | TTK is **first-damage → death**. Any lifetime metric must state which clock starts it. |
 | TTK medians under a kiting bot graded the bot, not the enemy (strafe-orbit lands ~1 hit/pass; residual floor ~5-7s on tanky chaff) | Use p25 (committed engagements), know the instrument's floor, and never tune game data to fix a bot artifact — the 42→30hp cut was the real signal; the rest was the bot. |
 | A curve checkpoint asked about slimes at minute 4 — waves stop spawning them at 2:30 | A designed-curve point must name an enemy that EXISTS in that wave phase. |
+| Bot-vs-bot "skill headroom" measured my bot-writing, not the design (three router rewrites, all ~1.0×) | Name the SKILL AXIS first. Planning games: information-advantage bots (oracle vs reactive). Execution games: actuation-noise profiles (reaction delay + aim jitter) on the SAME policy — expert 120ms/4° vs novice 340ms/16°. Perfect-execution bots cannot express execution skill at all. |
+| Oracle pre-positioning had NEGATIVE value in a dash game | When the movement verb is also the scoring instrument, repositioning spends the score resource — plan-ahead gates are meaningless for such designs; that's a design classifier, not a failure. |
 | check-audio flaked 79%→100% between identical runs | Unseeded synthesis. ALL render randomness goes through `seedAudio`/`arand`; gates seed per item. Byte-diff two runs to prove it. |
 | A seam-click gate failed a drum loop's downbeat | Compare the seam step to the stem's **own max transient** — an attack at the wrap is music, not a click. |
 

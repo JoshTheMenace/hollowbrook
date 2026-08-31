@@ -1,0 +1,354 @@
+// JUICE BOX rules — pure logic, no rendering, no DOM. The renderer and the
+// headless gate consume the same class through the fx adapter (the survivors
+// architecture, applied to a 60-second score attack).
+//
+// Determinism is the fairness model: the whole spirit schedule is a pure
+// function of the seed. Same seed = the identical puzzle.
+
+export const COURT = { x0: -8.5, z0: -5, x1: 8.5, z1: 5 };
+export const RUN_SECONDS = 60;
+export const DASH = { len: 3.2, time: 0.1, recover: 0.45, radius: 0.5 };
+export const CHAIN_WINDOW = 1.6;   // seconds between pops that keep the combo
+export const SPIRIT = { r: 0.35, ttlMin: 2.9, ttlMax: 3.9, driftMin: 0.35, driftMax: 0.75 };
+
+export const JUICE_EVENTS = [
+  'dash', 'pop', 'multi-pop', 'combo-break', 'fade-warning', 'spirit-fade',
+  'oni-hit', 'final-10s', 'timeup',
+];
+export const ONI = { r: 0.62, stun: 1.2, count: 2 };
+
+const mulberry32 = (a) => () => {
+  a |= 0; a = (a + 0x6D2B79F5) | 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+
+// The seeded schedule: [{t, x, z, vx, vz, ttl}] for the whole run.
+// Rhythm: a base drip plus a 3-spirit cluster burst roughly every 7 s —
+// the cluster is the risk/reward the contract promises.
+export function makeSchedule(seed) {
+  const r = mulberry32(seed);
+  const events = [];
+  let t = 0.6;
+  let nextCluster = 5 + r() * 3;
+  const edgeSpawn = () => {
+    const side = Math.floor(r() * 4);
+    const u = r();
+    let x, z;
+    if (side === 0) { x = COURT.x0 + 0.2; z = COURT.z0 + u * (COURT.z1 - COURT.z0); }
+    else if (side === 1) { x = COURT.x1 - 0.2; z = COURT.z0 + u * (COURT.z1 - COURT.z0); }
+    else if (side === 2) { z = COURT.z0 + 0.2; x = COURT.x0 + u * (COURT.x1 - COURT.x0); }
+    else { z = COURT.z1 - 0.2; x = COURT.x0 + u * (COURT.x1 - COURT.x0); }
+    // drift inward with a slight tangent
+    const cx = -x * (0.4 + r() * 0.4), cz = -z * (0.4 + r() * 0.4);
+    const len = Math.hypot(cx, cz) || 1;
+    const sp = SPIRIT.driftMin + r() * (SPIRIT.driftMax - SPIRIT.driftMin);
+    return { x, z, vx: (cx / len) * sp + (r() - 0.5) * 0.2, vz: (cz / len) * sp + (r() - 0.5) * 0.2 };
+  };
+  while (t < RUN_SECONDS - 1.2) {
+    if (t >= nextCluster) {
+      // a cluster: 3 spirits near one edge point, tight in time
+      const base = edgeSpawn();
+      for (let i = 0; i < 3; i++) {
+        events.push({
+          t: t + i * 0.18,
+          x: Math.max(COURT.x0 + 0.3, Math.min(COURT.x1 - 0.3, base.x + (r() - 0.5) * 1.6)),
+          z: Math.max(COURT.z0 + 0.3, Math.min(COURT.z1 - 0.3, base.z + (r() - 0.5) * 1.6)),
+          vx: base.vx * 0.55, vz: base.vz * 0.55,   // clusters drift together, slowly — the line stays buildable
+          ttl: SPIRIT.ttlMin + r() * (SPIRIT.ttlMax - SPIRIT.ttlMin),
+        });
+      }
+      nextCluster = t + 4.5 + r() * 2;
+      t += 0.9 + r() * 0.5;
+    } else {
+      const ttl = SPIRIT.ttlMin + r() * (SPIRIT.ttlMax - SPIRIT.ttlMin);
+      // projected-alive cap: an unpopped board must stay readable
+      const alive = events.filter((e) => e.t <= t && e.t + e.ttl > t).length;
+      if (alive < 7) events.push({ t, ...edgeSpawn(), ttl });
+      t += 0.5 + r() * 0.4;
+    }
+  }
+  // gold spirits: the commitment decision. Worth 5x, short-lived, far from
+  // centre — weaving one in WITHOUT dropping the chain is the skill.
+  for (let gt = 4 + r() * 2; gt < RUN_SECONDS - 3; gt += 5.5 + r() * 1.6) {
+    const sp = edgeSpawn();
+    events.push({ t: gt, ...sp, ttl: 2.3 + r() * 0.5, gold: true });
+  }
+  events.sort((a, b) => a.t - b.t);
+  return events;
+}
+
+export class JuiceRun {
+  constructor({ seed = 1, fx = {} } = {}) {
+    this.seed = seed;
+    this.fx = fx;
+    this.schedule = makeSchedule(seed);
+    this.nextSpawn = 0;
+    this.time = 0;
+    this.score = 0;
+    this.combo = 1;
+    this.bestCombo = 1;
+    this.lastPopAt = -Infinity;
+    this.pops = 0;
+    this.fades = 0;
+    this.dashes = 0;
+    this.spirits = [];
+    this.pos = { x: 0, z: 0 };
+    this.dashUntil = 0;          // dashing while time < dashUntil
+    this.dashReadyAt = 0;
+    this.dashDir = { x: 0, z: 0 };
+    this.over = false;
+    this._final10 = false;
+    // oni orbs: seeded lissajous patrols — the risk the router routes around
+    const orng = mulberry32(seed * 7 + 13);
+    this.onis = Array.from({ length: ONI.count }, (_, i) => ({
+      ax: 5.5 + orng() * 2, az: 3 + orng() * 1.2,
+      fx: 0.25 + orng() * 0.2, fz: 0.31 + orng() * 0.2,
+      px: orng() * 6.28, pz: orng() * 6.28,
+      x: 0, z: 0,
+    }));
+    this.stunnedUntil = -1;
+  }
+
+  canDash() { return !this.over && this.time >= this.dashReadyAt && this.time >= this.stunnedUntil; }
+
+  dash(dx, dz) {
+    if (!this.canDash()) return false;
+    const l = Math.hypot(dx, dz);
+    if (l < 1e-6) return false;
+    this.dashDir = { x: dx / l, z: dz / l };
+    this.dashUntil = this.time + DASH.time;
+    this.dashReadyAt = this.time + DASH.recover;
+    this.dashes++;
+    this._dashPops = 0;
+    this.fx.dash?.({ pos: { ...this.pos }, dir: { ...this.dashDir } });
+    return true;
+  }
+
+  update(dt) {
+    if (this.over) return;
+    this.time += dt;
+    if (this.time >= RUN_SECONDS) {
+      this.over = true;
+      this.fx.timeup?.({ score: this.score, bestCombo: this.bestCombo, pops: this.pops });
+      return;
+    }
+    if (!this._final10 && this.time >= RUN_SECONDS - 10) {
+      this._final10 = true;
+      this.fx['final-10s']?.({});
+    }
+    // spawn
+    while (this.nextSpawn < this.schedule.length && this.schedule[this.nextSpawn].t <= this.time) {
+      const s = this.schedule[this.nextSpawn++];
+      this.spirits.push({ x: s.x, z: s.z, vx: s.vx, vz: s.vz, dieAt: this.time + s.ttl, warned: false, gold: !!s.gold });
+    }
+    // dash movement (swept hits)
+    if (this.time < this.dashUntil) {
+      const step = (DASH.len / DASH.time) * dt;
+      const nx = this.pos.x + this.dashDir.x * step;
+      const nz = this.pos.z + this.dashDir.z * step;
+      // hits along the segment
+      for (const sp of this.spirits) {
+        if (sp.popped) continue;
+        if (segCircle(this.pos.x, this.pos.z, nx, nz, sp.x, sp.z, DASH.radius + SPIRIT.r)) {
+          sp.popped = true;
+          this.pops++;
+          this._dashPops++;
+          // chains SUSTAIN on any pop, but combo GROWS only on line pops
+          // (2nd+ spirit in one dash) and golds — singles keep the flame,
+          // lines and commitment build it. Skill = constructing lines.
+          if (this.time - this.lastPopAt > CHAIN_WINDOW) this.combo = 1;
+          if (this._dashPops >= 2) this.combo += 1;
+          if (sp.gold) this.combo += 2;
+          this.bestCombo = Math.max(this.bestCombo, this.combo);
+          this.lastPopAt = this.time;
+          this.score += (sp.gold ? 50 : 10) * this.combo;
+          this.fx.pop?.({ pos: { x: sp.x, z: sp.z }, combo: this.combo, score: this.score, gold: sp.gold });
+          if (this._dashPops >= 2) this.fx['multi-pop']?.({ pos: { x: sp.x, z: sp.z }, count: this._dashPops });
+        }
+      }
+      this.pos.x = Math.max(COURT.x0, Math.min(COURT.x1, nx));
+      this.pos.z = Math.max(COURT.z0, Math.min(COURT.z1, nz));
+    }
+    // chain decay: too long since a pop drops the combo (bank behavior)
+    if (this.combo > 1 && this.time - this.lastPopAt > CHAIN_WINDOW) {
+      this.combo = 1;
+      this.fx['combo-break']?.({ reason: 'timer' });
+    }
+    // spirits drift, warn, fade
+    for (let i = this.spirits.length - 1; i >= 0; i--) {
+      const sp = this.spirits[i];
+      if (sp.popped) { this.spirits.splice(i, 1); continue; }
+      sp.x += sp.vx * dt;
+      sp.z += sp.vz * dt;
+      sp.x = Math.max(COURT.x0, Math.min(COURT.x1, sp.x));
+      sp.z = Math.max(COURT.z0, Math.min(COURT.z1, sp.z));
+      const left = sp.dieAt - this.time;
+      if (!sp.warned && left < 1.0) { sp.warned = true; this.fx['fade-warning']?.({ pos: { x: sp.x, z: sp.z } }); }
+      if (left <= 0) {
+        this.spirits.splice(i, 1);
+        this.fades++;
+        if (this.combo > 1) this.fx['combo-break']?.({ reason: 'fade' });
+        this.combo = 1;
+        this.fx['spirit-fade']?.({ pos: { x: sp.x, z: sp.z } });
+      }
+    }
+    // oni orbs patrol; touching one stuns and breaks the chain
+    for (const o of this.onis) {
+      o.x = Math.sin(this.time * o.fx * 6.28 + o.px) * o.ax;
+      o.z = Math.sin(this.time * o.fz * 6.28 + o.pz) * o.az;
+      if (this.time >= this.stunnedUntil) {
+        const d = Math.hypot(this.pos.x - o.x, this.pos.z - o.z);
+        if (d < ONI.r + 0.3) {
+          this.stunnedUntil = this.time + ONI.stun;
+          this.dashUntil = 0;                    // the dash dies on impact
+          if (this.combo > 1) this.fx['combo-break']?.({ reason: 'oni' });
+          this.combo = 1;
+          this.stuns = (this.stuns ?? 0) + 1;
+          this.fx['oni-hit']?.({ pos: { x: o.x, z: o.z } });
+        }
+      }
+    }
+  }
+}
+
+function segCircle(x1, z1, x2, z2, cx, cz, r) {
+  const dx = x2 - x1, dz = z2 - z1;
+  const l2 = dx * dx + dz * dz;
+  let t = l2 ? ((cx - x1) * dx + (cz - z1) * dz) / l2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  const px = x1 + t * dx - cx, pz = z1 + t * dz - cz;
+  return px * px + pz * pz <= r * r;
+}
+
+// --- bots (for gates; players are humans) ----------------------------------
+// Greedy: dash at the nearest live spirit whenever ready.
+export function greedyBot(run) {
+  if (!run.canDash() || !run.spirits.length) return;
+  let best = null, bd = Infinity;
+  for (const sp of run.spirits) {
+    const d = (sp.x - run.pos.x) ** 2 + (sp.z - run.pos.z) ** 2;
+    if (d < bd) { bd = d; best = sp; }
+  }
+  run.dash(best.x - run.pos.x, best.z - run.pos.z);
+}
+
+// Router: the skilled bot. Stays where density is (corridor sweeps among
+// NEAR spirits), and commits to gold when it is worth the trip — chain
+// preservation by popping often beats heroic cross-court saves.
+export function routerBot(run) {
+  if (!run.canDash()) return;
+  // survival first: an oni closing on the resting spot forces an escape dash
+  for (const o of run.onis) {
+    const d = Math.hypot(run.pos.x - o.x, run.pos.z - o.z);
+    if (d < 1.15) {
+      let ex = run.pos.x - o.x, ez = run.pos.z - o.z;
+      const l = Math.hypot(ex, ez) || 1;
+      // bias the escape toward the court centre so we don't pin on a wall
+      ex = ex / l - run.pos.x * 0.06;
+      ez = ez / l - run.pos.z * 0.06;
+      run.dash(ex, ez);
+      return;
+    }
+  }
+  if (!run.spirits.length) return;
+  // LINE SEEKING: combo grows only on multi-pop dashes, so the skilled move
+  // is a dash whose corridor sweeps a PAIR. Enumerate pairs, test whether a
+  // single dash from here can take both (aim through the far one).
+  {
+    let bestPair = null, bestVal = -Infinity;
+    const sp = run.spirits;
+    for (let i = 0; i < sp.length; i++) {
+      for (let j = 0; j < sp.length; j++) {
+        if (i === j) continue;
+        const a2 = sp[i], b2 = sp[j];
+        const dx = b2.x - run.pos.x, dz = b2.z - run.pos.z;
+        const l = Math.hypot(dx, dz) || 1;
+        if (l > DASH.len + SPIRIT.r) continue;
+        const ex = run.pos.x + (dx / l) * DASH.len, ez = run.pos.z + (dz / l) * DASH.len;
+        if (!segCircle(run.pos.x, run.pos.z, ex, ez, a2.x, a2.z, DASH.radius + SPIRIT.r)) continue;
+        let oniRisk = 0;
+        for (const o of run.onis) if (segCircle(run.pos.x, run.pos.z, ex, ez, o.x, o.z, ONI.r + 0.45)) oniRisk++;
+        const val = 30 + (a2.gold ? 40 : 0) + (b2.gold ? 40 : 0) - oniRisk * 200 - l * 0.3;
+        if (val > bestVal) { bestVal = val; bestPair = { dx, dz }; }
+      }
+    }
+    if (bestPair && bestVal > 0) { run.dash(bestPair.dx, bestPair.dz); return; }
+  }
+  const near = run.spirits.filter((sp) => Math.hypot(sp.x - run.pos.x, sp.z - run.pos.z) <= DASH.len * 1.6);
+  const pool = near.length ? near : run.spirits;
+  let best = null, bestScore = -Infinity;
+  for (const target of pool) {
+    const dx = target.x - run.pos.x, dz = target.z - run.pos.z;
+    const dist = Math.hypot(dx, dz) || 1;
+    const ex = run.pos.x + (dx / dist) * DASH.len, ez = run.pos.z + (dz / dist) * DASH.len;
+    let count = 0, goldOnLine = 0;
+    for (const sp of run.spirits) {
+      if (segCircle(run.pos.x, run.pos.z, ex, ez, sp.x, sp.z, DASH.radius + SPIRIT.r)) {
+        count++;
+        if (sp.gold) goldOnLine++;
+      }
+    }
+    let oniRisk = 0;
+    for (const o of run.onis) {
+      if (segCircle(run.pos.x, run.pos.z, ex, ez, o.x, o.z, ONI.r + 0.45)) oniRisk++;
+    }
+    const s = count * 12 + goldOnLine * 40 - dist * 0.5 - oniRisk * 200;
+    if (s > bestScore) { bestScore = s; best = { dx, dz }; }
+  }
+  if (best) run.dash(best.dx, best.dz);
+}
+
+// Oracle: the router plus SEED KNOWLEDGE — between engagements it
+// pre-positions toward spawns arriving in the next ~2.6s (clusters and
+// golds first). This is what a repeat player of a daily seed actually
+// learns, so the headroom gate measures whether the DESIGN pays for
+// planning, not whether one hand-written policy beats another.
+export function oracleBot(run) {
+  if (!run.canDash()) return;
+  // engaged? let the router play the board
+  const nearNow = run.spirits.some((sp) => Math.hypot(sp.x - run.pos.x, sp.z - run.pos.z) <= DASH.len * 1.35);
+  if (nearNow) { routerBot(run); return; }
+  // otherwise: move toward what the schedule says comes next
+  const soon = run.schedule.filter((e) => e.t > run.time && e.t < run.time + 2.6 && !e._taken);
+  if (soon.length) {
+    let wx = 0, wz = 0, w = 0;
+    for (const e of soon) {
+      const wt = (e.gold ? 3 : 1) / Math.max(0.3, e.t - run.time);
+      wx += e.x * wt; wz += e.z * wt; w += wt;
+    }
+    const tx = wx / w, tz = wz / w;
+    const d = Math.hypot(tx - run.pos.x, tz - run.pos.z);
+    if (d > 1.2) { run.dash(tx - run.pos.x, tz - run.pos.z); return; }
+  }
+  routerBot(run);
+}
+
+// Actuation-noise wrapper: the measurable form of EXECUTION skill. The same
+// policy, played with human imperfections — reaction delay + aim jitter —
+// at two profiles. If expert reflexes don't outscore novice reflexes, the
+// design doesn't reward the skill it actually asks for. (Perfect-execution
+// bots cannot express this axis; planning bots measured nothing here.)
+export function makeNoisy(policy, { delay = 0.25, jitterDeg = 12, seed = 99 } = {}) {
+  const r = mulberry32(seed);
+  let pendingAt = -1;
+  return (run) => {
+    if (!run.canDash()) { pendingAt = -1; return; }
+    if (pendingAt < 0) { pendingAt = run.time + delay * (0.7 + r() * 0.6); return; }
+    if (run.time < pendingAt) return;
+    pendingAt = -1;
+    // let the policy choose, then corrupt the aim
+    const realDash = run.dash.bind(run);
+    let chosen = null;
+    run.dash = (dx, dz) => { chosen = { dx, dz }; return true; };
+    policy(run);
+    run.dash = realDash;
+    if (!chosen) return;
+    const ang = Math.atan2(chosen.dz, chosen.dx) + (r() - 0.5) * 2 * (jitterDeg * Math.PI / 180);
+    realDash(Math.cos(ang), Math.sin(ang));
+  };
+}
+
+export const NOVICE = { delay: 0.34, jitterDeg: 16, seed: 5 };
+export const EXPERT = { delay: 0.12, jitterDeg: 4, seed: 5 };
