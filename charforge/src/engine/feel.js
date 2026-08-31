@@ -36,7 +36,8 @@ export class Feel {
       }
       this._throttle.set(event, now);
     }
-    if (fx.sfx && this.sfx) this.sfx.play(fx.sfx, fx.sfxOpts);
+    if (fx.sfx && this.sfx) this.sfx.play(fx.sfx, typeof fx.sfxOpts === 'function' ? fx.sfxOpts(data) : fx.sfxOpts);
+    if (fx.call) fx.call(data);
     if (fx.burst && data.pos) this.vfx.burst(data.pos, fx.burst);
     if (fx.shake) this.shake.add(fx.shake);
     if (fx.hitstop) this.hitstop.trigger(fx.hitstop);

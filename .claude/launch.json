@@ -22,6 +22,17 @@
         "dev"
       ],
       "port": 5178
+    },
+    {
+      "name": "battery",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "battery",
+        "run",
+        "dev"
+      ],
+      "port": 5183
     }
   ]
 }

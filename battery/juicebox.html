@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JUICE BOX</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #16121f; font-family: ui-rounded, system-ui, sans-serif; }
+      #view { width: 100vw; height: 100vh; display: block; }
+      .hud { position: fixed; pointer-events: none; color: #f2ecdf; text-shadow: 0 2px 0 rgba(10, 6, 20, 0.6); }
+      #score { top: 18px; left: 24px; font-size: 40px; font-weight: 800; font-variant-numeric: tabular-nums; }
+      #combo { top: 66px; left: 24px; font-size: 18px; font-weight: 800; color: #ffd76a; transition: transform 0.08s; }
+      #clock { top: 18px; right: 24px; font-size: 40px; font-weight: 800; font-variant-numeric: tabular-nums; }
+      #breakflash { position: fixed; inset: 0; pointer-events: none; background: #2a2438; opacity: 0; transition: opacity 0.3s; mix-blend-mode: saturation; }
+      #overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10, 6, 20, 0.6); z-index: 10; }
+      #panel { background: rgba(28, 22, 46, 0.96); border: 3px solid #5a4a86; border-radius: 18px; padding: 30px 48px; text-align: center; color: #ece8fa; }
+      #panel h1 { margin: 0 0 4px; font-size: 42px; color: #ffd76a; letter-spacing: 2px; text-shadow: 0 0 22px rgba(255, 200, 90, 0.4); }
+      #panel .sub { opacity: 0.6; margin: 0 0 16px; }
+      #panel .big { font-size: 52px; font-weight: 800; color: #6ee0ff; margin: 6px 0; }
+      #panel .hint { font-size: 13px; opacity: 0.75; line-height: 1.7; }
+      #panel .start { font-weight: 800; color: #6ee0ff; animation: pulse 1.4s infinite; margin-top: 12px; }
+      @keyframes pulse { 50% { opacity: 0.4; } }
+      #seedrow { font-size: 13px; opacity: 0.8; margin-top: 10px; }
+      #seedrow b { color: #ffd76a; }
+    </style>
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <div id="breakflash"></div>
+    <div class="hud" id="score">0</div>
+    <div class="hud" id="combo"></div>
+    <div class="hud" id="clock">60</div>
+    <div id="overlay">
+      <div id="panel">
+        <h1>JUICE BOX</h1>
+        <p class="sub">60 seconds · one verb · pop the spirits</p>
+        <div id="result" style="display:none"><div class="big" id="finalscore"></div><div id="finalstats" class="sub"></div></div>
+        <p class="hint">TAP a direction (WASD / arrows) or CLICK to dash.<br>
+        Lines through 2+ build your combo · gold is worth 5× · dodge the oni.<br>
+        A spirit that fades breaks your chain.</p>
+        <p class="start" id="startline">press any direction to start</p>
+        <div id="seedrow">seed <b id="seedlabel"></b> — same seed, same puzzle · [ / ] to change</div>
+      </div>
+    </div>
+    <script type="module" src="/src/juicebox/main.js"></script>
+  </body>
+</html>
