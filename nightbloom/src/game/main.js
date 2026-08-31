@@ -352,6 +352,24 @@ window.__playCheck = async (seconds = 20) => {
   };
 };
 
+// ---- input-latency probe --------------------------------------------------
+// A real key event through the real listeners: how many ticks until the
+// hero's position responds? 1 = consumed next tick (the design target).
+window.__latencyCheck = () => {
+  hero.virtual.move = { x: 0, z: 0 };
+  for (let i = 0; i < 40; i++) tick(1 / 60);
+  const before = hero.position.clone();
+  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW' }));
+  let framesToMove = -1;
+  for (let i = 0; i < 20; i++) {
+    tick(1 / 60);
+    if (framesToMove < 0 && hero.position.distanceTo(before) > 1e-3) framesToMove = i + 1;
+  }
+  window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyW' }));
+  for (let i = 0; i < 40; i++) tick(1 / 60);
+  return { framesToMove, msAt60fps: +(framesToMove * 1000 / 60).toFixed(1), pass: framesToMove >= 1 && framesToMove <= 2 };
+};
+
 // ---- capture + bot hooks --------------------------------------------------
 window.__tick = tick;
 window.__game = { hero, actor, daynight, vignette, scene, camera, pipeline, startNight, get battle() { return battle; } };

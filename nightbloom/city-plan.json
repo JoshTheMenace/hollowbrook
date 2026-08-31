@@ -877,5 +877,77 @@
       ],
       "why": "Standing in the arena field at night, the player must see the shrine torii lit on its terrace — night events are telegraphed from the shrine, and the town's whole geometry says the shrine watches the field."
     }
-  ]
+  ],
+  "game": {
+    "$comment": "Game vocabulary (Stage A2): validated by scripts/check-game.mjs against the BUILT scene, not prose. An arena's cover/elevation/landmark minimums define combat-space quality the way sockets define seams.",
+    "arenas": [
+      {
+        "id": "festival-arena",
+        "district": "festival-ground",
+        "rect": {
+          "x0": 29,
+          "z0": -3,
+          "x1": 53,
+          "z1": 15
+        },
+        "min_cover": 3,
+        "min_elevation": 1,
+        "min_landmarks": 1,
+        "spawn_ring": {
+          "r_min": 10.2,
+          "r_max": 11.7
+        },
+        "$comment": "KNOWN RED as of A2: the festival brief demanded a COLLIDER-FREE field (the combat engine has no obstacle avoidance yet), so cover=0/elevation=0. The gate states the target; closing it needs Run-side obstacle handling + a festival re-brief. Landmark: the yagura reads from everywhere in the rect."
+      }
+    ],
+    "npc_posts": [
+      {
+        "id": "elder",
+        "district": "shrine-rise",
+        "at": [
+          16,
+          -36.5
+        ],
+        "facing": [
+          0,
+          1
+        ],
+        "why": "quest giver at the hall front, watching the stair"
+      },
+      {
+        "id": "mika",
+        "district": "canal-lane",
+        "at": [
+          -27,
+          36.4
+        ],
+        "facing": [
+          0,
+          -1
+        ],
+        "why": "errands on the south bank at the west footbridge foot"
+      },
+      {
+        "id": "fox",
+        "district": "shrine-rise",
+        "at": [
+          24,
+          -41.5
+        ],
+        "facing": [
+          -1,
+          0
+        ],
+        "why": "under the camphor; flees to the festival ground at dusk"
+      }
+    ],
+    "objectives": [
+      {
+        "id": "survive-night",
+        "kind": "survive",
+        "arena": "festival-arena",
+        "seconds": 480
+      }
+    ]
+  }
 }
