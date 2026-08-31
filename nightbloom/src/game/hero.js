@@ -10,9 +10,40 @@ import * as THREE from 'three';
 const RADIUS = 0.34;
 const STEP = 0.38;
 
+// The camera boom, as a pure function — the runtime (Hero.update) and the
+// occlusion gate (scripts/check-occlusion.mjs) both call THIS, so what the
+// gate sweeps is the camera the player actually gets, by construction.
+// `raycast(from, to)` -> nearest hit {point, distance} | null (occluders).
+export function resolveCamera({ px, pz, eyeY, camYaw, pitch, dist, groundAt, raycast = null }) {
+  const cy = eyeY + 1.55;
+  let bx = px + Math.sin(camYaw) * Math.cos(pitch) * dist;
+  let bz = pz + Math.cos(camYaw) * Math.cos(pitch) * dist;
+  let by = cy - Math.sin(pitch) * dist;
+  const floor = groundAt(bx, bz) + 0.35;
+  if (by < floor) by = floor;
+  if (raycast) {
+    // head -> boom: if town geometry blocks the line, pull the camera in
+    // along the ray to just in front of the hit (0.3m margin, min 1.2m out)
+    const from = { x: px, y: cy, z: pz };
+    const hit = raycast(from, { x: bx, y: by, z: bz });
+    if (hit) {
+      const full = Math.hypot(bx - px, by - cy, bz - pz);
+      const t = Math.max(1.2 / full, (hit.distance - 0.3) / full);
+      if (t < 1) {
+        bx = px + (bx - px) * t;
+        by = cy + (by - cy) * t;
+        bz = pz + (bz - pz) * t;
+      }
+    }
+  }
+  return { bx, by, bz, cy };
+}
+
 export class Hero {
-  constructor({ actor, camera, canvas, colliders, groundAt, spawn = [0, 0, 0], yaw = 0 }) {
+  constructor({ actor, camera, canvas, colliders, groundAt, spawn = [0, 0, 0], yaw = 0, occluderRoot = null }) {
     this.actor = actor;
+    this.occluderRoot = occluderRoot;   // town geometry the camera must not sit behind
+    this._camRaycaster = new THREE.Raycaster();
     this.camera = camera;
     this.canvas = canvas;
     this.colliders = colliders;
@@ -139,14 +170,24 @@ export class Hero {
     const wantPitch = this.battleCam ? -1.08 : this.camPitch;  // near-overhead: back-spawns must be seen
     this._dist = (this._dist ?? this.dist) + (wantDist - (this._dist ?? this.dist)) * (1 - Math.exp(-3.5 * dt));
     this._pitch = (this._pitch ?? this.camPitch) + (wantPitch - (this._pitch ?? this.camPitch)) * (1 - Math.exp(-3.5 * dt));
-    const cy = this.eyeY + 1.55;
-    const bx = this.position.x + Math.sin(this.camYaw) * Math.cos(this._pitch) * this._dist;
-    const bz = this.position.z + Math.cos(this.camYaw) * Math.cos(this._pitch) * this._dist;
-    let by = cy - Math.sin(this._pitch) * this._dist;
-    const floor = this.groundAt(bx, bz) + 0.35;
-    if (by < floor) by = floor;
+    const { bx, by, bz, cy } = resolveCamera({
+      px: this.position.x, pz: this.position.z, eyeY: this.eyeY,
+      camYaw: this.camYaw, pitch: this._pitch, dist: this._dist,
+      groundAt: this.groundAt,
+      raycast: this.occluderRoot ? (from, to) => this._camRay(from, to) : null,
+    });
     this.camera.position.set(bx, by, bz);
     this.camera.lookAt(this.position.x, cy - 0.35, this.position.z);
+  }
+
+  _camRay(from, to) {
+    const r = this._camRaycaster;
+    const dir = new THREE.Vector3(to.x - from.x, to.y - from.y, to.z - from.z);
+    const far = dir.length();
+    r.set(new THREE.Vector3(from.x, from.y, from.z), dir.normalize());
+    r.near = 0.05;
+    r.far = far;
+    return r.intersectObject(this.occluderRoot, true).find((h) => h.object.visible) ?? null;
   }
 
   place(x, z, camYaw = this.camYaw) {

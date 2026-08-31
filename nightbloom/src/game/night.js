@@ -17,6 +17,17 @@ export const NIGHT_EVENTS = [
 ];
 const CENTER = { x: (ARENA.x0 + ARENA.x1) / 2, z: (ARENA.z0 + ARENA.z1) / 2 };
 
+// Where a player entering from town actually lands: THE spawn clamp. One
+// function, used by the battle AND swept by check-occlusion.mjs — the review
+// measured the old clamp (x0+1 = 30) dropping every town arrival into the
+// yagura's camera-blind strip (nightbloom-play-review-r1, highest-impact).
+export function arenaEntry(x, z) {
+  return {
+    x: THREE.MathUtils.clamp(x, ARENA.x0 + 1, ARENA.x1 - 1),
+    z: THREE.MathUtils.clamp(z, ARENA.z0 + 1, ARENA.z1 - 1),
+  };
+}
+
 export class NightBattle {
   // opts: { scene, hero, character, onEvent(type, data), groundY }
   constructor({ scene, hero, character = 'ronin', onEvent = () => {}, groundY = 0 }) {
@@ -45,9 +56,8 @@ export class NightBattle {
       bounds: ARENA,
       fx: this.adapter(),
     });
-    this.run.playerPos.set(
-      THREE.MathUtils.clamp(hero.position.x, ARENA.x0 + 1, ARENA.x1 - 1), 0,
-      THREE.MathUtils.clamp(hero.position.z, ARENA.z0 + 1, ARENA.z1 - 1));
+    const entry = arenaEntry(hero.position.x, hero.position.z);
+    this.run.playerPos.set(entry.x, 0, entry.z);
     this.over = null;
 
     // the bloom lights its own battlefield: a spirit glow riding the player
