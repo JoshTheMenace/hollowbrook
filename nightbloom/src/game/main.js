@@ -282,13 +282,125 @@ requestAnimationFrame(function loop() {
   requestAnimationFrame(loop);
 });
 
+// ---- legibility instrument ------------------------------------------------
+// Frustum containment is not legibility (review r1, gate-blindness 3): a
+// threat must also OCCUPY pixels and SEPARATE from its backdrop. Two reads
+// per sample: an ID pass (each enemy rendered a flat unique red index to an
+// offscreen target — pixel share, occlusion-true) and the frame the player
+// actually saw (canvas is preserved; luma judged in sRGB) for contrast.
+const LEGIBLE = {
+  minPx: 14, minSep: 0.09,        // a chaff threat at combat range
+  eliteMinPx: 56, eliteMinSep: 0.12, // an elite must read AS an elite
+  combatRange: 12,                // m — the threats that can kill you soon
+};
+let _idRT = null, _idBuf = null, _lumaCanvas = null, _idBlack = null;
+const _idMats = [];
+function measureLegibility() {
+  if (!battle) return null;
+  const W = 320, H = Math.max(2, Math.round(W / camera.aspect / 2) * 2);
+  if (!_idRT || _idRT.width !== W || _idRT.height !== H) {
+    _idRT?.dispose();
+    _idRT = new THREE.WebGLRenderTarget(W, H);
+    _idBuf = new Uint8Array(W * H * 4);
+    _lumaCanvas = document.createElement('canvas');
+    _lumaCanvas.width = W; _lumaCanvas.height = H;
+  }
+  // the frame the player saw, downscaled to the ID pass grid
+  const lctx = _lumaCanvas.getContext('2d', { willReadFrequently: true });
+  lctx.drawImage(renderer.domElement, 0, 0, W, H);
+  const shown = lctx.getImageData(0, 0, W, H).data;
+  // ID pass: threats flat-colored by index, everything else black, no sky/fog
+  const pairs = [...battle.critters.entries()];   // [enemy, critter]
+  const owner = new Map();
+  pairs.forEach(([, c], i) => c.root.traverse((o) => { if (o.isMesh) owner.set(o, i); }));
+  _idBlack ??= new THREE.MeshBasicMaterial({ fog: false });
+  _idBlack.color.setRGB(0, 0, 0);
+  const restore = [];
+  scene.traverse((o) => {
+    if (o.isMesh) {
+      restore.push([o, o.material]);
+      const i = owner.get(o);
+      if (i === undefined) o.material = _idBlack;
+      else {
+        if (!_idMats[i]) { _idMats[i] = new THREE.MeshBasicMaterial({ fog: false }); }
+        _idMats[i].color.setRGB((i + 1) / 255, 0, 0);
+        o.material = _idMats[i];
+      }
+    } else if ((o.isPoints || o.isLine || o.isSprite) && o.visible) {
+      restore.push([o, null]);
+      o.visible = false;
+    }
+  });
+  const keepBg = scene.background, keepFog = scene.fog;
+  scene.background = null; scene.fog = null;
+  renderer.setRenderTarget(_idRT);
+  renderer.render(scene, camera);   // instrument pass, not presentation
+  renderer.readRenderTargetPixels(_idRT, 0, 0, W, H, _idBuf);
+  renderer.setRenderTarget(null);
+  scene.background = keepBg; scene.fog = keepFog;
+  for (const [o, m] of restore) { if (m === null) o.visible = true; else o.material = m; }
+  // per-enemy pixel share + bbox + own luma (RT rows are y-flipped vs canvas)
+  const n = pairs.length;
+  const px = new Array(n).fill(0);
+  const rgb = Array.from({ length: n }, () => [0, 0, 0]);
+  const box = Array.from({ length: n }, () => [W, H, -1, -1]);
+  for (let p = 0; p < W * H; p++) {
+    const id = _idBuf[p * 4];
+    if (!id || id > n) continue;
+    const i = id - 1;
+    const x = p % W, ry = (p / W) | 0, y = H - 1 - ry;
+    const k = (y * W + x) * 4;
+    px[i]++;
+    rgb[i][0] += shown[k]; rgb[i][1] += shown[k + 1]; rgb[i][2] += shown[k + 2];
+    const b = box[i];
+    if (x < b[0]) b[0] = x; if (y < b[1]) b[1] = y;
+    if (x > b[2]) b[2] = x; if (y > b[3]) b[3] = y;
+  }
+  // redmean color distance in sRGB, normalized 0..1 — hue counts, so a green
+  // threat on grey ground scores what the eye gets, not just brightness
+  const redmean = (a, b) => {
+    const rbar = (a[0] + b[0]) / 2;
+    const dr = a[0] - b[0], dg = a[1] - b[1], db = a[2] - b[2];
+    return Math.sqrt((2 + rbar / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rbar) / 256) * db * db) / 765;
+  };
+  const out = new Map();
+  pairs.forEach(([e], i) => {
+    let sep = 0;
+    if (px[i] > 0) {
+      const [x0, y0, x1, y1] = box[i];
+      const back = [0, 0, 0];
+      let bn = 0;
+      for (let y = Math.max(0, y0 - 5); y <= Math.min(H - 1, y1 + 5); y++) {
+        for (let x = Math.max(0, x0 - 5); x <= Math.min(W - 1, x1 + 5); x++) {
+          if (_idBuf[((H - 1 - y) * W + x) * 4]) continue;   // another threat, not backdrop
+          const k = (y * W + x) * 4;
+          back[0] += shown[k]; back[1] += shown[k + 1]; back[2] += shown[k + 2];
+          bn++;
+        }
+      }
+      if (bn) sep = redmean(rgb[i].map((v) => v / px[i]), back.map((v) => v / bn));
+    }
+    const elite = !!e.def.elite;
+    const okPx = px[i] >= (elite ? LEGIBLE.eliteMinPx : LEGIBLE.minPx);
+    const okSep = sep >= (elite ? LEGIBLE.eliteMinSep : LEGIBLE.minSep);
+    out.set(e, { px: px[i], sep: +sep.toFixed(3), elite, legible: okPx && okSep });
+  });
+  return out;
+}
+window.__legibility = () => {
+  const m = measureLegibility();
+  return m ? [...m.values()] : null;
+};
+
 // ---- play-camera gate -----------------------------------------------------
 // Measured through the PLAY camera (free-camera captures are banned as
 // gameplay evidence). Runs a scripted battle segment and reports:
 //   visibleFrac — mean fraction of live threats inside the frustum
 //   worstFrac   — the worst single frame
 //   timeToSee   — frames until the nearest threat was on screen at spawn
-window.__playCheck = async (seconds = 20) => {
+// default 140s: the segment must cross the first elite spawn (120s) or the
+// elite-legibility term never gets a frame to judge
+window.__playCheck = async (seconds = 140) => {
   if (!battle) { daynight.set('night'); startNight(); }
   const frustum = new THREE.Frustum();
   const mat = new THREE.Matrix4();
@@ -297,6 +409,8 @@ window.__playCheck = async (seconds = 20) => {
   // spawn -> FIRST sight only. Re-entries are pursuit dynamics (a kiting
   // player always has trailing threats off-frame), not camera failure.
   let seeDelays = [], unseen = new Map(), seen = new WeakSet();
+  const legSamples = [];              // per-sample legible fraction, combat range
+  let eliteFrames = 0, eliteLegible = 0;
   const frames = Math.round(seconds * 60);
   for (let i = 0; i < frames; i++) {
     // circle-strafe bot so the segment is a real fight
@@ -336,6 +450,24 @@ window.__playCheck = async (seconds = 20) => {
       } else if (!seen.has(e) && !unseen.has(e)) unseen.set(e, i);
     }
     if (live >= 5 && i > 120) samples.push(vis / live);  // skip cam transition + sparse frames (a 1-of-3 ratio is noise, not framing)
+    // legibility sample: every 15th frame after the camera settles
+    if (i > 120 && i % 15 === 0) {
+      const leg = measureLegibility();
+      if (leg) {
+        let inRange = 0, ok = 0;
+        for (const e of battle.run.enemies) {
+          const s = leg.get(e);
+          if (!s) continue;
+          const d = Math.hypot(P.x - e.pos.x, P.z - e.pos.z);
+          if (d <= LEGIBLE.combatRange) { inRange++; if (s.legible) ok++; }
+          if (s.elite && frustum.containsPoint(pt.set(e.pos.x, 0.8, e.pos.z))) {
+            eliteFrames++;
+            if (s.legible) eliteLegible++;
+          }
+        }
+        if (inRange >= 3) legSamples.push(ok / inRange);
+      }
+    }
     if (battle.run.over) break;
   }
   hero.virtual.move = { x: 0, z: 0 };
@@ -343,12 +475,21 @@ window.__playCheck = async (seconds = 20) => {
   const sorted = samples.slice().sort((a, b) => a - b);
   const worst = sorted[Math.floor(sorted.length * 0.1)] ?? 0;   // p10, not a single-frame outlier
   const p90see = seeDelays.sort((a, b) => a - b)[Math.floor(seeDelays.length * 0.9)] ?? 0;
+  const legMean = legSamples.reduce((a, b) => a + b, 0) / Math.max(1, legSamples.length);
+  const eliteFrac = eliteFrames ? eliteLegible / eliteFrames : null;
   return {
     frames: samples.length,
     visibleFrac: +mean.toFixed(3),
     p10Frac: +worst.toFixed(3),
     p90TimeToSeeSec: +(p90see / 60).toFixed(2),
-    pass: mean >= 0.8 && worst >= 0.4 && p90see / 60 <= 4,
+    // legibility: pixel share + luma separation, not frustum containment
+    legSamples: legSamples.length,
+    legibleFrac: +legMean.toFixed(3),
+    eliteFrames,
+    eliteLegibleFrac: eliteFrac === null ? null : +eliteFrac.toFixed(3),
+    pass: mean >= 0.8 && worst >= 0.4 && p90see / 60 <= 4
+      && legSamples.length >= 5 && legMean >= 0.6
+      && (eliteFrames === 0 || eliteFrac >= 0.9),
   };
 };
 

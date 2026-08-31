@@ -31,12 +31,20 @@ recorded as an open gate to add).
 | Balance winnable-but-hard | charforge `simulate-run.mjs` | 4 checks, ALL PASS |
 | Every event heard/felt | `scripts/check-feel.mjs` + `__feelCheck()` | 0 unwired |
 | Threats visible in the PLAY camera | `__playCheck()` | visibleFrac ≥0.8, p10 ≥0.4, p90 first-sight ≤4s |
+| Threats LEGIBLE in the PLAY camera | `__playCheck()` legibility terms | legibleFrac ≥0.6 (ID-pass px ≥14 + redmean sep ≥0.09 at ≤12m), elite frames ≥0.9 legible (px ≥56, sep ≥0.12); segment must cross the first elite (default 140s) |
 | Audio deterministic + produced | charforge `check-audio.mjs` | ALL PASS, byte-identical runs |
 | Town integrity under the game | `scripts/check-city.mjs` | RESULT: PASS |
 | Arena stays an arena | festival district contract | no collider in x 29..53, z −3..15 |
 
 Free-camera captures are **banned as gameplay evidence** — every review frame
 of combat comes from `__gshot` through the camera the player has.
+
+Amendment log (post-review-r1 gate calibration): `__playCheck` originally
+gated frustum containment only (visibleFrac/p10/first-sight). Review r1
+gate-blindness finding 3 measured an unmarked 739 HP elite and 14 invisible
+particles both counting as "visible"; the legibility terms above were added
+in response. The original thresholds are unchanged — this adds terms, it
+moves no window.
 
 ## Honest status (re-derived from what runs, not from plans)
 
