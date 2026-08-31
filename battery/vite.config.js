@@ -36,5 +36,5 @@ export default defineConfig({
   base: './',
   plugins: [frameGrabber(path.resolve(process.cwd(), '.shots'))],
   resolve: { alias: { '@forge': FORGE, '@town': TOWN }, dedupe: ['three'] },
-  server: { host: '127.0.0.1', port: 5183, fs: { allow: [process.cwd(), FORGE, TOWN, path.resolve(process.cwd(), '../nightbloom')] } },
+  server: { host: '127.0.0.1', port: 5183, fs: { allow: [process.cwd(), FORGE, TOWN, path.resolve(process.cwd(), '../nightbloom'), path.resolve(process.cwd(), '../src')] } },
 });

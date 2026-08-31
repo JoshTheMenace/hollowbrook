@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>One NPC, One Errand</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #16121f; font-family: ui-rounded, system-ui, sans-serif; }
+      #view { width: 100vw; height: 100vh; display: block; outline: none; }
+      #tag { position: fixed; top: 14px; left: 18px; color: #cfc4e8; font-size: 12px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; text-transform: uppercase; pointer-events: none; }
+      #tracker { position: fixed; top: 14px; right: 18px; color: #f2ecdf; font-size: 13px; font-weight: 600; background: rgba(20, 16, 34, 0.72); border-right: 3px solid #ffd9a0; border-radius: 9px 3px 3px 9px; padding: 8px 14px; pointer-events: none; transition: opacity 0.4s; max-width: 240px; text-align: right; }
+      #tracker .obj { color: #ffd9a0; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 2px; }
+      #prompt { position: fixed; bottom: 108px; left: 50%; transform: translateX(-50%); color: #16121f; font-size: 13px; font-weight: 700; background: #f2ecdf; border-radius: 8px; padding: 5px 12px; pointer-events: none; opacity: 0; transition: opacity 0.15s; }
+      #prompt b { background: #16121f; color: #ffd9a0; border-radius: 5px; padding: 1px 7px; margin-right: 7px; font-family: inherit; }
+      #dlg { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(12px); width: min(620px, 86vw); background: rgba(22, 17, 36, 0.92); border-left: 3px solid #ffd9a0; border-radius: 4px 12px 12px 4px; padding: 14px 20px 12px; color: #f2ecdf; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
+      #dlg.open { opacity: 1; transform: translateX(-50%) translateY(0); }
+      #dlgname { color: #ffd9a0; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; }
+      #dlgtext { font-size: 15.5px; line-height: 1.5; min-height: 3em; }
+      #dlgnext { text-align: right; color: #cfc4e8; font-size: 11px; opacity: 0.8; margin-top: 4px; }
+      #hint { position: fixed; bottom: 8px; left: 18px; color: #f2ecdf; font-size: 11px; opacity: 0.45; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <canvas id="view" tabindex="0"></canvas>
+    <div id="tag">one npc, one errand</div>
+    <div id="tracker"><span class="obj">Evening at the café</span><span id="trackline">Someone by the door looks troubled.</span></div>
+    <div id="prompt"><b>E</b><span id="promptverb">Talk</span></div>
+    <div id="dlg"><div id="dlgname">Caretaker</div><div id="dlgtext"></div><div id="dlgnext">E ▸</div></div>
+    <div id="hint">WASD walk · mouse look (click) · E interact</div>
+    <script type="module" src="/src/errand/main.js"></script>
+  </body>
+</html>
