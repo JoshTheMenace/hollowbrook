@@ -14,6 +14,9 @@ that is why this file exists.)
 | The play-camera check froze at the level-up pause and sampled a static scene for 1000+ frames | A gate's bot may auto-pick through player pauses — the no-RNG-choice rule binds **players**, not measurement bots. Exclude scripted transitions (camera lerp) from samples. |
 | A sight corridor whose endpoint was its own subject failed against the subject | Corridors end **short of** what they exist to show; the vista/landmark raycast owns the subject itself. |
 | The vista ray to a torii "hit nothing": a gate's bbox centre is open air | Subject-aimed rays target bbox centres. Give hollow-centred landmarks something solid there (the 額 plaque) or the camera gate cannot read them. |
+| "TTK" measured spawn→death graded geography: it included the ~6s walk from the spawn ring | TTK is **first-damage → death**. Any lifetime metric must state which clock starts it. |
+| TTK medians under a kiting bot graded the bot, not the enemy (strafe-orbit lands ~1 hit/pass; residual floor ~5-7s on tanky chaff) | Use p25 (committed engagements), know the instrument's floor, and never tune game data to fix a bot artifact — the 42→30hp cut was the real signal; the rest was the bot. |
+| A curve checkpoint asked about slimes at minute 4 — waves stop spawning them at 2:30 | A designed-curve point must name an enemy that EXISTS in that wave phase. |
 | check-audio flaked 79%→100% between identical runs | Unseeded synthesis. ALL render randomness goes through `seedAudio`/`arand`; gates seed per item. Byte-diff two runs to prove it. |
 | A seam-click gate failed a drum loop's downbeat | Compare the seam step to the stem's **own max transient** — an attack at the wrap is music, not a click. |
 

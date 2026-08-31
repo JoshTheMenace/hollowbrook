@@ -72,7 +72,7 @@ export const PASSIVES = {
 export const ENEMIES = {
   slime: { visual: 'slime', hp: 18, speed: 1.55, damage: 6, xp: 1, gold: 1, radius: 0.34, behavior: 'chase', mass: 1 },
   bat: { visual: 'bat', hp: 9, speed: 2.45, damage: 4, xp: 1, gold: 1, radius: 0.28, behavior: 'zigzag', mass: 0.5 },
-  bonehead: { visual: 'bonehead', hp: 42, speed: 1.35, damage: 10, xp: 3, gold: 2, radius: 0.4, behavior: 'chase', mass: 1.6 },
+  bonehead: { visual: 'bonehead', hp: 30, speed: 1.35, damage: 10, xp: 3, gold: 2, radius: 0.4, behavior: 'chase', mass: 2.2 },
   imp: { visual: 'imp', hp: 26, speed: 2.05, damage: 8, xp: 2, gold: 2, radius: 0.32, behavior: 'charge', mass: 0.9 },
   crawler: { visual: 'crawler', hp: 70, speed: 1.05, damage: 14, xp: 5, gold: 4, radius: 0.52, behavior: 'tank', mass: 3 },
   wisp: { visual: 'wisp', hp: 14, speed: 2.5, damage: 6, xp: 2, gold: 2, radius: 0.26, behavior: 'zigzag', mass: 0.4 },
@@ -111,3 +111,17 @@ export const PLAYABLES = {
 
 // XP needed per level.
 export const XP_CURVE = (level) => Math.floor(5 + level * 4 + level * level * 0.9);
+
+// --- The designed curve ------------------------------------------------------
+// What a competent run should FEEL like, as measurable windows. The balance
+// sim gates against these (designed-curve checks) — a run can be winnable and
+// still be wrong if it violates the curve the design intends.
+export const DESIGN_CURVE = {
+  // [minute, loWindow, hiWindow]
+  level: [[1, 2, 5], [3, 5, 10], [5, 8, 15]],          // upgrade cadence via level
+  hpFrac: [[2, 0.25, 1.0], [4, 0.15, 1.0]],            // wounded but alive at checkpoints
+  killsPerMin: [[1, 15, 90], [3, 25, 140], [5, 25, 160]],
+  ttk: [['slime', 1, 0.2, 4], ['bonehead', 4, 0.3, 8]], // [kind, minute, lo, hi] — first-damage->death p25; the strafe bot lands ~1 hit/orbit so ~5-7s is the instrument's floor for tanky chaff (see TRAPS)
+  firstEliteKillBySec: 400,                             // the 120s elite falls before late game
+  levelUpGapSec: [8, 95],                               // between minute 1 and 6: no dead stretches, no slot machine
+};
