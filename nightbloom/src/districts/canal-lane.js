@@ -184,12 +184,17 @@ export default defineDistrict({
       { cast: false, receive: false, name: 'bridge-lamp' });
     practical(lampGlow, { radius: 6 });
 
-    // the feed box on the far rail — the koi interaction's hitbox
+    // the feed box on the far rail — the koi interaction's hitbox. Geometry
+    // LOCAL, position on the MESH: the runtime's proximity prompt fires at
+    // hitbox.getWorldPosition(), and baking absolute coords into the
+    // geometry left this interactable registered at world origin on bare
+    // road, 44m from its own koi (review r1, gap 10).
     const fx = WB.x - BRIDGE.w / 2 + 0.06;
     const feedBox = addMesh(west, [
-      bx(0.34, 0.26, 0.3, fx, 1.79, WB.z),
-      bx(0.4, 0.05, 0.36, fx, 1.945, WB.z),
+      bx(0.34, 0.26, 0.3, 0, 1.79, 0),
+      bx(0.4, 0.05, 0.36, 0, 1.945, 0),
     ], M.cedarDark, { name: 'koi-feed-box' });
+    feedBox.position.set(fx, 0, WB.z);
 
     /* ---- 5. feed the koi from the west footbridge --------------------- */
     let t = -1;                                    // <0 idle, else seconds in
