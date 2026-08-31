@@ -133,14 +133,22 @@ export class DayNight {
       for (const l of this.pool) l.intensity = 0;
       return;
     }
+    // NOT getWorldPosition: kit glows bake their offset into merged GEOMETRY,
+    // so every mesh transform is the group origin — all lanterns would stack
+    // at one point (celbridge art review r1). The bounding-sphere center is
+    // where the glow actually is.
+    const center = (o, out) => {
+      if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+      return out.copy(o.geometry.boundingSphere.center).applyMatrix4(o.matrixWorld);
+    };
     const nearest = this.practicals
-      .map((o) => ({ o, d: o.getWorldPosition(new THREE.Vector3()).distanceToSquared(at) }))
+      .map((o) => ({ o, d: center(o, new THREE.Vector3()).distanceToSquared(at) }))
       .sort((a, b) => a.d - b.d)
       .slice(0, this.pool.length);
     this.pool.forEach((l, i) => {
       const n = nearest[i];
       if (!n) { l.intensity = 0; return; }
-      n.o.getWorldPosition(l.position);
+      center(n.o, l.position);
       l.position.y -= 0.15;      // pool of light under the lantern, not in it
       l.intensity = glow;
     });
