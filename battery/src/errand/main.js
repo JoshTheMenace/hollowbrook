@@ -11,6 +11,7 @@ import { AdaptiveMusic, SfxPlayer } from '@forge/soundforge/runtime.js';
 import { SFX } from '@forge/soundforge/content/sfx-core.js';
 import { LOOP } from '@forge/soundforge/content/loop-nightbloom.js';
 import { buildCorner, cornerLights } from '../shared/corner.js';
+import { BRIDGE } from '../shared/bridge.js';
 import { ErrandRun, ERRAND_EVENTS, LAYOUT } from './rules.js';
 
 /* ONE NPC, ONE ERRAND shell (battery B3). Rules are pure (rules.js, gated
@@ -90,7 +91,9 @@ actor.root.rotation.y = -0.55;
 actor.heading = -0.55;
 scene.add(actor.root);
 celify(actor.root, cel, {
-  accentGuard: [['lantern-amber', 36 / 360, 0.04, 0.62], ['blossom-pink', 330 / 360, 0.04, 0.62]],
+  accentGuard: BRIDGE.accentGuard,
+  worldSatCap: BRIDGE.worldSatCap,
+  ownedAccent: BRIDGE.ownedAccent,
 });
 const performer = new Performer(actor);
 

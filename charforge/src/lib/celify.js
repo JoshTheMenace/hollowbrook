@@ -7,33 +7,68 @@
 // glows, transparency, side. What is deliberately dropped: CharForge's own
 // rim lighting and ramp (the world's ink pass + cel bands replace them —
 // keeping both is the double-outline artifact the look contract bans).
+//
+// v2 (B2 art review r1): the census judges EFFECTIVE color — material color
+// × vertex colors — so a #ffffff + vertexColors hair can no longer hide from
+// the gate. The guard now pushes HUE out of forbidden bands (not just
+// saturation down: a quieter trespasser is still a trespasser), and grading
+// caps effective saturation into the WORLD's measured band, with exactly one
+// declared owned accent exempt.
 
-export function celify(root, cel, { keepEmissive = true, accentGuard = [] } = {}) {
-  // accentGuard: [[name, hue0..1, tol, maxSat]] — a crossing color that lands
-  // in a scene-owned accent band is graded DOWN to maxSat (hue/value kept):
-  // the character keeps its identity but stops competing for the accent.
-  const guard = (hexColor) => {
-    const sr = parseInt(hexColor.slice(1, 3), 16) / 255, sg = parseInt(hexColor.slice(3, 5), 16) / 255, sb = parseInt(hexColor.slice(5, 7), 16) / 255;
-    const { h, s, v } = rgbToHsv(sr, sg, sb);
+export function celify(root, cel, {
+  keepEmissive = true,
+  accentGuard = [],          // [[name, hue0..1, tol, maxSat]] scene-owned bands
+  worldSatCap = null,        // world's measured max saturation; cap everything...
+  ownedAccent = null,        // ...except { name, hue, tol } — the ONE owned accent
+} = {}) {
+  const inOwned = (h) => ownedAccent && Math.abs(shortHue(h - ownedAccent.hue)) < (ownedAccent.tol ?? 0.05);
+  const gradeHsv = ({ h, s, v }) => {
     for (const [, fh, tol, maxSat] of accentGuard) {
-      if (s > (maxSat ?? 0.62) && Math.abs(shortHue(h - fh)) < (tol ?? 0.05)) {
-        return hsvToHex(h, maxSat ?? 0.62, v);
+      const d = shortHue(h - fh);
+      if (s > (maxSat ?? 0.62) && Math.abs(d) < (tol ?? 0.05)) {
+        // push the hue to the band edge AND cap saturation — out of the band,
+        // not merely quieter inside it
+        h = (fh + Math.sign(d || 1) * (tol ?? 0.05) * 1.15 + 1) % 1;
+        s = Math.min(s, maxSat ?? 0.62);
       }
     }
-    return hexColor;
+    if (worldSatCap != null && !inOwned(h)) s = Math.min(s, worldSatCap);
+    return { h, s, v };
   };
+  const guardHex = (hexColor) => {
+    const { h, s, v } = hexToHsv(hexColor);
+    const g = gradeHsv({ h, s, v });
+    return g.h === h && g.s === s ? hexColor : hsvToHex(g.h, g.s, g.v);
+  };
+
   const cache = new Map();      // source material -> cel material (shared stays shared)
+  const gradedGeo = new WeakSet();
   const report = { meshes: 0, converted: 0, skipped: 0, colors: new Map() };
   root.traverse((o) => {
     if (!o.isMesh || o.userData.isOutline) return;
     report.meshes++;
     const src = o.material;
     if (!src || src.userData?.celified) { report.skipped++; return; }
+    // vertex-color surfaces: grade the attribute itself (effective color path)
+    const colAttr = o.geometry?.attributes?.color;
+    if (src.vertexColors && colAttr && !gradedGeo.has(o.geometry)) {
+      gradedGeo.add(o.geometry);
+      const arr = colAttr.array;
+      o.geometry.userData.rawColorArray = arr.slice();   // for honest A/B restore
+      for (let i = 0; i < colAttr.count; i++) {
+        const [r, g, b] = [arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2]].map(linToSrgb);
+        const graded = gradeHsv(rgbToHsv(r, g, b));
+        const [nr, ng, nb] = hsvToRgb(graded.h, graded.s, graded.v).map(srgbToLin);
+        arr[i * 3] = nr; arr[i * 3 + 1] = ng; arr[i * 3 + 2] = nb;
+      }
+      o.geometry.userData.celColorArray = arr.slice();
+      colAttr.needsUpdate = true;
+    }
     if (!cache.has(src)) {
       const emissive = keepEmissive && src.emissive && (src.emissiveIntensity ?? 0) > 0 && !src.emissive.equals?.({ r: 0, g: 0, b: 0 })
         ? '#' + src.emissive.getHexString() : null;
       const next = cel({
-        color: src.color ? guard('#' + src.color.getHexString()) : '#ffffff',
+        color: src.color ? guardHex('#' + src.color.getHexString()) : '#ffffff',
         vertexColors: !!src.vertexColors,
         emissive,
         emissiveIntensity: emissive ? (src.emissiveIntensity ?? 1) : 1,
@@ -56,9 +91,11 @@ export function celify(root, cel, { keepEmissive = true, accentGuard = [] } = {}
   return report;
 }
 
-// Census for the gate: every mesh in the subtree must carry a celified
-// material, and saturated accents must stay within the allowance.
-export function celCensus(root, { maxAccents = 2, forbiddenHues = [] } = {}) {
+// Material-level census (fast, structural): every mesh must carry a celified
+// material. Saturation judgement moved to pixel-census (screen-space); this
+// keeps the coverage check plus a per-material effective-color listing so
+// failures name the culprit mesh.
+export function celCensus(root, { satThreshold = 0.7, maxAccents = 2, forbiddenHues = [], ownedAccent = null } = {}) {
   const problems = [];
   const accents = new Map();
   let meshes = 0;
@@ -70,31 +107,49 @@ export function celCensus(root, { maxAccents = 2, forbiddenHues = [] } = {}) {
       problems.push(`mesh "${o.name || '(unnamed)'}" carries a non-cel material (${m?.type ?? 'none'})`);
       return;
     }
-    if (m.color) {
-      // judge color in sRGB — material .r/.g/.b are LINEAR under color
-      // management, and linear-space saturation reads ~0.2 high (a 0.5-sat
-      // brass graded as a 0.78-sat accent in the first census run)
-      const hex = m.color.getHexString();
-      const sr = parseInt(hex.slice(0, 2), 16) / 255, sg = parseInt(hex.slice(2, 4), 16) / 255, sb = parseInt(hex.slice(4, 6), 16) / 255;
-      const { h, s } = rgbToHsv(sr, sg, sb);
-      if (s > 0.7) {
+    // EFFECTIVE colors: material color × vertex colors (sRGB judged — linear
+    // reads ~0.2 high; and #ffffff+vertexColors must not exempt a surface)
+    for (const { h, s } of effectiveColors(o)) {
+      if (s > satThreshold) {
+        if (ownedAccent && Math.abs(shortHue(h - ownedAccent.hue)) < (ownedAccent.tol ?? 0.05)) continue;
         const hue = Math.round(h * 12) / 12;   // bucket to 30° bins
-        accents.set(hue, (accents.get(hue) || 0) + 1);
+        if (!accents.has(hue)) accents.set(hue, []);
+        if (!accents.get(hue).includes(o.name)) accents.get(hue).push(o.name || '(unnamed)');
         for (const [name, fh, tol] of forbiddenHues) {
           if (Math.abs(shortHue(h - fh)) < (tol ?? 0.05)) {
-            problems.push(`accent ${'#' + m.color.getHexString()} collides with the scene's owned "${name}" accent`);
+            problems.push(`mesh "${o.name}" effective color (hue ${Math.round(h * 360)}°, sat ${s.toFixed(2)}) collides with the scene's owned "${name}" accent`);
           }
         }
       }
     }
   });
   if (accents.size > maxAccents) {
-    problems.push(`${accents.size} distinct saturated accent hues (allow ${maxAccents}): ${[...accents.keys()].map((h) => Math.round(h * 360) + '°').join(', ')}`);
+    problems.push(`${accents.size} distinct saturated accent hues above world band (allow ${maxAccents}): ${[...accents.entries()].map(([h, names]) => `${Math.round(h * 360)}° (${names[0]})`).join(', ')}`);
   }
   return { meshes, accents: accents.size, problems };
 }
 
-function rgbToHsv(r, g, b) {
+// Sampled effective colors of one mesh in sRGB HSV: material color times a
+// spread of vertex colors (every 16th vertex — hue statistics, not a render).
+function effectiveColors(o) {
+  const m = o.material;
+  const base = m.color ? hexToRgb('#' + m.color.getHexString()) : [1, 1, 1];
+  const colAttr = m.vertexColors ? o.geometry?.attributes?.color : null;
+  if (!colAttr) return [rgbToHsv(...base)];
+  const out = [];
+  const arr = colAttr.array;
+  for (let i = 0; i < colAttr.count; i += 16) {
+    out.push(rgbToHsv(
+      base[0] * linToSrgb(arr[i * 3]),
+      base[1] * linToSrgb(arr[i * 3 + 1]),
+      base[2] * linToSrgb(arr[i * 3 + 2]),
+    ));
+  }
+  return out;
+}
+
+// ---- color helpers (sRGB HSV) ----------------------------------------------
+export function rgbToHsv(r, g, b) {
   const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
   let h = 0;
   if (d > 0) {
@@ -106,12 +161,20 @@ function rgbToHsv(r, g, b) {
   }
   return { h, s: mx === 0 ? 0 : d / mx, v: mx };
 }
-const shortHue = (d) => ((d + 1.5) % 1) - 0.5;
-function hsvToHex(h, s, v) {
+export function hsvToRgb(h, s, v) {
   const f = (n) => {
     const k = (n + h * 6) % 6;
     return v - v * s * Math.max(0, Math.min(k, 4 - k, 1));
   };
+  return [f(5), f(3), f(1)];
+}
+export const shortHue = (d) => ((d + 1.5) % 1) - 0.5;
+export const linToSrgb = (c) => (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055);
+export const srgbToLin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+const hexToRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+const hexToHsv = (hex) => rgbToHsv(...hexToRgb(hex));
+function hsvToHex(h, s, v) {
   const to = (x) => Math.round(x * 255).toString(16).padStart(2, '0');
-  return '#' + to(f(5)) + to(f(3)) + to(f(1));
+  const [r, g, b] = hsvToRgb(h, s, v);
+  return '#' + to(r) + to(g) + to(b);
 }
