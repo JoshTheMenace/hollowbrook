@@ -1,4 +1,4 @@
-import { SR, buf, midiHz, makeOsc, makeNoise, adsr, biquad, applyFxChain, mixInto } from './dsp.js';
+import { SR, buf, midiHz, makeOsc, makeNoise, adsr, biquad, applyFxChain, mixInto, arand } from './dsp.js';
 
 // Instruments are DATA (like character geometry) — a spec an agent can author,
 // review, and diff. renderNotes() turns spec + note events into audio.
@@ -49,7 +49,7 @@ function renderVoice(L, R, instr, note) {
     // Karplus-Strong: noise burst into a damped delay line at the pitch period
     const period = Math.max(2, Math.round(SR / f0));
     const line = new Float32Array(period);
-    for (let i = 0; i < period; i++) line[i] = Math.random() * 2 - 1;
+    for (let i = 0; i < period; i++) line[i] = arand() * 2 - 1;
     let idx = 0, prev = 0;
     const damp = instr.pluck.damp ?? 0.996;
     sources.push(() => {
@@ -142,7 +142,7 @@ export const DRUMS = {
       phase += f / SR;
       const env = Math.exp(-t / decay * 5);
       out[i] = Math.sin(phase * 2 * Math.PI) * env * body;
-      if (i < 200) out[i] += (Math.random() * 2 - 1) * click * (1 - i / 200) * 0.5;
+      if (i < 200) out[i] += (arand() * 2 - 1) * click * (1 - i / 200) * 0.5;
       out[i] = Math.tanh(out[i] * 1.6);
     }
     return out;
@@ -155,7 +155,7 @@ export const DRUMS = {
       const t = i / SR;
       phase += (tone * Math.exp(-t * 9) + tone) / SR;
       const bodyEnv = Math.exp(-t / decay * 6), noiseEnv = Math.exp(-t / decay * 4.5);
-      out[i] = Math.sin(phase * 2 * Math.PI) * bodyEnv * 0.5 + bp(Math.random() * 2 - 1) * noiseEnv * snap * 1.6;
+      out[i] = Math.sin(phase * 2 * Math.PI) * bodyEnv * 0.5 + bp(arand() * 2 - 1) * noiseEnv * snap * 1.6;
     }
     return out;
   },
@@ -165,7 +165,7 @@ export const DRUMS = {
     const hp = biquad('highpass', tone, 0.7);
     // 6 detuned squares = classic metallic 808-ish hat source
     const ratios = [2, 3.01, 4.16, 5.43, 6.79, 8.21];
-    const phases = ratios.map(() => Math.random());
+    const phases = ratios.map(() => arand());
     for (let i = 0; i < n; i++) {
       let v = 0;
       for (let k = 0; k < 6; k++) {
@@ -182,7 +182,7 @@ export const DRUMS = {
     for (let i = 0; i < n; i++) {
       const t = i / SR;
       phase += (pitch * Math.exp(-t * 3) + pitch * 0.6) / SR;
-      out[i] = Math.sin(phase * 2 * Math.PI) * Math.exp(-t / decay * 4) + (Math.random() * 2 - 1) * 0.04 * Math.exp(-t * 40);
+      out[i] = Math.sin(phase * 2 * Math.PI) * Math.exp(-t / decay * 4) + (arand() * 2 - 1) * 0.04 * Math.exp(-t * 40);
     }
     return out;
   },
@@ -194,7 +194,7 @@ export const DRUMS = {
       // 3 pre-echoes then the main burst — the "many hands" effect
       const bursts = (t < 0.008 ? 1 : 0) + (t > 0.011 && t < 0.019 ? 1 : 0) + (t > 0.023 && t < 0.031 ? 1 : 0);
       const mainEnv = t > 0.03 ? Math.exp(-(t - 0.03) / decay * 5) : 0;
-      out[i] = bp(Math.random() * 2 - 1) * (bursts * 0.8 + mainEnv) * 1.4;
+      out[i] = bp(arand() * 2 - 1) * (bursts * 0.8 + mainEnv) * 1.4;
     }
     return out;
   },
@@ -202,7 +202,7 @@ export const DRUMS = {
     const n = Math.round(decay * SR * 2), out = new Float32Array(n);
     const hp = biquad('highpass', tone * 0.6, 0.7);
     const ratios = [1.98, 2.99, 4.02, 5.31, 6.63, 7.83, 9.14];
-    const phases = ratios.map(() => Math.random());
+    const phases = ratios.map(() => arand());
     for (let i = 0; i < n; i++) {
       let v = 0;
       for (let k = 0; k < ratios.length; k++) {
@@ -220,7 +220,7 @@ export const DRUMS = {
     for (let i = 0; i < n; i++) {
       const t = i / SR;
       const env = Math.min(1, t / 0.01) * Math.exp(-t / decay * 4);
-      out[i] = bp(Math.random() * 2 - 1) * env * 1.3;
+      out[i] = bp(arand() * 2 - 1) * env * 1.3;
     }
     return out;
   },

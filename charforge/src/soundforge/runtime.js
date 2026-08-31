@@ -1,4 +1,4 @@
-import { SR } from './dsp.js';
+import { SR, arand, seedAudio } from './dsp.js';
 import { composeAdaptiveLoop } from './compose.js';
 import { renderSfx } from './sfx.js';
 
@@ -48,6 +48,7 @@ export class AdaptiveMusic {
       // compose per tier with yields: composeAdaptiveLoop is sync, so run it
       // once (it's the per-stem renders inside that cost) — acceptable at 8 bars.
       await yieldFrame();
+      seedAudio(loopSpec.seed ?? 11);
       return composeAdaptiveLoop(loopSpec);
     })();
     this.loopSec = loopSec;
@@ -140,9 +141,9 @@ export class SfxPlayer {
     this.lastPlayed.set(name, now);
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
-    src.playbackRate.value = rate ?? (0.94 + Math.random() * 0.12);
+    src.playbackRate.value = rate ?? (0.94 + arand() * 0.12);
     const g = this.ctx.createGain();
-    g.gain.value = vol * (0.9 + Math.random() * 0.2);
+    g.gain.value = vol * (0.9 + arand() * 0.2);
     let tail = g;
     if (pan) {
       const p = this.ctx.createStereoPanner();

@@ -1,4 +1,4 @@
-import { SR, buf, biquad, makeNoise, applyFxChain, limitFx } from './dsp.js';
+import { SR, buf, biquad, makeNoise, applyFxChain, limitFx, arand } from './dsp.js';
 
 // SoundForge SFX — layered one-shots. A production sound is LAYERS with
 // different jobs (transient, body, sub, tail, sparkle), not one oscillator.
@@ -50,14 +50,14 @@ const GENS = {
       const t = i / SR, u = i / n;
       phase += (pitch * Math.exp(-t * drop) + pitch * 0.5) / SR;
       let v = Math.sin(phase * 2 * Math.PI) * Math.pow(1 - u, 1.2);
-      if (i < 240) v += (Math.random() * 2 - 1) * punch * (1 - i / 240);
+      if (i < 240) v += (arand() * 2 - 1) * punch * (1 - i / 240);
       out[i] = Math.tanh(v * 1.8) * gain;
     }
     return out;
   },
   metal({ base = 320, ratios = [1, 2.76, 5.4, 8.93], dur = 0.6, bright = 0.6, gain = 1 }) {
     const n = Math.round(dur * SR), out = new Float32Array(n);
-    const phases = ratios.map(() => Math.random());
+    const phases = ratios.map(() => arand());
     for (let i = 0; i < n; i++) {
       const t = i / SR;
       let v = 0;
@@ -74,8 +74,8 @@ const GENS = {
     const bp = biquad('bandpass', tone, 1.4);
     let burst = 0;
     for (let i = 0; i < n; i++) {
-      if (Math.random() < density / SR) burst = 1;
-      const v = burst > 0.01 ? (Math.random() * 2 - 1) * burst : 0;
+      if (arand() < density / SR) burst = 1;
+      const v = burst > 0.01 ? (arand() * 2 - 1) * burst : 0;
       burst *= 0.94;
       out[i] = bp(v) * Math.pow(1 - i / n, 1.2) * gain * 2.2;
     }

@@ -4,6 +4,7 @@
 //   node scripts/sound-render.mjs sfx slash    — one sound
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { composeSong } from '../src/soundforge/compose.js';
+import { seedAudio } from '../src/soundforge/dsp.js';
 import { renderSfx } from '../src/soundforge/sfx.js';
 import { encodeWav } from '../src/soundforge/wav.js';
 import { lufs, peakDb, spectralBands, sectionSimilarity, repetitionScore, onsetDensity, stereoWidth, centroidHz } from '../src/soundforge/features.js';
@@ -16,6 +17,7 @@ mkdirSync(OUT, { recursive: true });
 const what = process.argv[2] || 'track';
 
 if (what === 'track') {
+  seedAudio(TRACK.seed ?? 7);
   console.time('render');
   const { master, meta, totalSec } = composeSong(TRACK);
   console.timeEnd('render');
@@ -42,6 +44,7 @@ if (what === 'track') {
   const rows = [];
   for (const [name, spec] of Object.entries(SFX)) {
     if (only && name !== only) continue;
+    seedAudio([...name].reduce((a, c) => a * 31 + c.charCodeAt(0) | 0, 7));
     const audio = renderSfx(spec);
     writeFileSync(`${OUT}sfx-${name}.wav`, encodeWav(audio));
     rows.push({ name, class: spec.class, sec: +(audio[0].length / 44100).toFixed(2), peakDb: peakDb(audio), centroidHz: centroidHz(audio) });

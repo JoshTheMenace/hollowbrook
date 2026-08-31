@@ -4,6 +4,22 @@
 // All processors work at SR and are written as tight per-sample loops.
 
 export const SR = 44100;
+
+// The ONE random source for all synthesis. Unseeded audio made check-audio
+// flaky (a metric swung 79%->100% between identical runs — audit finding);
+// gates and renders call seedAudio(n) first, so every render is reproducible.
+let RAND = Math.random;
+export const arand = () => RAND();
+export function seedAudio(seed = null) {
+  if (seed === null) { RAND = Math.random; return; }
+  let a = seed | 0;
+  RAND = () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 export const buf = (seconds) => new Float32Array(Math.ceil(seconds * SR));
 export const db = (d) => Math.pow(10, d / 20);
 export const midiHz = (m) => 440 * Math.pow(2, (m - 69) / 12);
@@ -18,7 +34,7 @@ const polyblep = (t, dt) => {
 
 // An oscillator is a stateful closure: osc(freqHz) -> sample in -1..1.
 export function makeOsc(type) {
-  let phase = Math.random(); // free-running start avoids phasey unison stacks
+  let phase = arand(); // free-running start avoids phasey unison stacks
   if (type === 'sine') return (f) => { phase = (phase + f / SR) % 1; return Math.sin(phase * 2 * Math.PI); };
   if (type === 'tri') return (f) => { phase = (phase + f / SR) % 1; return 4 * Math.abs(phase - 0.5) - 1; };
   if (type === 'saw') return (f) => {
@@ -39,10 +55,10 @@ export function makeOsc(type) {
 
 // White + pink noise (Voss-ish filtered), both stateful closures.
 export function makeNoise(kind = 'white') {
-  if (kind === 'white') return () => Math.random() * 2 - 1;
+  if (kind === 'white') return () => arand() * 2 - 1;
   let b0 = 0, b1 = 0, b2 = 0;
   return () => { // pink: Paul Kellet economy filter
-    const w = Math.random() * 2 - 1;
+    const w = arand() * 2 - 1;
     b0 = 0.99765 * b0 + w * 0.099046;
     b1 = 0.96300 * b1 + w * 0.2965164;
     b2 = 0.57000 * b2 + w * 1.0526913;

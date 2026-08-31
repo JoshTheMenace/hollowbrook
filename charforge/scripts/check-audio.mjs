@@ -9,13 +9,14 @@ import { renderSfx } from '../src/soundforge/sfx.js';
 import { lufs, peakDb, spectralBands, sectionSimilarity, repetitionScore, onsetDensity, stereoWidth, centroidHz } from '../src/soundforge/features.js';
 import { TRACK } from '../src/soundforge/content/track-nightbloom.js';
 import { SFX, SFX_CLASSES } from '../src/soundforge/content/sfx-core.js';
-import { SR } from '../src/soundforge/dsp.js';
+import { SR, seedAudio } from '../src/soundforge/dsp.js';
 
 const checks = [];
 const check = (id, pass, note) => checks.push({ id, pass, note });
 const what = process.argv[2] || 'all';
 
 if (what === 'track' || what === 'all') {
+  seedAudio(TRACK.seed ?? 7);
   const { master, meta, totalSec } = composeSong(TRACK);
 
   // 1. loudness + headroom
@@ -67,6 +68,7 @@ if (what === 'track' || what === 'all') {
 }
 
 if (what === 'loop' || what === 'all') {
+  seedAudio(LOOP.seed ?? 11);
   const { stems, loopSec } = composeAdaptiveLoop(LOOP);
   const n = Math.round(loopSec * SR);
   const names = Object.keys(stems);
@@ -117,6 +119,7 @@ if (what === 'loop' || what === 'all') {
 
 if (what === 'sfx' || what === 'all') {
   for (const [name, spec] of Object.entries(SFX)) {
+    seedAudio([...name].reduce((a, c) => a * 31 + c.charCodeAt(0) | 0, 7));
     const audio = renderSfx(spec);
     const cls = SFX_CLASSES[spec.class];
     if (!cls) { check(`sfx:${name}`, false, `unknown class "${spec.class}"`); continue; }
