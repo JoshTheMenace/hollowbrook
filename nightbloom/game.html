@@ -27,6 +27,12 @@
     <div id="hurtflash" style="position:fixed;inset:0;pointer-events:none;z-index:4;background:radial-gradient(ellipse at center,transparent 55%,rgba(255,60,80,0.45));opacity:0;transition:opacity 0.25s"></div>
     <div id="prompt"></div>
     <div id="phase"></div>
+    <div id="deathscreen" style="display:none;position:fixed;inset:0;z-index:11;background:rgba(8,4,14,0.72);align-items:center;justify-content:center;flex-direction:column;font-family:ui-rounded,system-ui,sans-serif;text-align:center">
+      <div style="color:#ff5a6e;font-size:30px;font-weight:800;letter-spacing:2px;text-shadow:0 0 22px rgba(255,60,90,0.45)">the bloom takes another</div>
+      <div id="death-time" style="color:#f2ecdf;font-size:20px;font-weight:700;margin-top:16px"></div>
+      <div id="death-sum" style="color:#cfc4e8;font-size:14px;margin-top:8px;opacity:0.85"></div>
+      <div style="color:#8f84b8;font-size:12px;margin-top:26px;letter-spacing:1px">ENTER — return to dawn</div>
+    </div>
     <div id="levelup" style="display:none;position:fixed;inset:0;z-index:10;background:rgba(8,6,18,0.55);align-items:center;justify-content:center;flex-direction:column;font-family:ui-rounded,system-ui,sans-serif">
       <div style="color:#cdb4ff;font-size:26px;font-weight:800;letter-spacing:1px;text-shadow:0 0 18px rgba(140,100,255,0.5);margin-bottom:14px">the bloom offers…</div>
       <div id="cards" style="display:flex;gap:14px"></div>

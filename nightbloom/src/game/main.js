@@ -191,20 +191,36 @@ function pick(i) {
   choosing = false;
 }
 
+const deathEl = document.querySelector('#deathscreen');
+function closeNight() {
+  battle?.dispose();
+  battle = null;
+  hero.external = false;
+  hero.battleCam = false;
+  choosing = false;
+  levelupEl.style.display = 'none';
+  deathEl.style.display = 'none';
+  daynight.fadeTo('day', 5);
+  phaseEl.textContent = 'day';
+  feel.emit('dawn', {});
+  music?.setIntensity(0.18, 3);
+}
 function endNight(result) {
-  phaseEl.textContent = result === 'victory' ? 'dawn — survived' : 'the bloom takes another';
   levelupEl.style.display = 'none';
   choosing = false;
-  setTimeout(() => {
-    battle?.dispose();
-    battle = null;
-    hero.external = false;
-    hero.battleCam = false;
-    daynight.fadeTo('day', 5);
-    phaseEl.textContent = 'day';
-    feel.emit('dawn', {});
-    music?.setIntensity(0.18, 3);
-  }, 2200);
+  if (result === 'defeat') {
+    // a death is a STATE, not a 2.2s flicker back to day: the run freezes
+    // on screen behind the summary until the player acknowledges it
+    const r = battle.run;
+    phaseEl.textContent = 'the bloom takes another';
+    deathEl.querySelector('#death-time').textContent = `survived ${Math.floor(r.time)}s`;
+    deathEl.querySelector('#death-sum').textContent =
+      `level ${r.level} · ${r.kills} kills · ${r.gold} gold · night ends at 480s`;
+    deathEl.style.display = 'flex';
+    return;
+  }
+  phaseEl.textContent = 'dawn — survived';
+  setTimeout(closeNight, 2200);
 }
 
 const hurtEl = document.querySelector('#hurtflash');
@@ -215,6 +231,10 @@ function flashHurt() {
 }
 
 window.addEventListener('keydown', (e) => {
+  if (deathEl.style.display !== 'none') {
+    if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space') closeNight();
+    return;                                     // dead: the summary owns input
+  }
   if (choosing && ['Digit1', 'Digit2', 'Digit3'].includes(e.code)) { pick(+e.code.slice(5) - 1); return; }
   if (e.code === 'KeyT') {                      // cycle phases (dev)
     const cur = daynight.fade?.name ?? daynight.current ?? 'day';
@@ -223,7 +243,7 @@ window.addEventListener('keydown', (e) => {
     phaseEl.textContent = next;
     music?.setIntensity({ day: 0.18, dusk: 0.45, night: 0.55 }[next] ?? 0.18, 2.5);
     if (next === 'night' && !battle) startNight();
-    if (next === 'day' && battle) { battle.dispose(); battle = null; hero.external = false; hero.battleCam = false; choosing = false; levelupEl.style.display = 'none'; }
+    if (next === 'day' && battle) closeNight();
   }
   if (e.code === 'KeyE' && nearInteract) { feel.emit('interact', {}); nearInteract.action(); }
   if (e.code === 'KeyR' && !battle) hero.place(-30, 0, -Math.PI / 2);
@@ -424,6 +444,7 @@ window.__playCheck = async (seconds = 140) => {
     choosing = false;
     levelupEl.style.display = 'none';
   }
+  deathEl.style.display = 'none';
   hero.place(-30, 0, -Math.PI / 2);
   daynight.set('night');
   startNight(mulberry32(97));
@@ -572,6 +593,9 @@ function uiState() {
     phase: phaseEl.textContent,
     prompt: promptEl.textContent,
     hurt: +(hurtEl?.style.opacity || 0) > 0,
+    death: deathEl.style.display !== 'none'
+      ? { time: deathEl.querySelector('#death-time').textContent, sum: deathEl.querySelector('#death-sum').textContent }
+      : null,
     levelup: levelupEl.style.display !== 'none',
     cards: levelupEl.style.display !== 'none'
       ? [...cardsEl.querySelectorAll('.up')].map((el) => ({
@@ -609,6 +633,23 @@ function compositeHud(frame, ui) {
     g.fillRect(W / 2 - w / 2, H - 52, w, 30);
     g.fillStyle = '#f2ecdf';
     g.fillText(ui.prompt, W / 2, H - 37);
+  }
+  if (ui.death) {
+    g.fillStyle = 'rgba(8,4,14,0.72)';
+    g.fillRect(0, 0, W, H);
+    g.textAlign = 'center';
+    g.font = '800 30px system-ui, sans-serif';
+    g.fillStyle = '#ff5a6e';
+    g.fillText('the bloom takes another', W / 2, H / 2 - 46);
+    g.font = '700 20px system-ui, sans-serif';
+    g.fillStyle = '#f2ecdf';
+    g.fillText(ui.death.time, W / 2, H / 2 - 8);
+    g.font = '400 14px system-ui, sans-serif';
+    g.fillStyle = 'rgba(207,196,232,0.85)';
+    g.fillText(ui.death.sum, W / 2, H / 2 + 20);
+    g.font = '400 12px system-ui, sans-serif';
+    g.fillStyle = '#8f84b8';
+    g.fillText('ENTER — return to dawn', W / 2, H / 2 + 58);
   }
   if (ui.levelup) {
     g.fillStyle = 'rgba(8,6,18,0.55)';
