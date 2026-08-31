@@ -27,8 +27,14 @@ function frameGrabber(outDir) {
             const data = String(body.data || '').replace(/^data:image\/\w+;base64,/, '');
             const file = path.join(outDir, name.endsWith('.jpg') ? name : name + '.jpg');
             fs.writeFileSync(file, Buffer.from(data, 'base64'));
+            // HUD side-channel: DOM state the WebGL frame cannot carry
+            let uiFile = null;
+            if (body.ui) {
+              uiFile = file.replace(/\.jpg$/, '.ui.json');
+              fs.writeFileSync(uiFile, JSON.stringify(body.ui, null, 1));
+            }
             res.setHeader('content-type', 'application/json');
-            res.end(JSON.stringify({ ok: true, file, bytes: data.length }));
+            res.end(JSON.stringify({ ok: true, file, uiFile, bytes: data.length }));
           } catch (e) {
             res.statusCode = 500;
             res.end(String(e));

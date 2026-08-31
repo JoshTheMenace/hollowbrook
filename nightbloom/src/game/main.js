@@ -562,6 +562,80 @@ window.__latencyCheck = () => {
 // ---- capture + bot hooks --------------------------------------------------
 window.__tick = tick;
 window.__game = { hero, actor, daynight, vignette, scene, camera, pipeline, startNight, get battle() { return battle; } };
+// The HUD is DOM, and DOM never reaches the WebGL canvas — the review had
+// to flag draft cards and the status line as "UI captures" from pane
+// screenshots. __gshot now draws the HUD state onto the frame by hand (2D
+// canvas over the render) AND ships it as a side-channel `<name>.ui.json`.
+function uiState() {
+  return {
+    phase: phaseEl.textContent,
+    prompt: promptEl.textContent,
+    hurt: +(hurtEl?.style.opacity || 0) > 0,
+    levelup: levelupEl.style.display !== 'none',
+    cards: levelupEl.style.display !== 'none'
+      ? [...cardsEl.querySelectorAll('.up')].map((el) => ({
+          label: el.querySelector('.lbl')?.textContent ?? '',
+          desc: el.querySelector('.dsc')?.textContent ?? '',
+        }))
+      : [],
+  };
+}
+function compositeHud(frame, ui) {
+  const c = document.createElement('canvas');
+  c.width = frame.width; c.height = frame.height;
+  const g = c.getContext('2d');
+  g.drawImage(frame, 0, 0);
+  const W = c.width, H = c.height;
+  if (ui.hurt) {
+    const rg = g.createRadialGradient(W / 2, H / 2, H * 0.4, W / 2, H / 2, H * 0.75);
+    rg.addColorStop(0, 'rgba(255,60,80,0)');
+    rg.addColorStop(1, 'rgba(255,60,80,0.45)');
+    g.fillStyle = rg;
+    g.fillRect(0, 0, W, H);
+  }
+  g.textBaseline = 'middle';
+  if (ui.phase) {
+    g.font = '700 12px system-ui, sans-serif';
+    g.textAlign = 'right';
+    g.fillStyle = 'rgba(207,196,232,0.9)';
+    g.fillText(ui.phase.toUpperCase(), W - 16, 21);
+  }
+  if (ui.prompt) {
+    g.font = '600 14px system-ui, sans-serif';
+    g.textAlign = 'center';
+    const w = g.measureText(ui.prompt).width + 32;
+    g.fillStyle = 'rgba(20,16,34,0.72)';
+    g.fillRect(W / 2 - w / 2, H - 52, w, 30);
+    g.fillStyle = '#f2ecdf';
+    g.fillText(ui.prompt, W / 2, H - 37);
+  }
+  if (ui.levelup) {
+    g.fillStyle = 'rgba(8,6,18,0.55)';
+    g.fillRect(0, 0, W, H);
+    g.textAlign = 'center';
+    g.font = '800 26px system-ui, sans-serif';
+    g.fillStyle = '#cdb4ff';
+    g.fillText('the bloom offers…', W / 2, H / 2 - 90);
+    const cw = 165, gap = 14, n = ui.cards.length;
+    const x0 = W / 2 - (n * cw + (n - 1) * gap) / 2;
+    ui.cards.forEach((card, i) => {
+      const x = x0 + i * (cw + gap);
+      g.fillStyle = 'rgba(20,16,38,0.95)';
+      g.fillRect(x, H / 2 - 55, cw, 110);
+      g.strokeStyle = '#5a4a86'; g.lineWidth = 3;
+      g.strokeRect(x, H / 2 - 55, cw, 110);
+      g.fillStyle = '#ece8fa';
+      g.font = '800 14px system-ui, sans-serif';
+      g.fillText(card.label.slice(0, 20), x + cw / 2, H / 2 - 32);
+      g.font = '400 11px system-ui, sans-serif';
+      g.fillStyle = 'rgba(236,232,250,0.7)';
+      g.fillText(card.desc.slice(0, 26), x + cw / 2, H / 2 - 10);
+      g.fillStyle = 'rgba(236,232,250,0.45)';
+      g.fillText(String(i + 1), x + cw / 2, H / 2 + 38);
+    });
+  }
+  return c;
+}
 window.__gshot = async (name, width = 1280, height = 720, opts = {}) => {
   const keep = { pos: camera.position.clone(), quat: camera.quaternion.clone(), aspect: camera.aspect };
   pipeline.setSize(width, height);
@@ -570,8 +644,9 @@ window.__gshot = async (name, width = 1280, height = 720, opts = {}) => {
   if (opts.lookAt) camera.lookAt(new THREE.Vector3().fromArray(opts.lookAt));
   camera.updateProjectionMatrix();
   pipeline.render();
-  const data = renderer.domElement.toDataURL('image/jpeg', 0.92);
-  const res = await fetch('/__shot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, data }) });
+  const ui = uiState();
+  const data = compositeHud(renderer.domElement, ui).toDataURL('image/jpeg', 0.92);
+  const res = await fetch('/__shot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, data, ui }) });
   camera.position.copy(keep.pos);
   camera.quaternion.copy(keep.quat);
   camera.aspect = keep.aspect;
