@@ -879,7 +879,7 @@
     }
   ],
   "game": {
-    "$comment": "Game vocabulary (Stage A2): validated by scripts/check-game.mjs against the BUILT scene, not prose. An arena's cover/elevation/landmark minimums define combat-space quality the way sockets define seams.",
+    "$comment": "Game vocabulary (Stage A2): validated by scripts/check-game.mjs against the BUILT scene, not prose. An arena's cover/elevation/landmark minimums define combat-space quality the way sockets define seams. KNOWN RED: npc:elder/mika/fox :present — the gate now requires a character (userData.npc === id or name npc:<id>) within 2m of each post, and the NPC cast is not built (deferred stage; see LOOP-CONTRACT Honest status). Standable ground alone no longer passes a post.",
     "arenas": [
       {
         "id": "festival-arena",

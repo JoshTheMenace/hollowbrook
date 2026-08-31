@@ -110,6 +110,11 @@ try {
     }
 
     // ---- npc posts ----
+    // Two claims per post. `ground` says a character COULD stand there;
+    // `present` says one DOES — an Object3D tagged userData.npc === id (or
+    // named npc:<id>) with real geometry, within 2m of the post. Standable
+    // ground under an empty post certifies nothing about the cast
+    // (nightbloom-play-review-r1, gate-blindness finding 1).
     for (const p of game.npc_posts ?? []) {
       const d = districts.get(p.district);
       const [x, z] = p.at;
@@ -117,10 +122,26 @@ try {
       // standable: not inside any collider (inflated by the walker radius)
       const R = 0.34;
       const blocked = vignette.colliders.find((c) => x > c.x0 - R && x < c.x1 + R && z > c.z0 - R && z < c.z1 + R);
-      check(`npc:${p.id}`, !!inEnv && !blocked,
+      check(`npc:${p.id}:ground`, !!inEnv && !blocked,
         !inEnv ? `post (${x}, ${z}) outside district "${p.district}"` :
         blocked ? `post (${x}, ${z}) stands inside a collider (${blocked.x0.toFixed(1)},${blocked.z0.toFixed(1)})..(${blocked.x1.toFixed(1)},${blocked.z1.toFixed(1)})` :
         `standable at (${x}, ${z}) in ${p.district}, ground y ${vignette.groundAt(x, z).toFixed(2)}`);
+
+      let npc = null;
+      scene.traverse((o) => {
+        if (npc) return;
+        if (o.userData?.npc === p.id || o.name === `npc:${p.id}`) npc = o;
+      });
+      if (!npc) {
+        check(`npc:${p.id}:present`, false, `NO character in the scene graph for post "${p.id}" — standable ground is not a cast member`);
+      } else {
+        const box = new three.Box3().setFromObject(npc);
+        const wp = npc.getWorldPosition(new three.Vector3());
+        const dist = Math.hypot(wp.x - x, wp.z - z);
+        check(`npc:${p.id}:present`, !box.isEmpty() && dist <= 2,
+          box.isEmpty() ? `"${npc.name}" is tagged for post "${p.id}" but has no geometry`
+            : `character "${npc.name}" stands ${dist.toFixed(2)}m from the post${dist <= 2 ? '' : ' (need <= 2m)'}`);
+      }
     }
 
     // ---- objectives ----
