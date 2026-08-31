@@ -7,8 +7,12 @@ import { PAL } from '../palette.js';
 import { skyTexture } from '../textures.js';
 import { Hero } from './hero.js';
 import { DayNight } from './daynight.js';
-import { NightBattle } from './night.js';
+import { NightBattle, NIGHT_EVENTS } from './night.js';
+import { Feel } from './feel.js';
 import { Actor } from '@forge/game/actor.js';
+import { AdaptiveMusic, SfxPlayer } from '@forge/soundforge/runtime.js';
+import { SFX } from '@forge/soundforge/content/sfx-core.js';
+import { LOOP } from '@forge/soundforge/content/loop-nightbloom.js';
 
 /* ------------------------------------------------------------------ *
  * Nightbloom game boot: the generated town (scene.js/composeCity) + a
@@ -90,49 +94,137 @@ console.log(`[game] ${found} practicals collected`);
 daynight.set('day');
 phaseEl.textContent = 'day';
 
+// ---- feel + sound ---------------------------------------------------------
+// SoundForge is the game's audio — the deprecated engine/audio.js is banned
+// here, and check-feel fails any emitted event without a consumer.
+const feel = new Feel({ scene, camera, sfx: null });
+export const GAME_EVENTS = [...NIGHT_EVENTS, 'interact', 'night-falls', 'dawn'];
+feel.wire('enemy-hit', { sfx: 'impact-hit', throttleMs: 70, burst: { count: 4, color: '#fff3c4', color2: '#ff9a5a', speed: 1.6, up: 1.2, ttl: 0.25, size: 0.06 } });
+feel.wire('kill', { sfx: 'impact-hit', sfxOpts: { vol: 0.7 }, throttleMs: 60, burst: { count: 10, color: '#b08aff', color2: '#fff', speed: 2.2, up: 1.8, ttl: 0.4 }, shake: 0.05 });
+feel.wire('elite-kill', { sfx: 'impact-heavy', burst: { count: 34, color: '#c060ff', color2: '#ffd76a', speed: 3.4, up: 2.6, ttl: 0.8, size: 0.12 }, shake: 0.5, hitstop: 0.12, text: 'ELITE DOWN' });
+feel.wire('elite-spawn', { sfx: 'impact-heavy', sfxOpts: { vol: 0.6, rate: 0.7 }, shake: 0.35, text: '⚠' });
+feel.wire('gem', { sfx: 'pickup-gem', sfxOpts: { vol: 0.5 }, throttleMs: 50, burst: { count: 5, color: '#6ee0ff', color2: '#fff', speed: 1.0, up: 2.0, ttl: 0.3, size: 0.05 } });
+feel.wire('player-hurt', { sfx: 'hurt', shake: 0.45, hitstop: 0.05, burst: { count: 8, color: '#ff5a6e', color2: '#fff', speed: 2.0, up: 1.6, ttl: 0.35 } });
+feel.wire('level-up', { sfx: 'level-up', burst: { count: 26, color: '#6ee0ff', color2: '#b08aff', speed: 2.2, up: 3.0, ttl: 0.8 } });
+feel.wire('arc', { sfx: 'slash', throttleMs: 80 });
+feel.wire('nova', { sfx: 'impact-heavy', sfxOpts: { vol: 0.7 }, shake: 0.3, burst: { count: 18, color: '#c9a06a', color2: '#7a5a3c', speed: 3.2, up: 1.2, ttl: 0.5 } });
+feel.wire('strike', { sfx: 'thunder-strike', sfxOpts: { vol: 0.7 }, shake: 0.18, burst: { count: 14, color: '#fff6b0', color2: '#6ee0ff', speed: 2.4, up: 3.4, ttl: 0.45 } });
+feel.wire('knife', { sfx: 'slash', sfxOpts: { vol: 0.35, rate: 1.4 }, throttleMs: 90 });
+feel.wire('bolt', { sfx: 'magic-bolt', sfxOpts: { vol: 0.6 }, throttleMs: 120 });
+feel.wire('victory', { sfx: 'victory', burst: { count: 40, color: '#ffd76a', color2: '#6ee0ff', speed: 3.0, up: 3.4, ttl: 1.1 } });
+feel.wire('defeat', { sfx: 'defeat' });
+feel.wire('interact', { sfx: 'ui-confirm' });
+feel.wire('night-falls', { sfx: 'defeat', sfxOpts: { vol: 0.4, rate: 1.6 } });
+feel.wire('dawn', { sfx: 'victory', sfxOpts: { vol: 0.4, rate: 1.3 } });
+window.__feelCheck = () => feel.check(GAME_EVENTS);
+
+// Audio unlocks on the first user gesture (autoplay policy); everything else
+// works without it, and the lint can still verify wiring pre-unlock.
+let music = null, sfxPlayer = null, audioReady = false, audioLoading = false;
+async function unlockAudio() {
+  if (audioReady || audioLoading) return;
+  audioLoading = true;
+  try {
+    music = new AdaptiveMusic();
+    await music.ctx.resume();
+    sfxPlayer = new SfxPlayer(music.ctx);
+    await sfxPlayer.load(SFX);
+    feel.sfx = sfxPlayer;
+    await music.load(LOOP);
+    music.start();
+    music.setIntensity(0.18);
+    audioReady = true;
+    console.log('[game] audio unlocked: 9 stems +', sfxPlayer.buffers.size, 'sfx');
+  } catch (e) { console.error('[game] audio unlock failed:', e); }
+  audioLoading = false;
+}
+window.addEventListener('pointerdown', unlockAudio, { once: false });
+window.addEventListener('keydown', unlockAudio, { once: false });
+
 // ---- night battle ---------------------------------------------------------
 let battle = null;
+let choosing = false;          // level-up cards up: sim pauses, player decides
 const _move = new THREE.Vector3();
+const cardsEl = document.querySelector('#cards');
+const levelupEl = document.querySelector('#levelup');
+
 function startNight() {
   battle = new NightBattle({
     scene, hero, character: 'ronin', groundY: 0,
     onEvent: (type, data) => {
-      // v1: log-only juice; SoundForge SFX + particles wire in next pass
-      if (type === 'level-up') autoPick();
+      feel.emit(type, data);
+      if (type === 'arc' && actor && hero.velocity.lengthSq() < 0.3) actor.attack();
+      if (type === 'player-hurt') flashHurt();
+      if (type === 'level-up') showChoices();
       if (type === 'victory' || type === 'defeat') endNight(type);
     },
   });
   hero.external = true;
+  hero.battleCam = true;       // pull back + up: the horde must be ON SCREEN
+  feel.emit('night-falls', {});
 }
-function autoPick() {
+
+// The upgrade draft is the genre's defining decision — it is the PLAYER's.
+// (The audit named the old Math.random() autopick the worst line in the
+// project; the hard rule now: no player-facing choice resolved by RNG.)
+let pendingChoices = [];
+function showChoices() {
   const r = battle.run;
-  while (r.pendingLevelUps > 0) {
-    r.pendingLevelUps--;
-    const ch = r.choices();
-    if (ch.length) r.applyChoice(ch[Math.floor(Math.random() * ch.length)]);
-  }
+  if (r.pendingLevelUps <= 0) return;
+  pendingChoices = r.choices();
+  if (!pendingChoices.length) { r.pendingLevelUps = 0; return; }
+  cardsEl.innerHTML = pendingChoices.map((c, i) =>
+    `<div class="up" data-i="${i}"><div class="lbl">${c.label}</div><div class="dsc">${c.desc}</div><div class="key">${i + 1}</div></div>`).join('');
+  for (const el of cardsEl.querySelectorAll('.up')) el.onclick = () => pick(+el.dataset.i);
+  levelupEl.style.display = 'flex';
+  choosing = true;
 }
+function pick(i) {
+  if (!choosing || !pendingChoices[i]) return;
+  const r = battle.run;
+  r.applyChoice(pendingChoices[i]);
+  r.pendingLevelUps--;
+  feel.emit('interact', {});
+  if (r.pendingLevelUps > 0) { showChoices(); return; }
+  levelupEl.style.display = 'none';
+  choosing = false;
+}
+
 function endNight(result) {
   phaseEl.textContent = result === 'victory' ? 'dawn — survived' : 'the bloom takes another';
+  levelupEl.style.display = 'none';
+  choosing = false;
   setTimeout(() => {
     battle?.dispose();
     battle = null;
     hero.external = false;
+    hero.battleCam = false;
     daynight.fadeTo('day', 5);
     phaseEl.textContent = 'day';
+    feel.emit('dawn', {});
+    music?.setIntensity(0.18, 3);
   }, 2200);
 }
 
+const hurtEl = document.querySelector('#hurtflash');
+function flashHurt() {
+  if (!hurtEl) return;
+  hurtEl.style.opacity = '1';
+  setTimeout(() => { hurtEl.style.opacity = '0'; }, 180);
+}
+
 window.addEventListener('keydown', (e) => {
+  if (choosing && ['Digit1', 'Digit2', 'Digit3'].includes(e.code)) { pick(+e.code.slice(5) - 1); return; }
   if (e.code === 'KeyT') {                      // cycle phases (dev)
     const cur = daynight.fade?.name ?? daynight.current ?? 'day';
     const next = { day: 'dusk', dusk: 'night', night: 'day' }[cur];
     daynight.fadeTo(next, 3);
     phaseEl.textContent = next;
+    music?.setIntensity({ day: 0.18, dusk: 0.45, night: 0.55 }[next] ?? 0.18, 2.5);
     if (next === 'night' && !battle) startNight();
-    if (next === 'day' && battle) { battle.dispose(); battle = null; hero.external = false; }
+    if (next === 'day' && battle) { battle.dispose(); battle = null; hero.external = false; hero.battleCam = false; choosing = false; levelupEl.style.display = 'none'; }
   }
-  if (e.code === 'KeyE' && nearInteract) nearInteract.action();
+  if (e.code === 'KeyE' && nearInteract) { feel.emit('interact', {}); nearInteract.action(); }
   if (e.code === 'KeyR' && !battle) hero.place(-30, 0, -Math.PI / 2);
 });
 
@@ -161,17 +253,26 @@ addEventListener('resize', resize);
 resize();
 
 const clock = new THREE.Clock();
-function tick(dt) {
-  if (battle) {
+let musicTimer = 0;
+function tick(rawDt) {
+  const dt = rawDt * feel.hitstop.scale(rawDt);   // hit-stop bites everything
+  if (battle && !choosing) {
     const inp = hero.moveInput();
     _move.set(inp.x, 0, inp.z);
     battle.update(dt, _move.lengthSq() > 0 ? _move : null);
     const r = battle.run;
     phaseEl.textContent = `night · ❤ ${Math.max(0, Math.round(r.stats.hp))}/${r.stats.maxHp} · lv ${r.level} · ☠ ${r.kills} · ${Math.max(0, Math.ceil(480 - r.time))}s`;
+    musicTimer -= dt;
+    if (music && musicTimer <= 0) {               // the dial follows the fight
+      music.setIntensity(battle.pressure());
+      musicTimer = 0.8;
+    }
   }
   hero.update(dt);
   vignette.update(dt);
   daynight.update(dt, hero.position);
+  feel.update(dt, rawDt);
+  camera.position.add(feel.shake.offset);         // trauma shake on the play camera
   nearInteract = battle ? null : findInteract();
   promptEl.textContent = nearInteract ? `E · ${nearInteract.label ?? nearInteract.name}` : '';
   pipeline.render();
@@ -180,6 +281,76 @@ requestAnimationFrame(function loop() {
   tick(Math.min(clock.getDelta(), 0.05));
   requestAnimationFrame(loop);
 });
+
+// ---- play-camera gate -----------------------------------------------------
+// Measured through the PLAY camera (free-camera captures are banned as
+// gameplay evidence). Runs a scripted battle segment and reports:
+//   visibleFrac — mean fraction of live threats inside the frustum
+//   worstFrac   — the worst single frame
+//   timeToSee   — frames until the nearest threat was on screen at spawn
+window.__playCheck = async (seconds = 20) => {
+  if (!battle) { daynight.set('night'); startNight(); }
+  const frustum = new THREE.Frustum();
+  const mat = new THREE.Matrix4();
+  const pt = new THREE.Vector3();
+  const samples = [];
+  // spawn -> FIRST sight only. Re-entries are pursuit dynamics (a kiting
+  // player always has trailing threats off-frame), not camera failure.
+  let seeDelays = [], unseen = new Map(), seen = new WeakSet();
+  const frames = Math.round(seconds * 60);
+  for (let i = 0; i < frames; i++) {
+    // circle-strafe bot so the segment is a real fight
+    const r = battle.run;
+    const P = r.playerPos;
+    let mx = 0, mz = 0, cx = 0, cz = 0, n = 0, nearest = 1e9;
+    for (const e of r.enemies) {
+      const d = Math.hypot(P.x - e.pos.x, P.z - e.pos.z);
+      nearest = Math.min(nearest, d);
+      if (d < 7) { cx += e.pos.x; cz += e.pos.z; n++; }
+    }
+    if (n) {
+      cx /= n; cz /= n;
+      let ox = P.x - cx, oz = P.z - cz;
+      const ol = Math.hypot(ox, oz) || 1; ox /= ol; oz /= ol;
+      const press = Math.max(-0.35, Math.min(2.5, (3.0 - nearest) / 1.4));
+      mx = ox * press - oz; mz = oz * press + ox;
+    }
+    const ml = Math.hypot(mx, mz) || 1;
+    hero.virtual.move = { x: mx / ml, z: mz / ml };
+    if (choosing) pick(0);   // the CHECK's bot picks; a player never auto-picks
+    tick(1 / 60);
+    // measure through the play camera, post-render
+    camera.updateMatrixWorld();
+    mat.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    frustum.setFromProjectionMatrix(mat);
+    let vis = 0, live = 0;
+    for (const e of battle.run.enemies) {
+      live++;
+      const inView = frustum.containsPoint(pt.set(e.pos.x, 0.5, e.pos.z));
+      if (inView) {
+        vis++;
+        if (!seen.has(e)) {
+          seen.add(e);
+          if (unseen.has(e)) { seeDelays.push(i - unseen.get(e)); unseen.delete(e); }
+        }
+      } else if (!seen.has(e) && !unseen.has(e)) unseen.set(e, i);
+    }
+    if (live >= 5 && i > 120) samples.push(vis / live);  // skip cam transition + sparse frames (a 1-of-3 ratio is noise, not framing)
+    if (battle.run.over) break;
+  }
+  hero.virtual.move = { x: 0, z: 0 };
+  const mean = samples.reduce((a, b) => a + b, 0) / Math.max(1, samples.length);
+  const sorted = samples.slice().sort((a, b) => a - b);
+  const worst = sorted[Math.floor(sorted.length * 0.1)] ?? 0;   // p10, not a single-frame outlier
+  const p90see = seeDelays.sort((a, b) => a - b)[Math.floor(seeDelays.length * 0.9)] ?? 0;
+  return {
+    frames: samples.length,
+    visibleFrac: +mean.toFixed(3),
+    p10Frac: +worst.toFixed(3),
+    p90TimeToSeeSec: +(p90see / 60).toFixed(2),
+    pass: mean >= 0.8 && worst >= 0.4 && p90see / 60 <= 4,
+  };
+};
 
 // ---- capture + bot hooks --------------------------------------------------
 window.__tick = tick;

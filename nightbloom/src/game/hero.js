@@ -131,11 +131,18 @@ export class Hero {
       a.root.position.copy(this.position); // sim owns position
     }
 
-    // orbit camera with terrain-aware boom
+    // orbit camera with terrain-aware boom. In battleCam the boom pulls back
+    // and up so the horde is ON SCREEN — the audit measured 41 enemies alive
+    // with 1 in the frustum through the exploration camera, and the play
+    // camera is the only camera whose evidence counts.
+    const wantDist = this.battleCam ? 13 : 4.4;
+    const wantPitch = this.battleCam ? -1.08 : this.camPitch;  // near-overhead: back-spawns must be seen
+    this._dist = (this._dist ?? this.dist) + (wantDist - (this._dist ?? this.dist)) * (1 - Math.exp(-3.5 * dt));
+    this._pitch = (this._pitch ?? this.camPitch) + (wantPitch - (this._pitch ?? this.camPitch)) * (1 - Math.exp(-3.5 * dt));
     const cy = this.eyeY + 1.55;
-    const bx = this.position.x + Math.sin(this.camYaw) * Math.cos(this.camPitch) * this.dist;
-    const bz = this.position.z + Math.cos(this.camYaw) * Math.cos(this.camPitch) * this.dist;
-    let by = cy - Math.sin(this.camPitch) * this.dist;
+    const bx = this.position.x + Math.sin(this.camYaw) * Math.cos(this._pitch) * this._dist;
+    const bz = this.position.z + Math.cos(this.camYaw) * Math.cos(this._pitch) * this._dist;
+    let by = cy - Math.sin(this._pitch) * this._dist;
     const floor = this.groundAt(bx, bz) + 0.35;
     if (by < floor) by = floor;
     this.camera.position.set(bx, by, bz);

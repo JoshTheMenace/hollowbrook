@@ -24,8 +24,20 @@
   </head>
   <body>
     <canvas id="view" tabindex="0"></canvas>
+    <div id="hurtflash" style="position:fixed;inset:0;pointer-events:none;z-index:4;background:radial-gradient(ellipse at center,transparent 55%,rgba(255,60,80,0.45));opacity:0;transition:opacity 0.25s"></div>
     <div id="prompt"></div>
     <div id="phase"></div>
+    <div id="levelup" style="display:none;position:fixed;inset:0;z-index:10;background:rgba(8,6,18,0.55);align-items:center;justify-content:center;flex-direction:column;font-family:ui-rounded,system-ui,sans-serif">
+      <div style="color:#cdb4ff;font-size:26px;font-weight:800;letter-spacing:1px;text-shadow:0 0 18px rgba(140,100,255,0.5);margin-bottom:14px">the bloom offers…</div>
+      <div id="cards" style="display:flex;gap:14px"></div>
+    </div>
+    <style>
+      #cards .up { width: 165px; border: 3px solid #5a4a86; border-radius: 14px; padding: 15px 12px; background: rgba(20,16,38,0.95); color: #ece8fa; cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
+      #cards .up:hover { border-color: #b08aff; transform: translateY(-5px); }
+      #cards .lbl { font-weight: 800; font-size: 15px; margin-bottom: 5px; }
+      #cards .dsc { font-size: 12px; opacity: 0.7; line-height: 1.4; }
+      #cards .key { font-size: 11px; opacity: 0.45; margin-top: 9px; }
+    </style>
     <script type="module" src="/src/game/main.js"></script>
   </body>
 </html>

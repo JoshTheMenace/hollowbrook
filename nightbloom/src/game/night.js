@@ -8,6 +8,13 @@ import { toonMaterial, facetBall } from '@forge/lib/parts.js';
 // Run owns combat + player movement; we own visuals + the hero body.
 
 export const ARENA = { x0: 29, z0: -3, x1: 53, z1: 15 };   // plan contract
+
+// Every event type this module can emit. The feel lint asserts each one has
+// a consumer — an event with no feedback is a gated defect, not a detail.
+export const NIGHT_EVENTS = [
+  'elite-spawn', 'enemy-hit', 'kill', 'elite-kill', 'gem', 'player-hurt',
+  'level-up', 'arc', 'nova', 'strike', 'knife', 'bolt', 'victory', 'defeat',
+];
 const CENTER = { x: (ARENA.x0 + ARENA.x1) / 2, z: (ARENA.z0 + ARENA.z1) / 2 };
 
 export class NightBattle {
