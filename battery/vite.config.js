@@ -30,10 +30,11 @@ function frameGrabber(outDir) {
 }
 
 const FORGE = path.resolve(process.cwd(), '../charforge/src');
+const TOWN = path.resolve(process.cwd(), '../nightbloom/src');
 
 export default defineConfig({
   base: './',
   plugins: [frameGrabber(path.resolve(process.cwd(), '.shots'))],
-  resolve: { alias: { '@forge': FORGE }, dedupe: ['three'] },
-  server: { host: '127.0.0.1', port: 5183, fs: { allow: [process.cwd(), FORGE] } },
+  resolve: { alias: { '@forge': FORGE, '@town': TOWN }, dedupe: ['three'] },
+  server: { host: '127.0.0.1', port: 5183, fs: { allow: [process.cwd(), FORGE, TOWN, path.resolve(process.cwd(), '../nightbloom')] } },
 });

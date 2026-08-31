@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Cel Bridge</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #16121f; font-family: ui-rounded, system-ui, sans-serif; }
+      #view { width: 100vw; height: 100vh; display: block; outline: none; }
+      #tag { position: fixed; top: 14px; left: 18px; color: #cfc4e8; font-size: 12px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; text-transform: uppercase; pointer-events: none; }
+      #hint { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: #f2ecdf; font-size: 13px; background: rgba(20, 16, 34, 0.7); border-radius: 9px; padding: 6px 14px; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <canvas id="view" tabindex="0"></canvas>
+    <div id="tag">the cel bridge</div>
+    <div id="hint">WASD walk · mouse orbit (click) · B toggles the bridge (celify) · N night</div>
+    <script type="module" src="/src/celbridge/main.js"></script>
+  </body>
+</html>
