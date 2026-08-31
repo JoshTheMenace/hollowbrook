@@ -3,6 +3,12 @@
 The audit's rule: a game ships against a loop contract the way a scene ships
 against a plan. GAME.md describes intent; THIS page is the part gates hold.
 
+**Skill axis: HYBRID (planning + execution).** Planning: the upgrade draft
+and pack-splitting routes (instrument: the designed-curve sim with the
+random-pick bot as the planning floor). Execution: kiting precision
+(instrument: actuation-noise profiles — NOT YET APPLIED to this game;
+recorded as an open gate to add).
+
 ## The loop
 
 - **Core verb:** positioning. The player never presses an attack button —

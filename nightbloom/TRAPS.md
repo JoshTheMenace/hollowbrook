@@ -48,6 +48,18 @@ that is why this file exists.)
 ## Process
 
 - Builder never scores. Measured self-score inflation in this stack: ~0.2.
+- **Skill axis is a first-class contract field**: every loop contract declares
+  its axis — planning | reaction | execution | hybrid — and the headroom
+  instrument that axis pays for (planning: oracle-vs-reactive; execution:
+  actuation-noise profiles, e.g. expert 120ms/4° vs novice 340ms/16°).
+  The gate is chosen by classification, never rebuilt ad hoc per game.
+- **Contract amendments** (campaign rule): legal only BEFORE the review
+  bundle is cut — the bundle freezes the contract. Every amendment logs the
+  original number, the new number, and the design change that invalidated
+  the original ("the gate failed" is never sufficient cause). Window-moves
+  and game-fixes must be distinguishable in the log. The independent review
+  AUDITS the amendment log; a judged goalpost-move is a scored process
+  finding.
 - Commit per fix, from a baseline committed BEFORE the first change.
 - Check disk state before redoing a crashed agent's work — it usually survived.
 - grep call SITES, not definitions, when verifying something is wired.

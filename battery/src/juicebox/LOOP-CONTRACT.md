@@ -5,6 +5,10 @@ feel bus, SFX, hit feedback, input latency, the play camera, and the
 designed-curve gates on a genre that is NOT survivors. The game is small on
 purpose; the seam is the deliverable.
 
+**Skill axis: EXECUTION** (aim + reaction). Headroom instrument:
+actuation-noise profiles on the same policy family — expert (120ms, 4°)
+vs novice (340ms, 16°); measured 1.78×.
+
 ## The loop
 
 - **Core verb: DASH.** Tap a direction (WASD/arrows, or click toward the
