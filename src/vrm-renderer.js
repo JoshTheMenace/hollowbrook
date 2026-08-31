@@ -4,9 +4,15 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 
 const duration = {
-  nod: 650, wave: 1800, point: 1400, bow: 1500, walk_forward: 2300, walk_back: 2300,
+  nod: 650, shake: 900, tilt_left: 1100, tilt_right: 1100, lean_in: 1500, lean_back: 1500,
+  small_shrug: 1100, open_hand: 1600, wave: 1800, point: 1400, bow: 1500,
+  walk_forward: 2300, walk_back: 2300,
   strafe_left: 2000, strafe_right: 2000, turn_left: 1500, turn_right: 1500, jump: 950, dance: 3000
 };
+// Every vocabulary gesture this renderer honors. The guard below THROWS on
+// anything else: a silent no-op is the character pipeline's doorway-collider
+// bug — the contract validates, the renderer nods, and nothing moves.
+export const IMPLEMENTED_GESTURES = Object.freeze(["none", ...Object.keys(duration)]);
 const faceByViseme = { A: "aa", E: "ee", O: "oh", U: "ou", M: "", F: "ih", S: "ih", L: "aa", rest: "" };
 const expressionByEmotion = { happy: "happy", amused: "relaxed", skeptical: "angry", confused: "surprised", concerned: "sad", embarrassed: "relaxed", excited: "happy" };
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -101,6 +107,9 @@ export class VrmActorRenderer {
 
   animate(state, now) {
     if (state.gesture !== this.motion.name) {
+      if (!IMPLEMENTED_GESTURES.includes(state.gesture)) {
+        throw new Error(`gesture "${state.gesture}" is in the vocabulary but NOT implemented by this renderer — implemented: ${IMPLEMENTED_GESTURES.join(", ")}`);
+      }
       if (state.gesture !== "none") this.motion = { name: state.gesture, startedAt: now, from: this.position.clone(), yaw: this.yaw };
       else this.motion.name = "none";
     }
@@ -144,7 +153,25 @@ export class VrmActorRenderer {
     } else if (name === "dance") {
       this.avatarRoot.position.y = Math.abs(Math.sin(elapsed * 5)) * .06; pose.hips.z = Math.sin(elapsed * 5) * .2; pose.leftUpperLeg.x = phase * .28; pose.rightUpperLeg.x = -phase * .28; pose.leftUpperArm.z = (-1.5 + Math.sin(elapsed * 4) * .45) * this.armSign; pose.rightUpperArm.z = (1.5 + Math.sin(elapsed * 4 + Math.PI) * .45) * this.armSign;
     } else if (name === "nod") pose.head.x = Math.sin(Math.PI * progress) * .35;
-    else this.avatarRoot.position.y *= .78;
+    else if (name === "shake") pose.head.y += Math.sin(elapsed * 9) * .3 * Math.sin(Math.PI * progress);
+    else if (name === "tilt_left") pose.head.z = Math.sin(Math.PI * progress) * .3;
+    else if (name === "tilt_right") pose.head.z = -Math.sin(Math.PI * progress) * .3;
+    else if (name === "lean_in") { pose.spine.x += Math.sin(Math.PI * progress) * .2; pose.head.x -= Math.sin(Math.PI * progress) * .08; }
+    else if (name === "lean_back") { pose.spine.x -= Math.sin(Math.PI * progress) * .16; pose.head.x += Math.sin(Math.PI * progress) * .06; }
+    else if (name === "small_shrug") {
+      const lift = Math.sin(Math.PI * clamp(progress * 1.6, 0, 1)) * .22;
+      pose.leftUpperArm.z += lift * this.armSign; pose.rightUpperArm.z -= lift * this.armSign;
+      pose.upperChest.x -= lift * .3; pose.head.z = lift * .3;
+    } else if (name === "open_hand") {
+      pose.rightUpperArm.x = -.62 * Math.sin(Math.PI * Math.min(1, progress * 1.4));
+      pose.rightUpperArm.z = .55 * this.armSign * Math.sin(Math.PI * Math.min(1, progress * 1.4));
+      pose.rightLowerArm.z = .1 * this.armSign;
+    } else this.avatarRoot.position.y *= .78;
+
+    // posture: the sustained lean under whatever gesture plays (the audit
+    // found this field validated, stored, and never read)
+    if (state.posture === "lean_in") { pose.spine.x += .14; pose.head.x -= .05; }
+    else if (state.posture === "lean_back") { pose.spine.x -= .12; pose.head.x += .04; }
 
     this.avatarRoot.position.x = THREE.MathUtils.lerp(this.avatarRoot.position.x, this.position.x, .16);
     this.avatarRoot.position.z = THREE.MathUtils.lerp(this.avatarRoot.position.z, this.position.z, .16);
