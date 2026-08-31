@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CharForge</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #1a1c22; }
+      canvas { display: block; }
+      #hud { position: fixed; top: 10px; left: 12px; color: #cfd3dd; font: 12px/1.5 ui-monospace, monospace; user-select: none; }
+      #panel { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+      #panel button { background: #2b303d; color: #dfe3ee; border: 1px solid #444b5e; border-radius: 8px; padding: 6px 12px; font: 13px ui-monospace, monospace; cursor: pointer; }
+      #panel button.on { background: #4a5cc0; border-color: #6b7ce0; }
+      #panel .sep { width: 12px; }
+    </style>
+  </head>
+  <body>
+    <div id="hud"></div>
+    <div id="panel"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

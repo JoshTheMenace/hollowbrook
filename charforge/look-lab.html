@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LookForge Lab</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #14121f; overflow: hidden; }
+      canvas { display: block; }
+      #ui { position: fixed; top: 12px; left: 12px; display: flex; gap: 8px; z-index: 5; font-family: ui-rounded, system-ui; }
+      #ui button { font: 600 13px ui-rounded, system-ui; background: rgba(20, 16, 38, 0.9); color: #ece8fa; border: 1px solid #38304e; border-radius: 9px; padding: 8px 14px; cursor: pointer; }
+      #ui button.on { border-color: #6ee0ff; color: #6ee0ff; }
+    </style>
+  </head>
+  <body>
+    <div id="ui"></div>
+    <script type="module" src="/src/lookforge/lab-look.js"></script>
+  </body>
+</html>

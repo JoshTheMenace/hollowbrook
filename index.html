@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Mira is a live, voice-driven anime character powered by a semantic performance engine.">
+  <title>Mira Live · AI performance studio</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="importmap">
+    {"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/","@pixiv/three-vrm":"/node_modules/@pixiv/three-vrm/lib/three-vrm.module.js"}}
+  </script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Mira Live home">
+        <span class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span><strong>Mira Live</strong><small>AI performance studio</small></span>
+      </a>
+      <div class="runtime-health" aria-label="Runtime status">
+        <span class="status-light"></span>
+        <span id="engine-status">Performance engine online</span>
+        <span class="runtime-divider"></span>
+        <span id="fps">60 FPS</span>
+        <span class="runtime-divider"></span>
+        <span>Local session</span>
+      </div>
+      <nav class="top-actions" aria-label="Session actions">
+        <button class="button quiet" id="tour-button">Play showcase</button>
+        <button class="button quiet" id="reset-button">Reset</button>
+        <button class="button" id="export-button">Export trace</button>
+      </nav>
+    </header>
+
+    <main class="workspace">
+      <section class="stage-panel" aria-labelledby="stage-heading" tabindex="0">
+        <div class="stage-toolbar">
+          <div>
+            <span class="kicker">Live actor · session 01</span>
+            <h1 id="stage-heading">Meet Mira</h1>
+          </div>
+          <div class="stage-status">
+            <span class="mode-pill" id="state-badge"><i></i> Ready</span>
+            <span class="latency-pill"><small>response</small><strong id="latency-readout">local</strong></span>
+          </div>
+        </div>
+
+        <div class="cinematic-stage" id="stage">
+          <div class="set-glow glow-one"></div><div class="set-glow glow-two"></div>
+          <div class="set-grid"></div><div class="set-horizon"></div>
+          <div class="particle-field" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+          <div class="scene-label"><span>LIVE</span><strong>Virtual studio A</strong></div>
+          <div class="speech-card" id="speech-card" hidden>
+            <span>Mira</span><p id="speech-text"></p>
+          </div>
+
+          <div id="actor" class="vrm-actor" role="img" aria-label="Mira, a fully rigged anime character responding through live animation">
+            <canvas id="actor-canvas" aria-hidden="true"></canvas>
+            <div class="model-loading" id="model-loading"><i></i><span>Loading humanoid rig…</span></div>
+            <div class="camera-hint">Drag to orbit · scroll to zoom</div>
+          </div>
+
+          <div class="transcript-overlay">
+            <div class="audio-orb" id="audio-orb" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <div><span id="voice-state">Ready when you are</span><p id="live-transcript">Press the microphone and speak naturally.</p></div>
+          </div>
+
+          <div class="stage-footer">
+            <div><span>Current performance</span><strong id="performance-summary">Ready · neutral · focused on you</strong></div>
+            <div class="play-progress" id="plan-progressbar" role="progressbar" aria-label="Performance progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="plan-progress"></i></div>
+          </div>
+        </div>
+        <div class="sr-only" id="live-status" aria-live="polite"></div>
+      </section>
+
+      <aside class="director-panel" aria-label="Voice and performance director">
+        <div class="director-scroll">
+          <section class="voice-console">
+            <div class="section-heading">
+              <div><span class="kicker">Native voice pipeline</span><h2>Talk with Mira</h2></div>
+              <span class="availability" id="speech-availability"><i></i> Checking browser</span>
+            </div>
+            <button class="microphone-button" id="microphone-button">
+              <span class="mic-icon" aria-hidden="true"></span>
+              <span><strong>Start listening</strong><small>Live browser transcription</small></span>
+              <i class="mic-level" aria-hidden="true"></i>
+            </button>
+            <div class="voice-row">
+              <label for="voice-select">System voice</label>
+              <select id="voice-select" aria-label="System voice"><option>Loading macOS voices…</option></select>
+            </div>
+            <label class="composer" for="utterance-input">
+              <span>Line to perform</span>
+              <textarea id="utterance-input" rows="3">Hi. I'm Mira. My voice and facial performance are synchronized in real time.</textarea>
+            </label>
+            <div class="voice-actions">
+              <button class="button primary" id="speak-button"><span aria-hidden="true">▶</span> Speak line</button>
+              <button class="button danger" id="stop-voice-button">Stop</button>
+            </div>
+            <p class="privacy-note">Transcription uses your browser's speech service. System speech uses an installed voice when available.</p>
+          </section>
+
+          <section class="control-section">
+            <div class="section-heading compact"><div><span class="kicker">Performance channels</span><h2>Direct the actor</h2></div></div>
+            <div class="control-group">
+              <label>Conversation state</label>
+              <div class="segmented five" id="state-controls" role="group" aria-label="Conversation state">
+                <button data-state="idle" class="active">Ready</button><button data-state="listening">Listen</button><button data-state="thinking">Think</button><button data-state="speaking">Speak</button><button data-state="interrupted">Stop</button>
+              </div>
+            </div>
+            <div class="control-group">
+              <label>Expression</label>
+              <div class="choice-grid" id="emotion-controls" role="group" aria-label="Expression">
+                <button data-emotion="neutral" class="active">Neutral</button><button data-emotion="happy">Warm</button><button data-emotion="amused">Amused</button><button data-emotion="skeptical">Skeptical</button><button data-emotion="confused">Curious</button><button data-emotion="concerned">Concerned</button><button data-emotion="embarrassed">Shy</button><button data-emotion="excited">Excited</button>
+              </div>
+            </div>
+            <div class="dual-controls">
+              <div class="control-group"><label>Focus</label><div class="choice-grid two" id="gaze-controls" role="group" aria-label="Gaze"><button data-gaze="user" class="active">You</button><button data-gaze="left">Left</button><button data-gaze="right">Right</button><button data-gaze="down">Down</button></div></div>
+              <div class="control-group"><label>Upper body</label><div class="choice-grid two" id="gesture-controls" role="group" aria-label="Gesture"><button data-gesture="nod">Nod</button><button data-gesture="wave">Wave</button><button data-gesture="point">Point</button><button data-gesture="bow">Bow</button></div></div>
+            </div>
+            <div class="control-group"><label>Full-body locomotion</label><div class="choice-grid four" id="body-controls" role="group" aria-label="Full-body motion"><button data-gesture="walk_forward">Walk</button><button data-gesture="walk_back">Back</button><button data-gesture="strafe_left">Step left</button><button data-gesture="strafe_right">Step right</button><button data-gesture="turn_left">Turn left</button><button data-gesture="turn_right">Turn right</button><button data-gesture="jump">Jump</button><button data-gesture="dance">Dance</button></div></div>
+            <div class="control-group"><label>Camera</label><div class="choice-grid" id="camera-controls" role="group" aria-label="Camera framing"><button data-camera="full" class="active">Full body</button><button data-camera="medium">Medium</button><button data-camera="portrait">Portrait</button></div></div>
+            <div class="sliders">
+              <label>Expression <output id="emotion-output">50%</output><input id="emotion-slider" type="range" min="0" max="100" value="50"></label>
+              <label>Energy <output id="energy-output">45%</output><input id="energy-slider" type="range" min="0" max="100" value="45"></label>
+            </div>
+          </section>
+
+          <section class="control-section plan-section">
+            <div class="section-heading compact"><div><span class="kicker">Structured direction</span><h2>Acting plan</h2></div></div>
+            <label class="field-label" for="plan-select">Scenario</label>
+            <select id="plan-select"><option value="skeptical">Skeptical response</option><option value="warm">Warm acknowledgement</option><option value="explain">Energetic explanation</option></select>
+            <div class="plan-actions"><button class="button primary" id="play-button">Play plan</button><button class="button danger" id="interrupt-button">Interrupt</button></div>
+            <details><summary>Inspect semantic JSON</summary><textarea id="plan-editor" spellcheck="false" aria-describedby="plan-error"></textarea><p class="field-error" id="plan-error" role="alert"></p><button class="button small" id="apply-json-button">Validate plan</button></details>
+          </section>
+        </div>
+      </aside>
+
+      <section class="trace-panel" aria-labelledby="trace-heading">
+        <div class="trace-header">
+          <div><span class="kicker">Performance telemetry</span><h2 id="trace-heading">Live channel trace</h2></div>
+          <div class="metrics"><span><small>events</small><strong id="event-count">0</strong></span><span><small>last command</small><strong id="last-command">0 ms</strong></span><span><small>active channel</small><strong id="active-channel">baseline</strong></span><span><small>mouth shape</small><strong id="viseme-readout">REST</strong></span></div>
+          <button class="button quiet small" id="clear-button">Clear</button>
+        </div>
+        <div class="trace-body">
+          <div class="lane-labels" aria-hidden="true"><span>STATE</span><span>FACE</span><span>GAZE</span><span>BODY</span><span>MOUTH</span></div>
+          <div class="timeline" id="timeline"><div class="empty-trace"><strong>Performance engine is ready</strong><span>Voice, semantic commands, and policy decisions will appear here.</span></div></div>
+          <ol class="event-log" id="event-log" aria-label="Recent performance events"></ol>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

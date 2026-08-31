@@ -1,0 +1,27 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "charforge",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "charforge",
+        "run",
+        "dev"
+      ],
+      "port": 5186
+    },
+    {
+      "name": "nightbloom",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "nightbloom",
+        "run",
+        "dev"
+      ],
+      "port": 5178
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+node_modules/
+# regenerable evidence artifacts (screenshots, exports, rendered audio)
+.shots/
+charforge/exports/

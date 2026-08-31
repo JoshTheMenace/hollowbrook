@@ -1,0 +1,13 @@
+{
+  "name": "stagecraft-lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@pixiv/three-vrm": "^3.5.5",
+    "three": "^0.180.0"
+  }
+}

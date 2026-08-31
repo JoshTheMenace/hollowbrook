@@ -1,0 +1,881 @@
+{
+  "city": {
+    "name": "宵坂 (Yoizaka)",
+    "promise": "A worked-in Japanese branch-line town at golden hour in early autumn, dry and still, where the visitor who walks from the level crossing to the festival ground discovers that every lantern, charm and swept surface the town owns is aimed at the field where night blooms.",
+    "footprint_m": [
+      130,
+      100
+    ],
+    "palette_notes": "Value ladder: indigo-grey roof tile (dark) -> aged cedar and plaster walls (mid) -> paper and sand paving (light). Shade is violet-tinted, never black. Two saturated accents only: paper-lantern amber, owned by shopfronts and the festival ground; spirit-blossom pink, owned by the shrine and by blossom/charms everywhere — nothing else may use either.",
+    "compass": {
+      "north_xz": [
+        0,
+        -1
+      ]
+    },
+    "sun": {
+      "bearing": "south-west",
+      "elevation_deg": 14
+    }
+  },
+  "shared_kit": {
+    "module": "src/kit/",
+    "builders_required": [
+      "machiya — the gabled timber shopfront: fascia board, sliding door bay, first-floor rail, optional noren; parameterized width/depth/tenant",
+      "rowhouse — modest tiled dwelling with genkan step, for lanes; 2-3 seeded variants",
+      "shrineHall — small hall with hip-gable roof, offering box, bell rope",
+      "torii — vermilion-free WOODEN torii (weathered cedar, pink charm tags), heights 4-6 m",
+      "yagura — the festival drum tower: square timber frame, red-white bunting skirt, ladder, drum platform",
+      "matsuriStall — festival stall: counter, awning, hanging goods; closed/shuttered variant",
+      "stationHalt — single low platform, shelter hut, name board, fence run",
+      "crossingSignal — level-crossing mast: lights, bell, half barrier",
+      "stoneLantern — toro in 2 sizes, mossy base",
+      "lanternString — catenary string of paper lanterns between two anchor points, amber emissive",
+      "canalKerb — stone channel kerb run with inset steps and water plane between",
+      "footbridge — timber footbridge over the canal with handrails",
+      "phonebox — one glazed public phone box (quest prop)",
+      "postRack — bicycle rack / parked bicycles cluster"
+    ],
+    "signage_tenants": [
+      "宵坂駅 (the halt name board)",
+      "蕎麦 よいざか (soba shop)",
+      "駄菓子 ほしや (dagashi sweets)",
+      "金物 たけだ (hardware)",
+      "花 このは (florist)",
+      "米屋 いなほ (rice merchant)",
+      "喫茶 月見 (kissaten)",
+      "薬局 くすのき (pharmacy)",
+      "宵坂神社 (shrine name plate + ema tags)",
+      "宵祭 (festival banners and nobori)",
+      "夜間立入注意 (night-warning notice, town's one visible admission)"
+    ]
+  },
+  "districts": [
+    {
+      "id": "crossing-gate",
+      "name": "踏切口 — the crossing gate",
+      "brief": "The town's threshold: a single-track branch line, an unstaffed halt with one platform and a shelter, and the level crossing that the main street runs through. The last train left twenty minutes ago; the barrier is up, the bell is silent, a bicycle leans on the platform fence and the halt's notice board still carries the summer festival poster. The player arrives here and must immediately read the whole town's invitation east down the main street.",
+      "envelope": {
+        "x0": -65,
+        "z0": -18,
+        "x1": -25,
+        "z1": 16
+      },
+      "after": [],
+      "sockets": [
+        {
+          "id": "cg-main-e",
+          "kind": "road",
+          "at": [
+            -25,
+            0
+          ],
+          "axis": "x",
+          "width": 5,
+          "y": 0.0,
+          "mate": "mk-main-w"
+        }
+      ],
+      "anchors": [
+        {
+          "x": -30,
+          "z": 0,
+          "expect_top": 0.0,
+          "tol": 0.05
+        },
+        {
+          "x": -52,
+          "z": 8,
+          "expect_top": 0.0,
+          "tol": 0.05
+        }
+      ],
+      "waypoints": [
+        {
+          "name": "halt platform bench",
+          "x": -54,
+          "z": 8
+        },
+        {
+          "name": "crossing mirror",
+          "x": -47,
+          "z": -3
+        },
+        {
+          "name": "road head",
+          "x": -30,
+          "z": 0
+        }
+      ],
+      "landmarks_citywide": [
+        {
+          "object": "district:crossing-gate:crossing-signal",
+          "must_read_from_vistas": [
+            "terrace-over-town"
+          ],
+          "must_read_from_districts": [
+            "market-street"
+          ]
+        }
+      ],
+      "budgets": {
+        "max_meshes": 400,
+        "max_triangles": 150000
+      },
+      "interactions": [
+        {
+          "name": "read the halt notice board",
+          "at": [
+            -55,
+            10
+          ]
+        }
+      ],
+      "massing": [
+        {
+          "x": -55,
+          "z": 10,
+          "w": 8,
+          "d": 4,
+          "h": 3.2
+        },
+        {
+          "x": -47,
+          "z": -2,
+          "w": 1.5,
+          "d": 1.5,
+          "h": 5
+        }
+      ]
+    },
+    {
+      "id": "market-street",
+      "name": "宵坂通り — the market street",
+      "brief": "Seven family shops face each other across the town's one real street, fascia to fascia: soba, dagashi, hardware, florist, rice, kissaten, pharmacy. It is the hour when shopkeepers light their lanterns before closing — half the shutters are still up, crates are being carried in, and amber light already spills from the kissaten. The street compresses the view so the festival ground's opening east of it lands as a reveal. Every shop door is a place a person could stand.",
+      "envelope": {
+        "x0": -25,
+        "z0": -14,
+        "x1": 18,
+        "z1": 16
+      },
+      "after": [],
+      "sockets": [
+        {
+          "id": "mk-main-w",
+          "kind": "road",
+          "at": [
+            -25,
+            0
+          ],
+          "axis": "x",
+          "width": 5,
+          "y": 0.0,
+          "mate": "cg-main-e"
+        },
+        {
+          "id": "mk-main-e",
+          "kind": "road",
+          "at": [
+            18,
+            0
+          ],
+          "axis": "x",
+          "width": 5,
+          "y": 0.0,
+          "mate": "fg-main-w"
+        },
+        {
+          "id": "mk-shrine-n",
+          "kind": "path",
+          "at": [
+            0,
+            -14
+          ],
+          "axis": "z",
+          "width": 3.5,
+          "y": 0.0,
+          "mate": "sr-steps-s"
+        },
+        {
+          "id": "mk-canal-s",
+          "kind": "path",
+          "at": [
+            -8,
+            16
+          ],
+          "axis": "z",
+          "width": 4,
+          "y": 0.0,
+          "mate": "cl-lane-n"
+        }
+      ],
+      "anchors": [
+        {
+          "x": -20,
+          "z": 0,
+          "expect_top": 0.0,
+          "tol": 0.05
+        },
+        {
+          "x": 14,
+          "z": 0,
+          "expect_top": 0.0,
+          "tol": 0.05
+        }
+      ],
+      "waypoints": [
+        {
+          "name": "soba shop door",
+          "x": -18,
+          "z": -4
+        },
+        {
+          "name": "dagashi shop door",
+          "x": -8,
+          "z": 5
+        },
+        {
+          "name": "hardware shop door",
+          "x": 2,
+          "z": -4
+        },
+        {
+          "name": "kissaten door",
+          "x": 10,
+          "z": 5
+        },
+        {
+          "name": "street middle",
+          "x": -3,
+          "z": 0
+        }
+      ],
+      "landmarks_citywide": [],
+      "budgets": {
+        "max_meshes": 400,
+        "max_triangles": 150000
+      },
+      "interactions": [
+        {
+          "name": "shop door chime at the dagashi shop",
+          "at": [
+            -8,
+            5
+          ]
+        }
+      ],
+      "massing": [
+        {
+          "x": -16,
+          "z": -6,
+          "w": 8,
+          "d": 7,
+          "h": 6
+        },
+        {
+          "x": -6,
+          "z": 7,
+          "w": 9,
+          "d": 7,
+          "h": 6
+        },
+        {
+          "x": 4,
+          "z": -6,
+          "w": 8,
+          "d": 7,
+          "h": 6.5
+        },
+        {
+          "x": 11,
+          "z": 7,
+          "w": 8,
+          "d": 7,
+          "h": 5.5
+        }
+      ]
+    },
+    {
+      "id": "shrine-rise",
+      "name": "宵坂神社 — the shrine rise",
+      "brief": "The town's guardian shrine stands on a terrace three and a half metres over the street, reached by a stone stair between moss walls, under a weathered wooden torii hung with pink charm tags. An old camphor tree leans over the hall; the shide are fresh, the ground is swept daily, and there are far more warding charms here than one small town should need. From the terrace edge the whole town reads at once — and the sightline down to the festival field is deliberate, kept, and old.",
+      "envelope": {
+        "x0": -8,
+        "z0": -50,
+        "x1": 38,
+        "z1": -14
+      },
+      "after": [],
+      "sockets": [
+        {
+          "id": "sr-steps-s",
+          "kind": "path",
+          "at": [
+            0,
+            -14
+          ],
+          "axis": "z",
+          "width": 3.5,
+          "y": 0.0,
+          "mate": "mk-shrine-n"
+        },
+        {
+          "id": "sr-back-e",
+          "kind": "path",
+          "at": [
+            28,
+            -14
+          ],
+          "axis": "z",
+          "width": 2.5,
+          "y": 0.0,
+          "mate": "fg-hill-n"
+        }
+      ],
+      "anchors": [
+        {
+          "x": 0,
+          "z": -17,
+          "expect_top": 0.0,
+          "tol": 0.05
+        },
+        {
+          "x": 16,
+          "z": -36,
+          "expect_top": 3.5,
+          "tol": 0.05
+        }
+      ],
+      "waypoints": [
+        {
+          "name": "torii foot",
+          "x": 14,
+          "z": -24
+        },
+        {
+          "name": "hall front",
+          "x": 16,
+          "z": -38
+        },
+        {
+          "name": "camphor tree",
+          "x": 24,
+          "z": -40
+        },
+        {
+          "name": "terrace edge lookout",
+          "x": 8,
+          "z": -28
+        }
+      ],
+      "landmarks_citywide": [
+        {
+          "object": "district:shrine-rise:torii",
+          "must_read_from_vistas": [
+            "field-to-torii",
+            "skyline-sw"
+          ],
+          "must_read_from_districts": [
+            "festival-ground"
+          ]
+        }
+      ],
+      "budgets": {
+        "max_meshes": 400,
+        "max_triangles": 150000
+      },
+      "interactions": [
+        {
+          "name": "pull the shrine bell rope",
+          "at": [
+            16,
+            -37
+          ]
+        }
+      ],
+      "massing": [
+        {
+          "x": 16,
+          "z": -40,
+          "w": 9,
+          "d": 7,
+          "h": 6
+        },
+        {
+          "x": 14,
+          "z": -24,
+          "w": 5,
+          "d": 1,
+          "h": 5.5
+        }
+      ]
+    },
+    {
+      "id": "festival-ground",
+      "name": "宵祭広場 — the festival ground",
+      "brief": "The town's flat open field, ringed by shuttered festival stalls and lantern strings, with the yagura drum tower standing at its WEST rim so the field itself stays clear. The festival never quite ends here: the bunting stays up all year, the lanterns are re-papered monthly, and a small honest sign at the rope line reads 夜間立入注意. GAME CONTRACT, NON-NEGOTIABLE: the central field is a combat arena — keep the region x 29..53, z -3..15 (24 x 18 m) completely free of colliders; stalls, strings, ropes and the yagura live OUTSIDE that rectangle at the rim.",
+      "envelope": {
+        "x0": 18,
+        "z0": -14,
+        "x1": 65,
+        "z1": 26
+      },
+      "after": [],
+      "sockets": [
+        {
+          "id": "fg-main-w",
+          "kind": "road",
+          "at": [
+            18,
+            0
+          ],
+          "axis": "x",
+          "width": 5,
+          "y": 0.0,
+          "mate": "mk-main-e"
+        },
+        {
+          "id": "fg-hill-n",
+          "kind": "path",
+          "at": [
+            28,
+            -14
+          ],
+          "axis": "z",
+          "width": 2.5,
+          "y": 0.0,
+          "mate": "sr-back-e"
+        },
+        {
+          "id": "fg-canal-s",
+          "kind": "path",
+          "at": [
+            18,
+            21
+          ],
+          "axis": "x",
+          "width": 3,
+          "y": 0.0,
+          "mate": "cl-field-e"
+        }
+      ],
+      "anchors": [
+        {
+          "x": 22,
+          "z": 0,
+          "expect_top": 0.0,
+          "tol": 0.05
+        },
+        {
+          "x": 41,
+          "z": 6,
+          "expect_top": 0.0,
+          "tol": 0.05
+        }
+      ],
+      "waypoints": [
+        {
+          "name": "field center",
+          "x": 41,
+          "z": 6
+        },
+        {
+          "name": "yagura foot",
+          "x": 27,
+          "z": 6
+        },
+        {
+          "name": "stall row",
+          "x": 44,
+          "z": 20
+        },
+        {
+          "name": "east rope line",
+          "x": 58,
+          "z": 6
+        }
+      ],
+      "landmarks_citywide": [
+        {
+          "object": "district:festival-ground:yagura",
+          "must_read_from_vistas": [
+            "main-street-east"
+          ],
+          "must_read_from_districts": [
+            "shrine-rise"
+          ]
+        }
+      ],
+      "budgets": {
+        "max_meshes": 400,
+        "max_triangles": 150000
+      },
+      "interactions": [
+        {
+          "name": "strike the yagura drum",
+          "at": [
+            27,
+            6
+          ]
+        }
+      ],
+      "massing": [
+        {
+          "x": 27,
+          "z": 6,
+          "w": 4,
+          "d": 4,
+          "h": 8
+        },
+        {
+          "x": 44,
+          "z": 21,
+          "w": 14,
+          "d": 3,
+          "h": 3
+        }
+      ]
+    },
+    {
+      "id": "canal-lane",
+      "name": "川端小路 — the canal lane",
+      "brief": "The quiet south loop: an irrigation channel runs the lane's length between stone kerbs, crossed by two timber footbridges, with modest tiled houses facing the water. Laundry is in, koi hang in the shade under the west bridge, and a phone box glows at the lane's end. This is where the town actually lives — the player comes here for errands and for calm, and the water carries the evening light. The channel is DRESSING on continuous ground: kerb walls and a water plane, never a terrain cut.",
+      "envelope": {
+        "x0": -45,
+        "z0": 16,
+        "x1": 18,
+        "z1": 50
+      },
+      "after": [],
+      "sockets": [
+        {
+          "id": "cl-lane-n",
+          "kind": "path",
+          "at": [
+            -8,
+            16
+          ],
+          "axis": "z",
+          "width": 4,
+          "y": 0.0,
+          "mate": "mk-canal-s"
+        },
+        {
+          "id": "cl-field-e",
+          "kind": "path",
+          "at": [
+            18,
+            21
+          ],
+          "axis": "x",
+          "width": 3,
+          "y": 0.0,
+          "mate": "fg-canal-s"
+        }
+      ],
+      "anchors": [
+        {
+          "x": -8,
+          "z": 20,
+          "expect_top": 0.0,
+          "tol": 0.05
+        },
+        {
+          "x": 14,
+          "z": 21,
+          "expect_top": 0.0,
+          "tol": 0.05
+        }
+      ],
+      "waypoints": [
+        {
+          "name": "west footbridge",
+          "x": -28,
+          "z": 33
+        },
+        {
+          "name": "east footbridge",
+          "x": -2,
+          "z": 33
+        },
+        {
+          "name": "phone box",
+          "x": -40,
+          "z": 44
+        },
+        {
+          "name": "koi shadow",
+          "x": -30,
+          "z": 35
+        }
+      ],
+      "landmarks_citywide": [],
+      "budgets": {
+        "max_meshes": 400,
+        "max_triangles": 150000
+      },
+      "interactions": [
+        {
+          "name": "feed the koi from the west footbridge",
+          "at": [
+            -28,
+            33
+          ]
+        }
+      ],
+      "massing": [
+        {
+          "x": -20,
+          "z": 24,
+          "w": 9,
+          "d": 7,
+          "h": 5.5
+        },
+        {
+          "x": -34,
+          "z": 42,
+          "w": 9,
+          "d": 7,
+          "h": 5.5
+        },
+        {
+          "x": 6,
+          "z": 42,
+          "w": 9,
+          "d": 7,
+          "h": 5.5
+        }
+      ]
+    }
+  ],
+  "vista_cameras": [
+    {
+      "name": "main-street-east",
+      "position": [
+        -30,
+        2.0,
+        0
+      ],
+      "target": [
+        27,
+        5,
+        6
+      ],
+      "fov": 48,
+      "subject": "district:festival-ground:yagura"
+    },
+    {
+      "name": "terrace-over-town",
+      "position": [
+        8,
+        5.7,
+        -30.5
+      ],
+      "target": [
+        -47,
+        2,
+        -2
+      ],
+      "fov": 50,
+      "subject": "district:crossing-gate:crossing-signal"
+    },
+    {
+      "name": "field-to-torii",
+      "position": [
+        43,
+        1.8,
+        6
+      ],
+      "target": [
+        14,
+        6.5,
+        -24
+      ],
+      "fov": 46,
+      "subject": "district:shrine-rise:torii"
+    },
+    {
+      "name": "canal-west",
+      "position": [
+        10,
+        1.8,
+        33
+      ],
+      "target": [
+        -28,
+        1.2,
+        33
+      ],
+      "fov": 48,
+      "subject": "district:canal-lane:footbridge-west"
+    },
+    {
+      "name": "skyline-sw",
+      "position": [
+        -54,
+        15,
+        46
+      ],
+      "target": [
+        12,
+        3,
+        -18
+      ],
+      "fov": 44,
+      "subject": "district:shrine-rise:torii"
+    }
+  ],
+  "surrounds": {
+    "owner": "crossing-gate"
+  },
+  "boundary_features": [
+    {
+      "id": "shrine-foot-wall",
+      "kind": "retaining-wall",
+      "owner": "shrine-rise",
+      "mate": "market-street",
+      "along": "x",
+      "at": -14,
+      "from": 4,
+      "to": 16
+    }
+  ],
+  "terrain": {
+    "module": "src/terrain.js",
+    "owner": "coordinator",
+    "levels": [
+      {
+        "id": "crossing-gate",
+        "y": 0.0,
+        "tone": "ground"
+      },
+      {
+        "id": "market-street",
+        "y": 0.0,
+        "tone": "paving"
+      },
+      {
+        "id": "shrine-rise",
+        "y": 0.0,
+        "tone": "ground"
+      },
+      {
+        "id": "festival-ground",
+        "y": 0.0,
+        "tone": "shore"
+      },
+      {
+        "id": "canal-lane",
+        "y": 0.0,
+        "tone": "ground"
+      }
+    ],
+    "shelves": [
+      {
+        "in": "shrine-rise",
+        "x0": 0,
+        "z0": -48,
+        "x1": 34,
+        "z1": -26,
+        "y": 3.5,
+        "tone": "ground"
+      }
+    ],
+    "mounds": [
+      {
+        "x": 18,
+        "z": -47,
+        "rx": 26,
+        "rz": 8,
+        "h": 3.0,
+        "tone": "bank"
+      }
+    ],
+    "crossings": [
+      {
+        "socket": "cg-main-e",
+        "kind": "road"
+      },
+      {
+        "socket": "mk-main-e",
+        "kind": "road"
+      },
+      {
+        "socket": "mk-shrine-n",
+        "kind": "path"
+      },
+      {
+        "socket": "mk-canal-s",
+        "kind": "path"
+      },
+      {
+        "socket": "sr-back-e",
+        "kind": "path"
+      },
+      {
+        "socket": "fg-canal-s",
+        "kind": "path"
+      },
+      {
+        "id": "shrine-main-stair",
+        "in": "shrine-rise",
+        "kind": "stairs",
+        "at": [
+          14,
+          -19
+        ],
+        "axis": "z",
+        "dir": -1,
+        "width": 3,
+        "from": 0.0,
+        "to": 3.5
+      }
+    ],
+    "surrounds": {
+      "kind": "flat",
+      "blend_m": 12,
+      "roughness_m": 0.22,
+      "y": -0.15
+    },
+    "cell_m": 2.0
+  },
+  "sight_corridors": [
+    {
+      "id": "street-spine",
+      "from": [
+        -30,
+        0
+      ],
+      "to": [
+        22,
+        2
+      ],
+      "half_width": 2.4,
+      "min_clear_h": 4.5,
+      "districts": [
+        "crossing-gate",
+        "market-street",
+        "festival-ground"
+      ],
+      "why": "The main street is the town's one long look: from the crossing road-head the player must see all the way to the yagura at the festival ground's west rim — arrival promise and quest-compass in one line."
+    },
+    {
+      "id": "field-to-torii",
+      "from": [
+        43,
+        6
+      ],
+      "to": [
+        14,
+        -24
+      ],
+      "half_width": 2,
+      "min_clear_h": 6.0,
+      "districts": [
+        "festival-ground",
+        "shrine-rise"
+      ],
+      "why": "Standing in the arena field at night, the player must see the shrine torii lit on its terrace — night events are telegraphed from the shrine, and the town's whole geometry says the shrine watches the field."
+    }
+  ]
+}

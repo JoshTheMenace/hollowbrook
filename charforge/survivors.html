@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nightbloom</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #14121f; overflow: hidden; }
+      canvas { display: block; }
+      body, .overlay { font-family: ui-rounded, "Comic Sans MS", system-ui, sans-serif; }
+
+      /* ---- HUD ---- */
+      #hud { display: none; position: fixed; inset: 0; pointer-events: none; z-index: 6; color: #f2ecff; }
+      #xpbar { position: fixed; top: 0; left: 0; right: 0; height: 10px; background: rgba(10, 8, 20, 0.7); }
+      #xpfill { height: 100%; width: 0%; background: linear-gradient(90deg, #6ee0ff, #b08aff); transition: width 0.15s; }
+      #topline { position: fixed; top: 16px; left: 18px; right: 18px; display: flex; align-items: flex-start; }
+      #hpwrap { width: 210px; }
+      #hpbar { height: 16px; background: rgba(10, 8, 20, 0.7); border: 2px solid #4a4066; border-radius: 8px; overflow: hidden; }
+      #hpfill { height: 100%; width: 100%; background: linear-gradient(90deg, #ff5a6e, #ff9a5a); transition: width 0.12s; }
+      #charname { font-size: 12px; font-weight: 800; opacity: 0.85; margin-top: 3px; text-shadow: 0 2px 0 #14121f; }
+      #timer { flex: 1; text-align: center; font-size: 34px; font-weight: 800; letter-spacing: 2px; text-shadow: 0 3px 0 rgba(10, 8, 20, 0.8); }
+      #counts { text-align: right; font-size: 15px; font-weight: 800; text-shadow: 0 2px 0 #14121f; line-height: 1.5; }
+      #lvltag { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); margin-top: 42px; font-size: 13px; font-weight: 800; opacity: 0.8; text-shadow: 0 2px 0 #14121f; }
+      #weapons { position: fixed; left: 18px; bottom: 16px; display: flex; gap: 8px; }
+      .wslot { background: rgba(20, 16, 38, 0.85); border: 2px solid #4a4066; border-radius: 10px; padding: 5px 8px 2px; font-size: 20px; text-align: center; }
+      .wslot .pips { font-size: 8px; letter-spacing: 2px; color: #b08aff; display: block; margin-top: -2px; }
+
+      /* ---- overlays ---- */
+      .overlay { display: none; position: fixed; inset: 0; z-index: 10; background: rgba(8, 6, 18, 0.55); align-items: center; justify-content: center; color: #f2ecff; }
+      .panel { background: rgba(24, 20, 44, 0.96); border: 3px solid #5a4a86; border-radius: 18px; padding: 30px 46px; text-align: center; box-shadow: 0 8px 0 rgba(8, 6, 18, 0.5); }
+      h1 { margin: 0 0 4px; font-size: 44px; color: #cdb4ff; letter-spacing: 1px; text-shadow: 0 0 22px rgba(140, 100, 255, 0.55); }
+      .sub { margin: 0 0 16px; opacity: 0.6; }
+      .hint { font-size: 13px; opacity: 0.75; }
+      .start { font-weight: 800; color: #6ee0ff; animation: pulse 1.4s ease-in-out infinite; }
+      @keyframes pulse { 50% { opacity: 0.4; } }
+
+      /* ---- character select ---- */
+      #roster { display: flex; gap: 14px; justify-content: center; margin: 18px 0 10px; }
+      .card { width: 128px; border: 3px solid #4a4066; border-radius: 14px; padding: 12px 8px 10px; background: rgba(14, 12, 30, 0.9); cursor: pointer; position: relative; transition: transform 0.1s, border-color 0.1s; }
+      .card.sel { border-color: #6ee0ff; transform: translateY(-6px); box-shadow: 0 6px 0 rgba(110, 224, 255, 0.25); }
+      .card .face { font-size: 40px; }
+      .card .nm { font-weight: 800; margin: 4px 0 2px; }
+      .card .bl { font-size: 11px; opacity: 0.65; line-height: 1.35; min-height: 44px; }
+      .card .lock { position: absolute; inset: 0; background: rgba(8, 6, 18, 0.72); border-radius: 11px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; }
+      .card .lock .cost { color: #ffd76a; font-size: 15px; }
+      #goldbal { font-weight: 800; color: #ffd76a; margin-bottom: 4px; }
+      #beststat { font-size: 12px; opacity: 0.6; margin-top: 8px; }
+
+      /* ---- level up ---- */
+      #cards { display: flex; gap: 16px; justify-content: center; margin-top: 16px; }
+      .up { width: 168px; border: 3px solid #5a4a86; border-radius: 14px; padding: 16px 12px; background: rgba(14, 12, 30, 0.95); cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
+      .up:hover, .up.sel { border-color: #b08aff; transform: translateY(-6px); }
+      .up .lbl { font-weight: 800; font-size: 15px; margin-bottom: 6px; }
+      .up .dsc { font-size: 12px; opacity: 0.7; line-height: 1.4; }
+      .up .key { font-size: 11px; opacity: 0.45; margin-top: 10px; }
+
+      /* ---- results ---- */
+      #stats { display: inline-block; text-align: left; margin: 10px 0 16px; font-size: 15px; line-height: 1.8; }
+      #stats b { color: #ffd76a; }
+      #hurtflash { position: fixed; inset: 0; pointer-events: none; z-index: 4; background: radial-gradient(ellipse at center, transparent 55%, rgba(255, 60, 80, 0.45)); opacity: 0; transition: opacity 0.25s; }
+    </style>
+  </head>
+  <body>
+    <div id="hurtflash"></div>
+
+    <div id="hud">
+      <div id="xpbar"><div id="xpfill"></div></div>
+      <div id="topline">
+        <div id="hpwrap"><div id="hpbar"><div id="hpfill"></div></div><div id="charname"></div></div>
+        <div id="timer">8:00</div>
+        <div id="counts"><span id="killct">☠ 0</span><br /><span id="goldct">◆ 0</span></div>
+      </div>
+      <div id="lvltag">Lv 1</div>
+      <div id="weapons"></div>
+    </div>
+
+    <div id="title" class="overlay">
+      <div class="panel">
+        <h1>Nightbloom</h1>
+        <p class="sub">survive the bloom · 8:00 · a CharForge roguelite</p>
+        <div id="goldbal">◆ 0</div>
+        <div id="roster"></div>
+        <p class="hint">A/D or ◀▶ choose &nbsp;·&nbsp; WASD move &nbsp;·&nbsp; Esc pause</p>
+        <p class="start" id="titlestart">press E to fight</p>
+        <div id="beststat"></div>
+      </div>
+    </div>
+
+    <div id="levelup" class="overlay">
+      <div class="panel">
+        <h1 style="font-size: 30px">Level up!</h1>
+        <p class="sub" id="lvlupsub">choose your power</p>
+        <div id="cards"></div>
+      </div>
+    </div>
+
+    <div id="pause" class="overlay">
+      <div class="panel"><h1 style="font-size: 32px">Paused</h1><p class="start">press Esc to continue</p></div>
+    </div>
+
+    <div id="gameover" class="overlay">
+      <div class="panel">
+        <h1 id="goTitle">Defeat</h1>
+        <p class="sub" id="goSub"></p>
+        <div id="stats"></div>
+        <p class="start">press E to return</p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/survivors/main.js"></script>
+  </body>
+</html>

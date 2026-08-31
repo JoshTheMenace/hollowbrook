@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nightbloom — 宵坂</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #14121f; }
+      #view { width: 100vw; height: 100vh; display: block; outline: none; }
+      #prompt {
+        position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+        color: #f2ecdf; font: 600 14px/1.5 ui-rounded, system-ui, sans-serif;
+        background: rgba(20, 16, 34, 0.72); border: 1px solid rgba(140, 120, 180, 0.35);
+        border-radius: 10px; padding: 7px 16px; pointer-events: none;
+        text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4); white-space: nowrap;
+      }
+      #prompt:empty { display: none; }
+      #phase {
+        position: fixed; top: 14px; right: 16px; color: #cfc4e8;
+        font: 700 12px ui-rounded, system-ui, sans-serif; letter-spacing: 2px;
+        opacity: 0.75; pointer-events: none; text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="view" tabindex="0"></canvas>
+    <div id="prompt"></div>
+    <div id="phase"></div>
+    <script type="module" src="/src/game/main.js"></script>
+  </body>
+</html>

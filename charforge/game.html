@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Willow Square</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #aee3f5; overflow: hidden; }
+      canvas { display: block; }
+      #quest {
+        position: fixed; top: 14px; left: 16px; max-width: 46ch;
+        color: #2b2418; background: rgba(255, 250, 235, 0.92);
+        border: 2px solid #6e4a2e; border-radius: 10px; padding: 8px 14px;
+        font: 600 14px/1.5 ui-rounded, "Comic Sans MS", system-ui, sans-serif;
+        box-shadow: 0 3px 0 rgba(60, 40, 20, 0.25);
+      }
+      #dialogue {
+        display: none; position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+        width: min(620px, 88vw); color: #2b2418;
+        background: rgba(255, 250, 235, 0.96); border: 2px solid #6e4a2e; border-radius: 14px;
+        padding: 14px 20px 16px; font: 15px/1.6 ui-rounded, "Comic Sans MS", system-ui, sans-serif;
+        box-shadow: 0 4px 0 rgba(60, 40, 20, 0.25);
+      }
+      #dlg-name { font-weight: 800; color: #8a4a2c; margin-bottom: 2px; }
+      .overlay {
+        display: none; position: fixed; inset: 0; z-index: 10;
+        background: rgba(20, 30, 18, 0.45); align-items: center; justify-content: center;
+      }
+      .overlay .panel {
+        background: rgba(255, 250, 235, 0.96); border: 3px solid #6e4a2e; border-radius: 18px;
+        padding: 34px 54px; text-align: center; color: #2b2418;
+        font-family: ui-rounded, "Comic Sans MS", system-ui, sans-serif;
+        box-shadow: 0 6px 0 rgba(60, 40, 20, 0.3);
+      }
+      .overlay h1 { margin: 0 0 4px; font-size: 42px; color: #4a6a2e; letter-spacing: 0.5px; }
+      .overlay .sub { margin: 0 0 18px; opacity: 0.65; }
+      .overlay .hint { font-size: 13px; opacity: 0.8; }
+      .overlay .start { font-weight: 800; color: #8a4a2c; animation: pulse 1.4s ease-in-out infinite; }
+      @keyframes pulse { 50% { opacity: 0.45; } }
+      #dlg-hint { margin-top: 6px; font-size: 12px; opacity: 0.6; }
+    </style>
+  </head>
+  <body>
+    <div id="quest"></div>
+    <div id="title" class="overlay">
+      <div class="panel">
+        <h1>Willow Square</h1>
+        <p class="sub">a CharForge village tale</p>
+        <p class="hint">WASD move &nbsp;·&nbsp; Shift run &nbsp;·&nbsp; E talk &nbsp;·&nbsp; F slash &nbsp;·&nbsp; Esc pause</p>
+        <p class="start">press E to begin</p>
+      </div>
+    </div>
+    <div id="pause" class="overlay">
+      <div class="panel">
+        <h1>Paused</h1>
+        <p class="start">press Esc or E to continue</p>
+      </div>
+    </div>
+    <div id="dialogue">
+      <div id="dlg-name"></div>
+      <div id="dlg-text"></div>
+      <div id="dlg-hint">E to continue</div>
+    </div>
+    <script type="module" src="/src/game/main.js"></script>
+  </body>
+</html>
