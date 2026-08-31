@@ -7,8 +7,17 @@ that is why this file exists.)
 
 ## Gate calibration
 
+The review-r1 lesson, verbatim: "registration is not an interaction, wiring
+is not perceptibility, frustum is not legibility, a sim's information state
+must match the player's" (nightbloom-play-review-r1).
+
 | Trap | The rule |
 |---|---|
+| "Feed the koi" prompted at world origin: absolute coords baked into merged geometry left the hitbox MESH origin at (0,0,0), and `getWorldPosition()` is what the proximity prompt uses | Kit geometry is LOCAL, position goes on the mesh/group. And a gate locating a change uses the changed object's Box3 centre — object origins lie for baked meshes in both directions. |
+| The interaction diff flagged a shrine bell petal in every later test — one interaction's reset() didn't restore everything, and the leak read as other actions' effects | Diff only what THIS action changed: snapshot before firing and exclude objects already differing between control and treatment. A lockstep control scene makes ambient animation cancel; per-action re-baselining makes leaky resets cancel too. |
+| Mean-color separation scored a MARKED elite illegible (the dark body swamps 30 bright marker pixels) and an UNMARKED elite legible (a dark blob on lit ground is high-contrast) | Contrast is not identity. An "elite reads as elite" term counts dedicated marker pixels on screen (second ID channel in the ID pass); per-pixel p90 distance serves chaff, whose bodies are uniform. |
+| The camera pullback probe from the head cleared over a shutter that hid the whole body; and a 1.2m minimum pull parked the camera behind a towel 1.0m away | Occlusion probes must cover what has to be visible (head AND waist), and the minimum pull-in must be smaller than the nearest prop you accept between camera and player. |
+| Elite legibility measured ZERO frames: the 20s default segment ended before the first elite spawn (120s), and the old check bot died at ~70s anyway | A gate's segment must CROSS the events it claims to judge, and its bot must be strong enough to get there — assert sample counts (eliteFrames, legSamples floors), never trust a mean over an empty set. |
 | Time-to-see measured on every off-screen period made a passing camera fail (p90 6.7s) | Measure **spawn → FIRST sight** only. Re-entries are pursuit dynamics — a kiting player always has trailing threats off-frame — not camera failure. |
 | A single sparse frame (1 of 3 enemies visible) failed the whole visibility gate | Ratio metrics need population floors and percentiles: sample only frames with **≥5 live**, gate on **p10**, never a single-frame min. |
 | The play-camera check froze at the level-up pause and sampled a static scene for 1000+ frames | A gate's bot may auto-pick through player pauses — the no-RNG-choice rule binds **players**, not measurement bots. Exclude scripted transitions (camera lerp) from samples. |
