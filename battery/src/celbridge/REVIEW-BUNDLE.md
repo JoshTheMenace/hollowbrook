@@ -1,7 +1,7 @@
-# REVIEW-BUNDLE — THE CEL BRIDGE (battery B2)
+# REVIEW-BUNDLE — THE CEL BRIDGE (battery B2, round 2)
 
-Factual launch + instrumentation only. Look contract: LOOK-CONTRACT.md in
-this directory. No evaluation here.
+Factual launch + instrumentation only. Look contract (incl. Amendment A1):
+LOOK-CONTRACT.md in this directory. No evaluation here.
 
 ## Launch
 
@@ -12,28 +12,54 @@ npm run dev        # port 5183
 ```
 
 WASD walk + mouse orbit (click to lock) — walk up to him. **B toggles the
-bridge live** (celify on/off — the A/B). **N toggles night.**
+bridge live** (celify on/off — the A/B, materials AND graded vertex colors).
+**N toggles night.**
+
+## Gate (exit-coded, in-tree)
+
+```
+node scripts/check-celbridge.mjs
+```
+
+Round-2 run (commit 51e7163): ALL PASS — 9 checks. Output highlights,
+verbatim:
+
+```
+world band (measured): base sat 0.397, accent max 0.708
+gate has teeth (raw ronin exceeds world band) — raw over-band pixel share: 0°=8.2% 30°=6.2% 45°=0.6%
+all meshes celified — 80/80
+bridged pixels: satP50 0.158, satP90 0.475, non-accent P90 0.397, owned-accent share 17.2%
+```
 
 ## Instrumentation
 
-- `__census()` — material census over the character subtree: celified
-  coverage, saturated-accent count, owned-accent collisions.
-- `__evidence()` — captures the contracted evidence set to .shots/:
-  cb-meet, cb-close, cb-far, cb-ab-raw (same framing, bridge OFF),
-  cb-night. Free cameras are ALLOWED here per contract (look review).
+- `__census()` — effective-color material census (thresholds from
+  `src/shared/bridge.js`, world-measured).
+- `__nightSeat()` — rendered luma p50, char vs world, night meet framing.
+  Round-2 measurement: charP50 0.407, worldP50 0.353, ratio 1.153
+  (review r1 measured the equivalent of 1.63).
+- `__evidence()` — captures cb-meet, cb-close, cb-far, cb-ab-raw, cb-night
+  to .shots/. Free cameras ALLOWED per contract (look review).
 - `__bridge` — { setBridge, bridged, actor, daynight, hero }.
 
-## Recorded gate state
+## What changed since r1 (mechanical list)
 
-Census (bridge ON): 80/80 meshes celified, 1 saturated accent (the scarf),
-0 problems. The accent guard graded the ronin's gold trim (#e8a13c, inside
-the scene's owned lantern-amber band) down to brass — logged as the
-bridge's art-direction behavior, not a manual edit.
+1. `check-celbridge.mjs` exists (was declared, missing — process finding).
+2. Census reads effective color incl. vertex-color paths; pixel-weighted
+   via `charforge/src/lib/pixel-census.js` (4-view software rasterizer).
+3. Thresholds measured from the world material table, decoupled from guard.
+4. ONE owned accent: hair indigo (17.2% pixel share, under the world accent
+   ceiling). Scarf graded into the world band; brass hue pushed out of
+   lantern-amber (30° → ~47°), not just desaturated.
+5. Night value seat: albedo eases down with daynight.level; day untouched.
+6. Practicals bug: pool lights now sit at real lantern positions (geometry
+   bounding-sphere centers — offsets are baked into merged geometry, so
+   getWorldPosition returned one stacked point; nightbloom shares the fix).
 
-## Known notes for the reviewer
+## Known open (declared, per Amendment A1)
 
-- The machiya's tenant renders as 蕎麦よいざか despite requesting 喫茶 月見 —
-  kit tenant-selection quirk, cosmetic to this review.
-- celify drops CharForge rim lighting by design (the ink pass owns lines).
-- The subject stands idle with per-frame constraints running; walk/run and
-  gesture vocabulary are explicit non-goals (Phase 2 owns them).
+- Ink edge weight on the character (~22% heavier than world at matched
+  depth): needs a selective buffer in the pipeline's single global ink
+  pass. Not half-fixed.
+- Machiya tenant renders 蕎麦よいざか despite requesting 喫茶 月見 (kit quirk,
+  cosmetic).

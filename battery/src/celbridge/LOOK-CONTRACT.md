@@ -55,3 +55,26 @@ this is a look review, not gameplay)
 
 Retargeting, gesture vocabulary, blend layers (Phase 2 owns those). One
 character (ronin), one vignette corner, standing idle + walkable approach.
+
+## Amendments
+
+**A1 (post art-review r1).**
+- The declared gate `scripts/check-celbridge.mjs` now exists: headless,
+  exit-coded, with a gate-teeth check (the RAW character must fail the
+  census, or the gate is asserting nothing).
+- Census judges EFFECTIVE color (material × vertex colors, sRGB) and is
+  additionally pixel-weighted via a 4-view software rasterizer
+  (`charforge/src/lib/pixel-census.js`).
+- All thresholds are measured from the world's material table at import
+  (`src/shared/bridge.js`): base band = max non-accent world saturation,
+  accent ceiling = max world accent saturation. Nothing derives from the
+  guard's output.
+- Accent decision: the character owns exactly ONE accent — the hair
+  (indigo, 225°). The scarf and brass are graded into the world band; brass
+  hue is pushed OUT of the lantern-amber band, not merely desaturated.
+- Night value seat: character albedo eases down as `daynight.level` rises;
+  measured by `__nightSeat` (char/world rendered luma p50) — 1.63 → 1.15.
+- Known open: ink edge weight on the character (~22% heavier than world at
+  matched depth, review r1 measurement). The ink pass is a single global
+  screen-space depth pass; per-object weighting needs a selective buffer in
+  the pipeline. Deferred with this note rather than half-fixed.
