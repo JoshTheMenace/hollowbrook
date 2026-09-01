@@ -1,0 +1,34 @@
+PASS determinism:score — 9/9 stems byte-identical across two renders — drone:138f8e11ccd92779 bassRoots:2a8e012287604e88 theme:5189da358b2461b1 bassDrive:d9c0b53f9de6ea02 hornCounter:10f134df80357f3c dawnBell:9f9eff251d0ec236 drumsLow:607bf394dbe9f33c drumsMid:e3278dce2ad9ab3d drumsHigh:63bd165ec5694c49
+PASS determinism:bank — 45/45 sfx byte-identical across two renders
+PASS determinism:cross-process — all 45 sha256 match src/audio/magnitude.js, which a separate process wrote
+PASS table:matches-render — 45 rows of magnitude.js re-derive exactly
+PASS score:stems — 9 stems, 20.00s @ 96bpm — drone -19.95LUFS/-8.06dB/seam 1.899x  bassRoots -16.92LUFS/-11.11dB/seam 0x  theme -14.25LUFS/-4.7dB/seam 0.229x  bassDrive -18.23LUFS/-10.22dB/seam 0.379x  hornCounter -18.37LUFS/-6.47dB/seam 0.244x  dawnBell -18.46LUFS/-9.17dB/seam 0.143x  drumsLow -24.35LUFS/-7.1dB/seam 0.546x  drumsMid -23.31LUFS/-3.74dB/seam 0.377x  drumsHigh -22.41LUFS/-3dB/seam 0.389x
+PASS score:coverage — every intensity 0..1 has an audible tier
+PASS score:spectral-balance — bands {"sub":-13.5,"low":-1.8,"lowmid":-7.5,"mid":-10.4,"high":-16.3,"air":-35.6}
+PASS score:stereo — width 0.281, correlation 0.719 (need width>=0.15, corr>0 for mono compatibility)
+PASS intensity:loudness-monotone — non-decreasing over all 9 intent points — breather@0.22 -22.21LUFS/0on-s  dawn@0.3 -20.2LUFS/0on-s  w1@0.5 -17.07LUFS/1.05on-s  w2@0.58 -16.48LUFS/1.4on-s  w3@0.68 -15.93LUFS/2.85on-s  w4@0.8 -15.06LUFS/3.45on-s  w5@0.88 -14.83LUFS/4.05on-s  w4captain@0.9 -14.74LUFS/4.5on-s  w6@1 -14.49LUFS/5.66on-s
+PASS intensity:density-monotone — onsets/s at one fixed threshold, non-decreasing (0.15/s tolerance): breather 0 <= dawn 0 <= w1 1.05 <= w2 1.4 <= w3 2.85 <= w4 3.45 <= w5 4.05 <= w4captain 4.5 <= w6 5.66
+PASS intensity:wave-steps — each wave louder than the last: w1 -17.07 < w2 -16.48 < w3 -15.93 < w4 -15.06 < w5 -14.83 < w6 -14.49
+PASS intensity:wave-span — w1 -17.07 -> w6 -14.49 = 2.58 dB (need >= 2)
+PASS intensity:captain-above-w4 — w4 -15.06 -> w4captain -14.74 (+0.32 dB)
+PASS intensity:breather-band — breather -22.21 LUFS in [-25,-19], 5.14 dB under wave 1
+PASS intensity:full-band — w6 -14.49 LUFS in [-16.5,-11.5]
+PASS intensity:headroom — worst peak -1.32 dBFS (ceiling -0.9)
+PASS intensity:dawn-out-of-band — dawnBell window [2,3] is silent at every intensity; dawn() takes 0.30 from -20.2 to -18.53 LUFS
+PASS bank:events-present — 13 ladder + 10 other declared + 3 surfaces, 45 sounds total
+PASS bank:ladder-matches-contract — bank order IS LOOP-CONTRACT.md's: bolt-fired < bolt-miss < bolt-hit < lance-fired < kill-cutpurse < player-hurt < kill-hexer < kill-reaver < kill-shieldbearer < lance-multikill < wave-cleared < kill-captain < bell-rung
+PASS ladder:monotone — 1.bolt-fired -38.41 < 2.bolt-miss -35.96 < 3.bolt-hit -33.02 < 4.lance-fired -30.01 < 5.kill-cutpurse -27.51 < 6.player-hurt -25.47 < 7.kill-hexer -23.51 < 8.kill-reaver -20.97 < 9.kill-shieldbearer -18.49 < 10.lance-multikill -15.47 < 11.wave-cleared -12.21 < 12.kill-captain -10.33 < 13.bell-rung -8.65
+PASS ladder:whiff-never-outranks-hit — bolt-miss -35.96 <= bolt-hit -33.02
+PASS ladder:hurt-below-big-kills — player-hurt -25.47 under kill-hexer -23.51, kill-reaver -20.97, kill-shieldbearer -18.49, kill-captain -10.33
+PASS sfx:classes — 45 sounds inside their class windows; builds: lance-charge peaks 809.1/911.54ms, hexer-telegraph peaks 555.7/730.52ms, captain-arrives peaks 563/1213.49ms
+PASS sfx:layered — every sound is 2+ layers
+PASS sfx:surfaces-distinct — closest pair step-stone/step-timber is 9.02 dB apart across the six bands (need >= 5) — three surfaces, not one footstep at three gains
+PASS sfx:telegraphs-distinct — closest pair tele-cutpurse/hexer-telegraph is 6.99 dB apart across the six bands (need >= 5) — the player has 0.5-0.7 s to tell which kind is winding up
+PASS size:bank — sfx 19.85 MB + score 63.50 MB = 83.36 MB of Float32 resident (bank cap 24 MB)
+PASS size:score — 9 stems x 20.0s stereo Float32 = 63.50 MB (cap 72 MB). The levers are the bar count and the tier count, nothing else.
+PASS size:table-in-sync — magnitude.js declares 45 events / 19852136 B; the render says 45 / 19852136 B
+PASS score:one-motif — the three melodic tiers are the same motif — theme~hornCounter 0.932  theme~dawnBell 0.872  hornCounter~dawnBell 0.823
+PASS mapping:intent-points — every point within +-0.06: w1 0.5@hp90 (want 0.5)  w2 0.58@hp77 (want 0.58)  w3 0.68@hp55 (want 0.68)  w4 0.78@hp30 (want 0.8)  w5 0.85@hp25 (want 0.88)  w6 0.91@hp65 (want 1)  w4captain 0.88@hp30 (want 0.9)
+PASS mapping:monotone — monotone in alive and in missing HP
+PASS bank:serves-feeltable — all 33 names in src/game/feeltable.js resolve (15 through ALIASES)
+RESULT: PASS (33 checks)

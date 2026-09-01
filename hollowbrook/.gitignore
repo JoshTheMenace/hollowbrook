@@ -2,3 +2,8 @@ node_modules/
 dist/
 .shots/
 nav-grid.json
+
+# audio evidence: WAVs are large and regenerable; the gate output is not
+.audio-evidence/*
+!.audio-evidence/check-music.txt
+!.audio-evidence/render-report.txt

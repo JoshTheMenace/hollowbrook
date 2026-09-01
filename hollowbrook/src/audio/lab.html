@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Hollowbrook audio lab</title>
+<style>
+  body { background:#11141a; color:#e6ebf2; font:13px/1.55 ui-monospace,Menlo,monospace; margin:0; padding:22px 26px; }
+  h1 { font-size:15px; font-weight:600; margin:0 0 4px; }
+  p.sub { color:#8a94a6; margin:0 0 18px; max-width:62em; }
+  button { background:#2b3242; color:#e6ebf2; border:1px solid #465067; border-radius:5px;
+           padding:7px 13px; font:inherit; cursor:pointer; margin:0 6px 6px 0; }
+  button:hover { background:#374056; }
+  #log { white-space:pre-wrap; margin-top:16px; border-top:1px solid #2a2f3a; padding-top:12px; }
+  .ok { color:#7fd18c; } .bad { color:#ef7f7f; } .dim { color:#8a94a6; }
+  input[type=range] { width:280px; vertical-align:middle; }
+</style>
+<h1>Hollowbrook audio lab</h1>
+<p class="sub">The runtime proof for <code>src/audio/index.js</code>: the gate renders in Node, this
+page renders in a browser through the same code and asserts the WebAudio side — that init happens
+on a gesture, that the graph is running, that every stem and every one of the 36 sounds decoded,
+and that the intensity sweep and <code>dawn()</code> actually move gains. Open the console or read
+<code>window.__audioCheck</code>.</p>
+
+<button id="go">init (this click is the user gesture)</button>
+<button id="sweep">sweep 0.22 &rarr; 1.00</button>
+<button id="ladder">play the 13 ladder events</button>
+<button id="dawn">dawn()</button>
+<button id="stop">dispose</button>
+<div>intensity <input id="i" type="range" min="0" max="1" step="0.01" value="0"> <span id="iv">0.00</span></div>
+<div id="log" class="dim">not started</div>
+
+<script type="module">
+import * as A from './index.js';
+const log = document.getElementById('log');
+const say = (s, cls = '') => { log.innerHTML += `\n<span class="${cls}">${s}</span>`; log.scrollTop = 1e9; };
+log.textContent = '';
+window.A = A;
+
+document.getElementById('go').onclick = async () => {
+  say('initAudio() from a click…');
+  const t0 = performance.now();
+  await A.initAudio({ onProgress: (f, n) => { if (n === 'score' || f === 1) say(`  ${(f * 100).toFixed(0)}% ${n}`, 'dim'); } });
+  const ctx = A.audioContext();
+  const g = A._internals();
+  const r = {
+    ms: Math.round(performance.now() - t0),
+    state: ctx.state,
+    sampleRate: ctx.sampleRate,
+    stems: Object.keys(g.music.stems).length,
+    stemSeconds: +g.music.stems.drone.buffer.duration.toFixed(3),
+    sfx: g.sfx.buffers.size,
+    playing: g.music.playing,
+  };
+  window.__audioCheck = r;
+  say(JSON.stringify(r), r.state === 'running' && r.stems === 9 && r.sfx === 36 ? 'ok' : 'bad');
+};
+
+const gains = () => {
+  const g = A._internals();
+  if (!g) return {};
+  return Object.fromEntries(Object.entries(g.music.stems).map(([k, s]) => [k, +s.node.gain.value.toFixed(2)]));
+};
+window.__gains = gains;
+
+document.getElementById('i').oninput = (e) => {
+  const v = +e.target.value;
+  document.getElementById('iv').textContent = v.toFixed(2);
+  A.setIntensity(v, 0.25);
+};
+document.getElementById('sweep').onclick = async () => {
+  for (const v of [0.22, 0.30, 0.50, 0.58, 0.68, 0.80, 0.88, 0.90, 1.00]) {
+    A.setIntensity(v, 0.4);
+    say(`intensity ${v}  gains ${JSON.stringify(gains())}`, 'dim');
+    await new Promise((r) => setTimeout(r, 700));
+  }
+  say('sweep done', 'ok');
+};
+document.getElementById('ladder').onclick = async () => {
+  for (const k of A.LADDER) {
+    say(`${k}  magnitude ${A.MAGNITUDE[k].magnitude} dB  ->  ${A.play(k) ? 'played' : 'DROPPED'}`);
+    await new Promise((r) => setTimeout(r, 900));
+  }
+};
+document.getElementById('dawn').onclick = () => { A.dawn(true); A.setIntensity(0.30, 2); say('dawn()', 'ok'); };
+document.getElementById('stop').onclick = () => { A.disposeAudio(); say('disposed', 'ok'); };
+</script>

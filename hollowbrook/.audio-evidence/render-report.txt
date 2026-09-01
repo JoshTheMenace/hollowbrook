@@ -1,0 +1,21 @@
+score: 9 stems, loop 20.00 s at 96 bpm, 8 bars
+  drone        pads       window [0,1.01]      LUFS  -19.95  peak  -8.06
+  bassRoots    bass       window [0.16,1.01]   LUFS  -16.92  peak -11.11
+  theme        lead       window [0.42,1.01]   LUFS  -14.25  peak   -4.7
+  bassDrive    bass       window [0.62,1.01]   LUFS  -18.23  peak -10.22
+  hornCounter  counter    window [0.72,1.01]   LUFS  -18.37  peak  -6.47
+  dawnBell     counter    window [2,3]         LUFS  -18.46  peak  -9.17
+  drumsLow     war-drums  window [0.3,0.72]    LUFS  -24.35  peak   -7.1
+  drumsMid     war-drums  window [0.56,1.01]   LUFS  -23.31  peak  -3.74
+  drumsHigh    war-drums  window [0.85,1.01]   LUFS  -22.41  peak     -3
+  mix @ breather   0.22  LUFS  -22.21  peak -11.01
+  mix @ w1         0.50  LUFS  -17.07  peak  -6.68
+  mix @ w2         0.58  LUFS  -16.48  peak  -5.92
+  mix @ w3         0.68  LUFS  -15.93  peak  -4.53
+  mix @ w4         0.80  LUFS  -15.06  peak   -4.2
+  mix @ w4captain  0.90  LUFS  -14.74  peak  -3.02
+  mix @ w5         0.88  LUFS  -14.83  peak  -3.69
+  mix @ w6         1.00  LUFS  -14.49  peak  -1.32
+  mix @ dawn       0.30  LUFS   -20.2  peak  -9.85
+  full mix bands {"sub":-13.5,"low":-1.8,"lowmid":-7.5,"mid":-10.4,"high":-16.3,"air":-35.6}  width {"correlation":0.719,"width":0.281}
+ride: 60s, short-term LUFS -25.9 .. -12.9
