@@ -1,0 +1,528 @@
+{
+  "city": {
+    "name": "Hollowbrook",
+    "promise": "At dusk on the evening the Ashen Company comes, hold a walled fantasy market town from the inside: the barbican and the gate square, a market sunk a step below its streets, a cottage row with a second gate, the mill yard under the west wall, the chapel close under the wizard's tower, and the keep on its mound with the bell that ends the night — every wall-walk, rim, stair and doorway walkable, because the town's own streets are the levels.",
+    "footprint_m": [132, 132],
+    "compass": { "north_xz": [0, -1] },
+    "sun": { "bearing": 268, "elevation_deg": 9 },
+    "palette_notes": "Compass: +z is south, -z north, +x east. DUSK, twenty minutes before dark: the sun is due west and nine degrees up, so only WEST faces and the tops of things are still lit, in a low amber; everything else is in a violet-blue half-light, never black, and the town's practicals (torches, braziers, windows, the forge, the wizard's lamps) are the second light source and get stronger as the waves go on. Value ladder is NARROW and cool: slate-blue sky to a rust-amber horizon in the west, cream lime-render gone lilac in shade, silvered oak, grey-green thatch and moss shingle, granite curtain walls the colour of wet slate. ONE saturated accent per district, each owned: southgate's madder banners and the gate torches; marketlow's guild-hall lanterns (amber); wardrow's painted doors (one bottle-green family); millreach's mill-sail canvas (faded ochre); chapelclose's ward-glow (a cold sea-green — the ONLY cool accent and the ONLY strong emissive, the hedge-wizard's); keephill's gilt bell and the keep's beacon fire. The ENEMY owns one accent town-wide: the Company's rust-red sash (ACCENT.companyRust), and nothing in any district may wear it — it is how a raider reads across a dusk square before contrast does."
+  },
+
+  "shared_kit": {
+    "module": "src/kit/",
+    "$comment": "Forked from Thistledown's kit (buildings, roofs, props, trees, signkit, mats, surface). The siege additions are listed in KIT-GAPS.md and are built by the kit-extension agent BEFORE districts start. Districts import from src/kit/index.js only.",
+    "builders_required": [
+      "cottage / longhouse / roundTower / temple / windmill / tradeFront — inherited from Thistledown, re-palleted for dusk",
+      "curtainWall — stone facing for BOTH scarps of a terrain wall-walk shelf (the terrain already carries the 5 m walk), with parapet, merlons, hoardings, weep holes, corbels; registers parapet colliders with `bottom` so the walk is fenced and the street below is not",
+      "gatehouse — spans the terrain gap at a gate: passage, vault, portcullis (raised; the mechanic is a later gap), a walk PLATFORM at 5.0 that overlaps the shelf either side by 0.3 m, two towers with door platforms",
+      "stairTurret — dresses a terrain stair-head landing as a square turret base with a door onto the walk",
+      "barricade — a raisable street barricade: two states, collider toggles, `userData.raise()`; carts, doors, barrels, stakes",
+      "brazier(lit toggle) / wallTorch / beaconCage — practicals that switch on (the relight beat)",
+      "arrowSlit windows for the kit's cottage / tower (windowOn variant)",
+      "siegeProps — breach rubble, dropped ladders, a felled cart, arrow bundles, a mantlet, spear rack, sandbags-of-the-period (gabions)",
+      "campFires + tents (surrounds, the Company's camp outside both gates, seen from the wall)",
+      "signKit — Hollowbrook tenants and notices (NO PEOPLE, including on signs)"
+    ],
+    "signage_tenants": [
+      "THE REEVE'S HALL — guild hall (marketlow)",
+      "HOLLOWBROOK CHANDLERS (marketlow)",
+      "A. STANHOPE — SMITH (wardrow)",
+      "THE PLOUGH & LANTERN — inn (wardrow)",
+      "HOLLOWBROOK MILL (millreach)",
+      "THE TANNERY (millreach)",
+      "ST. WENNA'S — chapel (chapelclose)",
+      "WARDENS OF HOLLOWBROOK (southgate)",
+      "notices: MUSTER AT THE GATE bills, the watch rota, a lost-dog notice (drawn), toll board, bell-times, the mill's flour prices"
+    ]
+  },
+
+  "terrain": {
+    "module": "src/terrain.js",
+    "owner": "coordinator",
+    "cell_m": 1.6,
+    "$comment": "THE PERIMETER IS TERRAIN. The curtain wall is a 2.4 m wide shelf at y 5.0 running inside each district's outer edge (x/z 48.8..51.2), gapped only at the two gates (south x -3.5..3.5, east z 18.5..25.5). Its two 5 m scarps are the wall's inner and outer faces, which the kit's curtainWall DRESSES; the terrain is what makes the walk walkable and gate-proven before any district exists. Every district reaches it by one internal stair that runs PARALLEL to the wall and lands 0.5-0.6 m inside a 3x3 m landing shelf (the stair turret's base) that abuts the walk. The market is the level itself at -1.4 with four rim shelves at 0 (a sunk shelf is impossible: flats resolve higher-wins, so the SQUARE is the level and the RIMS are shelves). The keep is two shelves (2.6, 5.2) on a mound that fades to zero at every shelf edge, so the ward and the keep each have a revetment cliff the district dresses as its wall.",
+    "levels": [
+      { "id": "southgate",   "y": 0.0,  "tone": "ground" },
+      { "id": "marketlow",   "y": -1.4, "tone": "paving" },
+      { "id": "keephill",    "y": 0.0,  "tone": "ground" },
+      { "id": "millreach",   "y": 0.0,  "tone": "ground" },
+      { "id": "chapelclose", "y": 0.0,  "tone": "ground" },
+      { "id": "wardrow",     "y": 0.0,  "tone": "ground" }
+    ],
+    "shelves": [
+      { "in": "southgate", "x0": -18.0, "z0": 48.8, "x1": -3.5, "z1": 51.2, "y": 5.0, "tone": "paving", "$comment": "south wall-walk, west of the gate" },
+      { "in": "southgate", "x0": 3.5,   "z0": 48.8, "x1": 18.0, "z1": 51.2, "y": 5.0, "tone": "paving", "$comment": "south wall-walk, east of the gate" },
+      { "in": "southgate", "x0": -18.0, "z0": 45.8, "x1": -15.0, "z1": 48.8, "y": 5.0, "tone": "paving", "$comment": "stair-head landing (turret base)" },
+
+      { "in": "marketlow", "x0": -18.0, "z0": -18.0, "x1": 18.0,  "z1": -12.0, "y": 0.0, "tone": "paving", "$comment": "north rim" },
+      { "in": "marketlow", "x0": -18.0, "z0": 8.0,   "x1": 18.0,  "z1": 16.0,  "y": 0.0, "tone": "paving", "$comment": "south rim" },
+      { "in": "marketlow", "x0": -18.0, "z0": -12.0, "x1": -10.0, "z1": 8.0,   "y": 0.0, "tone": "paving", "$comment": "west rim, the guild hall stands on it" },
+      { "in": "marketlow", "x0": 12.0,  "z0": -12.0, "x1": 18.0,  "z1": 8.0,   "y": 0.0, "tone": "paving", "$comment": "east rim" },
+
+      { "in": "keephill", "x0": -14.0, "z0": -48.8, "x1": 16.0, "z1": -22.0, "y": 2.6, "tone": "paving", "$comment": "the lower ward" },
+      { "in": "keephill", "x0": -6.0,  "z0": -44.0, "x1": 14.0, "z1": -28.0, "y": 5.2, "tone": "paving", "$comment": "the keep platform" },
+      { "in": "keephill", "x0": -18.0, "z0": -51.2, "x1": 51.2, "z1": -48.8, "y": 5.0, "tone": "paving", "$comment": "north wall-walk" },
+      { "in": "keephill", "x0": 48.8,  "z0": -51.2, "x1": 51.2, "z1": -18.0, "y": 5.0, "tone": "paving", "$comment": "east wall-walk, north half" },
+      { "in": "keephill", "x0": 40.0,  "z0": -48.8, "x1": 43.0, "z1": -45.8, "y": 5.0, "tone": "paving", "$comment": "stair-head landing" },
+
+      { "in": "millreach", "x0": -51.2, "z0": 48.8,  "x1": -18.0, "z1": 51.2, "y": 5.0, "tone": "paving", "$comment": "south wall-walk, west run" },
+      { "in": "millreach", "x0": -51.2, "z0": -12.0, "x1": -48.8, "z1": 51.2, "y": 5.0, "tone": "paving", "$comment": "west wall-walk, south half" },
+      { "in": "millreach", "x0": -48.8, "z0": 30.0,  "x1": -45.8, "z1": 33.0, "y": 5.0, "tone": "paving", "$comment": "stair-head landing" },
+
+      { "in": "chapelclose", "x0": -51.2, "z0": -51.2, "x1": -48.8, "z1": -12.0, "y": 5.0, "tone": "paving", "$comment": "west wall-walk, north half" },
+      { "in": "chapelclose", "x0": -51.2, "z0": -51.2, "x1": -18.0, "z1": -48.8, "y": 5.0, "tone": "paving", "$comment": "north wall-walk, west run" },
+      { "in": "chapelclose", "x0": -33.0, "z0": -48.8, "x1": -30.0, "z1": -45.8, "y": 5.0, "tone": "paving", "$comment": "stair-head landing" },
+
+      { "in": "wardrow", "x0": 48.8, "z0": -18.0, "x1": 51.2, "z1": 18.5, "y": 5.0, "tone": "paving", "$comment": "east wall-walk, north of the east gate" },
+      { "in": "wardrow", "x0": 48.8, "z0": 25.5,  "x1": 51.2, "z1": 51.2, "y": 5.0, "tone": "paving", "$comment": "east wall-walk, south of the east gate" },
+      { "in": "wardrow", "x0": 18.0, "z0": 48.8,  "x1": 51.2, "z1": 51.2, "y": 5.0, "tone": "paving", "$comment": "south wall-walk, east run" },
+      { "in": "wardrow", "x0": 45.8, "z0": 4.0,   "x1": 48.8, "z1": 7.0,   "y": 5.0, "tone": "paving", "$comment": "stair-head landing" }
+    ],
+    "mounds": [
+      { "x": 2.0, "z": -34.0, "rx": 19.0, "rz": 17.0, "h": 3.0, "tone": "bank", "$comment": "the keep mound; fades to zero at the ward's and the keep's shelf edges, so each has a revetment cliff the district dresses" }
+    ],
+    "crossings": [
+      { "socket": "gate-road",      "kind": "road" },
+      { "socket": "market-road-n",  "kind": "road" },
+      { "socket": "market-lane-w",  "kind": "path" },
+      { "socket": "market-lane-e",  "kind": "path" },
+      { "socket": "sg-w-lane",      "kind": "path" },
+      { "socket": "sg-e-lane",      "kind": "path" },
+      { "socket": "mr-n-lane",      "kind": "path" },
+      { "socket": "cc-lane-e",      "kind": "path" },
+      { "socket": "keep-lane-e",    "kind": "path" },
+      { "socket": "sg-walk-w",      "kind": "path" },
+      { "socket": "sg-walk-e",      "kind": "path" },
+      { "socket": "mr-walk-n",      "kind": "path" },
+      { "socket": "cc-walk-e",      "kind": "path" },
+      { "socket": "keep-walk-e",    "kind": "path" },
+
+      { "id": "south-wall-stair", "in": "southgate", "kind": "stairs", "at": [-5.6, 47.3], "axis": "x", "dir": -1, "width": 1.6, "from": 0.0, "to": 5.0, "rise": 0.2, "going": 0.4 },
+      { "id": "market-stair-n",   "in": "marketlow", "kind": "stairs", "at": [0.0, -12.0], "axis": "z", "dir": -1, "width": 4.0, "from": -1.4, "to": 0.0, "rise": 0.175, "going": 0.42 },
+      { "id": "market-ramp-s",    "in": "marketlow", "kind": "ramp",   "at": [0.0, 8.0],   "axis": "z", "dir": 1,  "width": 6.0, "from": -1.4, "to": 0.0, "grade": 0.2 },
+      { "id": "market-stair-w",   "in": "marketlow", "kind": "stairs", "at": [-10.0, 5.5], "axis": "x", "dir": -1, "width": 3.0, "from": -1.4, "to": 0.0, "rise": 0.175, "going": 0.42 },
+      { "id": "market-stair-e",   "in": "marketlow", "kind": "stairs", "at": [12.0, -2.0], "axis": "x", "dir": 1,  "width": 3.0, "from": -1.4, "to": 0.0, "rise": 0.175, "going": 0.42 },
+      { "id": "keep-climb-1",     "in": "keephill",  "kind": "stairs", "at": [0.0, -19.5], "axis": "z", "dir": -1, "width": 3.2, "from": 0.0, "to": 2.6, "rise": 0.2, "going": 0.4 },
+      { "id": "keep-climb-2",     "in": "keephill",  "kind": "stairs", "at": [4.0, -27.4], "axis": "z", "dir": -1, "width": 2.6, "from": 2.6, "to": 5.2, "rise": 0.2, "going": 0.4 },
+      { "id": "keep-wall-stair",  "in": "keephill",  "kind": "stairs", "at": [30.6, -47.3], "axis": "x", "dir": 1, "width": 1.6, "from": 0.0, "to": 5.0, "rise": 0.2, "going": 0.4 },
+      { "id": "mill-wall-stair",  "in": "millreach", "kind": "stairs", "at": [-47.3, 20.6], "axis": "z", "dir": 1, "width": 1.6, "from": 0.0, "to": 5.0, "rise": 0.2, "going": 0.4 },
+      { "id": "close-wall-stair", "in": "chapelclose", "kind": "stairs", "at": [-42.5, -47.3], "axis": "x", "dir": 1, "width": 1.6, "from": 0.0, "to": 5.0, "rise": 0.2, "going": 0.4 },
+      { "id": "row-wall-stair",   "in": "wardrow",   "kind": "stairs", "at": [47.3, -5.4], "axis": "z", "dir": 1, "width": 1.6, "from": 0.0, "to": 5.0, "rise": 0.2, "going": 0.4 }
+    ],
+    "surrounds": { "kind": "moor", "y": -0.4, "blend_m": 8.0, "roughness_m": 0.3 }
+  },
+
+  "surrounds": { "owner": "southgate" },
+
+  "siege": {
+    "$comment": "The perimeter contract every wall district honours. Numbers here are the terrain's; the kit's curtainWall reads them.",
+    "wall_walk_y": 5.0,
+    "wall_inner": 48.8,
+    "wall_outer": 51.2,
+    "parapet_h": 1.15,
+    "gates": {
+      "south-gate": { "district": "southgate", "gap": { "x0": -3.5, "x1": 3.5, "z0": 48.8, "z1": 51.2 }, "passage": { "x0": -3.5, "x1": 3.5, "z0": 47.6, "z1": 52.4 } },
+      "east-gate":  { "district": "wardrow",   "gap": { "x0": 48.8, "x1": 51.2, "z0": 18.5, "z1": 25.5 }, "passage": { "x0": 47.6, "x1": 52.4, "z0": 18.5, "z1": 25.5 } }
+    },
+    "corner_towers": [
+      { "id": "sw-tower", "district": "millreach",   "at": [-50.0, 50.0] },
+      { "id": "nw-tower", "district": "chapelclose", "at": [-50.0, -50.0] },
+      { "id": "ne-tower", "district": "keephill",    "at": [50.0, -50.0] },
+      { "id": "se-tower", "district": "wardrow",     "at": [50.0, 50.0] }
+    ]
+  },
+
+  "boundary_features": [],
+
+  "sight_corridors": [
+    {
+      "id": "gate-sees-keep",
+      "from": [0, 46], "to": [0, -26], "half_width": 3.0, "min_clear_h": 8.5,
+      "districts": ["southgate", "marketlow", "keephill"],
+      "why": "Coming through the south gate the keep's bell tower over the far end of the market is the axis of the whole town and the place the siege ends. Nothing over 8.5 m stands on this line: no building on the market's rims across x -3..3, and the ward's revetment and the keep's own wall are under it by construction."
+    },
+    {
+      "id": "keep-sees-eastgate",
+      "from": [12, -30], "to": [46, 20], "half_width": 3.0, "min_clear_h": 7.5,
+      "districts": ["keephill", "wardrow"],
+      "why": "From the keep platform the East Gate must read, so the player on the high ground can see the second gate open in wave 3 and the Company come through it. Nothing over 7.5 m on this diagonal: the row's cottages stay under it and the smithy's chimney stands clear of it."
+    },
+    {
+      "id": "market-sees-tower",
+      "from": [0, 0], "to": [-36, -34], "half_width": 3.0, "min_clear_h": 9.0,
+      "districts": ["marketlow", "chapelclose"],
+      "why": "From the well in the sunk market the wizard's tower and its cold ward-glow are the one cool light in a warm town. The chapel's ridge (chapelclose) and the guild hall (marketlow) stay under 9 m on this line; the chapel's north-east corner is 0.1 m inside the corridor's edge, so its ridge height is a contract, not a taste."
+    }
+  ],
+
+  "vista_cameras": [
+    {
+      "name": "from-the-road",
+      "position": [-8, 8.5, 64], "target": [4, 12, -30], "fov": 50,
+      "subject": "district:keephill:bell-tower", "owner": "southgate",
+      "$owner_comment": "southgate owns it: the camera stands on the siege road in the surrounds southgate owns, the gatehouse is the framing element and the Company's camp fires are the foreground. The subject is keephill's bell tower over the gate — 8.5 m up because the gatehouse parapet at 9 m stands 14 m out and the tower 94 m out; below y 7.25 the gate hides the tower (derived, not guessed)."
+    },
+    {
+      "name": "over-the-market",
+      "position": [0, 2.4, 14], "target": [2, 8, -40], "fov": 52,
+      "subject": "district:keephill:wardens-hall", "owner": "marketlow",
+      "$owner_comment": "marketlow owns it: standing on its own south rim, everything in the lower two thirds — the sunk square, the stalls, the well, the north steps — is marketlow's. The hall on the keep clears it all by construction (5.2 + its own height against a -1.4 floor)."
+    },
+    {
+      "name": "from-the-keep",
+      "position": [2, 7.0, -33], "target": [0, 6, 50], "fov": 54,
+      "subject": "district:southgate:gatehouse", "owner": "keephill",
+      "$owner_comment": "keephill owns it: the camera stands on the keep platform and the foreground is its own parapet and the ward below. The gatehouse is southgate's and the whole town lies between; the gate-sees-keep corridor is this same axis reversed and keeps the middle clear."
+    },
+    {
+      "name": "down-the-row",
+      "position": [15, 1.6, 4], "target": [50, 4, 22], "fov": 52,
+      "subject": "district:wardrow:eastgate", "owner": "wardrow",
+      "$owner_comment": "wardrow owns it: the camera stands at the market's east stair head looking east down the row lane, and every mass between it and the East Gate is wardrow's. The gate must read as a gate at the end of a lane, because wave 3 arrives through it."
+    },
+    {
+      "name": "along-the-wall",
+      "position": [-50, 6.6, 0], "target": [-42, 8, 26], "fov": 52,
+      "subject": "district:millreach:mill", "owner": "millreach",
+      "$owner_comment": "millreach owns it: standing on the west wall-walk, the parapet is the foreground, the mill and its yard below are the subject and the SW tower closes the walk. This is the frame that says the wall is a place you stand on, not a boundary."
+    },
+    {
+      "name": "the-close",
+      "position": [-22, 6.6, -50], "target": [-44, 10, -40], "fov": 52,
+      "subject": "district:chapelclose:wizard-tower", "owner": "chapelclose",
+      "$owner_comment": "chapelclose owns it: the camera stands on chapelclose's own north wall-walk at its east end and looks west along the parapet at the wizard's tower with its ward-glow — the town's only cool light — and the chapel roof and graveyard yews below."
+    }
+  ],
+
+  "districts": [
+    {
+      "id": "southgate",
+      "name": "The South Gate",
+      "brief": "The barbican and the gate square: the town's front door and wave 1's arena. A stone gatehouse with two round towers spans the terrain's gap in the south wall-walk (the kit's gatehouse registers the walk platform across it); inside is a cobbled square 28 m wide with the wardens' lodge, the stable and the muster ground, dressed for a siege that is minutes away — spear racks, a mantlet on its side, barrels rolled out as cover, the militia bowman on the wall. Outside the gate it owns the surrounds: the siege road, the ditch and berm under the curtain, and the Company's camp fires at the spawn ring where the road meets the dark. COVER: the square needs at least six collider-bearing obstacles a player can put between themselves and the arch (carts, barrels, the well, the trough, the lodge's corner). SIGHT LINES: the arch to the market ramp is the wave-1 lane and must stay a clear 6 m channel; the wall-walk gives a shooting gallery down onto it. CHOKEPOINT: the arch itself. HIGH GROUND: the wall-walk either side of the gate, reached by the stair at x -5.6 and by the towers. Accent: the wardens' madder banner pair and the gate torches. Who was here ten minutes ago: the wardens barring the gate, a cart abandoned mid-unload.",
+      "envelope": { "x0": -18, "z0": 16, "x1": 18, "z1": 54 },
+      "after": [],
+      "sockets": [
+        { "id": "gate-road", "kind": "road",  "at": [0, 16],   "axis": "z", "width": 6.0, "y": 0.0, "mate": "market-road-s" },
+        { "id": "sg-w-lane", "kind": "path",  "at": [-18, 34], "axis": "x", "width": 3.0, "y": 0.0, "mate": "mr-e-lane" },
+        { "id": "sg-e-lane", "kind": "path",  "at": [18, 36],  "axis": "x", "width": 3.6, "y": 0.0, "mate": "wr-w-lane" },
+        { "id": "sg-walk-w", "kind": "path",  "at": [-18, 50], "axis": "x", "width": 2.4, "y": 5.0, "mate": "mr-walk-s" },
+        { "id": "sg-walk-e", "kind": "path",  "at": [18, 50],  "axis": "x", "width": 2.4, "y": 5.0, "mate": "wr-walk-s" }
+      ],
+      "anchors": [
+        { "x": 0, "z": 30, "expect_top": 0.0, "tol": 0.05 },
+        { "x": -10, "z": 50, "expect_top": 5.0, "tol": 0.05 },
+        { "x": -16.5, "z": 47.3, "expect_top": 5.0, "tol": 0.05 },
+        { "x": 0, "z": 53, "expect_top": 0.0, "tol": 0.05 }
+      ],
+      "waypoints": [
+        { "name": "the gate square", "x": 0, "z": 30 },
+        { "name": "under the arch", "x": 0, "z": 50 },
+        { "name": "the south wall-walk", "x": -10, "z": 50 },
+        { "name": "the stair-head turret", "x": -16.5, "z": 47.3 },
+        { "name": "the siege road", "x": 0, "z": 58 }
+      ],
+      "interactions": [
+        { "name": "the portcullis winch", "at": [-5.0, 46.5] },
+        { "name": "the gate brazier", "at": [5.5, 44.0] }
+      ],
+      "landmarks_citywide": [
+        { "object": "district:southgate:gatehouse", "must_read_from_vistas": ["from-the-keep"], "must_read_from_districts": ["marketlow"] }
+      ],
+      "massing": [
+        { "x": 0, "z": 50, "w": 12, "d": 5, "h": 9 },
+        { "x": -7.5, "z": 50, "w": 5, "d": 5, "h": 10.5 },
+        { "x": 7.5, "z": 50, "w": 5, "d": 5, "h": 10.5 },
+        { "x": -11, "z": 24, "w": 7, "d": 6, "h": 6 },
+        { "x": 11, "z": 22, "w": 9, "d": 5, "h": 5.5 }
+      ],
+      "budgets": { "max_meshes": 400, "max_triangles": 150000 }
+    },
+    {
+      "id": "marketlow",
+      "name": "The Low Market",
+      "brief": "The sunk market, a step below the town: the level here IS the square at -1.4 and the four rims are shelves at 0, so the whole district is one arena with a rim of high ground round it. Twenty-two by twenty metres of cobbled floor with the well in the middle, market stalls left standing when the bell rang (the cover), the corn cross, the ramp up to the gate road on the south and stone steps up on the other three sides. On the west rim the REEVE'S HALL, the guild hall, is ENTERABLE: the Reeve's post, the runner's shelter, the place objectives are given. The chandler's on the east rim and the Reeve's own house on the north rim. COVER: at least eight collider-bearing obstacles on the floor (stalls, the well, the cross, crates). SIGHT LINES: the rim commands the floor; the floor sees every stair. CHOKEPOINTS: the four stairs and the ramp — enemies pour over them in wave 2 and wave 4. HIGH GROUND: the rim, which is also where the hexers will stand, which is the point. Accent: the guild hall's amber lanterns. Ten minutes ago: the market was clearing and stopped — a spilled basket, a tipped stall, a dog's bowl.",
+      "envelope": { "x0": -18, "z0": -18, "x1": 18, "z1": 16 },
+      "after": ["southgate"],
+      "sockets": [
+        { "id": "market-road-s", "kind": "road", "at": [0, 16],   "axis": "z", "width": 6.0, "y": 0.0, "mate": "gate-road" },
+        { "id": "market-road-n", "kind": "road", "at": [0, -18],  "axis": "z", "width": 5.0, "y": 0.0, "mate": "keep-road-s" },
+        { "id": "market-lane-w", "kind": "path", "at": [-18, 6],  "axis": "x", "width": 3.6, "y": 0.0, "mate": "mr-market-lane" },
+        { "id": "market-lane-e", "kind": "path", "at": [18, 4],   "axis": "x", "width": 3.6, "y": 0.0, "mate": "wr-market-lane" }
+      ],
+      "anchors": [
+        { "x": 0, "z": 0, "expect_top": -1.4, "tol": 0.05 },
+        { "x": 0, "z": -15, "expect_top": 0.0, "tol": 0.05 },
+        { "x": -14.2, "z": 6, "expect_top": 0.0, "tol": 0.05 },
+        { "x": 15, "z": -8, "expect_top": 0.0, "tol": 0.05 }
+      ],
+      "waypoints": [
+        { "name": "the well", "x": 1, "z": -3 },
+        { "name": "the north steps", "x": 0, "z": -13.5 },
+        { "name": "the guild hall porch", "x": -14.2, "z": 5.5 },
+        { "name": "the east stair head", "x": 15, "z": -2 },
+        { "name": "the ramp foot", "x": 0, "z": 7 }
+      ],
+      "interactions": [
+        { "name": "the market bell", "at": [-12.0, 6.5] },
+        { "name": "the well bucket", "at": [1.0, -3.0] }
+      ],
+      "landmarks_citywide": [],
+      "massing": [
+        { "x": -14.2, "z": 0, "w": 6.8, "d": 6, "h": 7 },
+        { "x": 15, "z": -8, "w": 5, "d": 5, "h": 6 },
+        { "x": 8, "z": -15, "w": 6, "d": 5, "h": 6.5 }
+      ],
+      "enterable": [
+        {
+          "$comment": "The Reeve's Hall: the district's story anchor, the runner's shelter (objective 1 ends at its door), and the room objectives are given in. Shell 6.8 x 6.0 on the west rim, door on the SOUTH face (z+) onto the rim strip z 3..8 — NOT on the east face, which opens 0.8 m from a 1.4 m drop. The west stair's corridor (x -13.4..-10, z 4..7) lands on the rim beside the door: hall door, then steps down into the square.",
+          "building": "guildhall",
+          "door": { "at": [-14.2, 3.0], "face": "z+" },
+          "interior_waypoint": { "name": "the guild hall floor", "x": -14.2, "z": 0.0 },
+          "interior_camera": { "name": "guildhall-interior", "position": [-11.6, 1.55, 2.2], "target": [-15.5, 0.9, -1.6], "subject": "guildhall-hearth" },
+          "min_props": 10
+        }
+      ],
+      "budgets": { "max_meshes": 440, "max_triangles": 160000 }
+    },
+    {
+      "id": "keephill",
+      "name": "Keep Hill",
+      "brief": "The keep on its mound at the north end of the town's axis, and the yew close behind it to the north-east: the last stand, wave 6's arena and the win. The terrain gives two shelves — the lower ward at 2.6 and the keep platform at 5.2 — on a mound that fades to a cliff at each shelf's edge; the district dresses both cliffs as the ward's revetment wall and the keep's own curtain, and the two terrain flights (climb 1 off the market road, climb 2 up to the platform) as stone stairs with rails. On the platform: the WARDEN'S HALL (ENTERABLE, the Reeve's final shelter, objective 4's destination), the BELL TOWER (the landmark the whole town reads, and the bell rope that ends the night), the beacon cage, the armoury lean-to. On the lower ward: the well, the muster, the ward gate. The north and north-east wall-walks are keephill's, with the NE corner tower and the stair turret at x 40. The yew close east of the mound: the almoner's house, the graveyard yews, the vixen's post. COVER: the ward needs at least six obstacles and the platform four (the well, the armoury, the tower's buttresses, crenels). SIGHT LINES: the platform sees the whole town — it is where you watch the Company come, and the keep-sees-eastgate corridor keeps that view. CHOKEPOINTS: the two stairs; wave 6 comes up them and up the mound's flanks. HIGH GROUND: the platform, the walk. Accent: the gilt bell and the beacon fire. Ten minutes ago: the beacon was being laid, the bell rope untied.",
+      "envelope": { "x0": -18, "z0": -54, "x1": 54, "z1": -18 },
+      "after": ["marketlow"],
+      "sockets": [
+        { "id": "keep-road-s", "kind": "road", "at": [0, -18],   "axis": "z", "width": 5.0, "y": 0.0, "mate": "market-road-n" },
+        { "id": "keep-lane-w", "kind": "path", "at": [-18, -30], "axis": "x", "width": 3.0, "y": 0.0, "mate": "cc-lane-e" },
+        { "id": "keep-lane-e", "kind": "path", "at": [36, -18],  "axis": "z", "width": 3.6, "y": 0.0, "mate": "wr-lane-n" },
+        { "id": "keep-walk-w", "kind": "path", "at": [-18, -50], "axis": "x", "width": 2.4, "y": 5.0, "mate": "cc-walk-e" },
+        { "id": "keep-walk-e", "kind": "path", "at": [50, -18],  "axis": "z", "width": 2.4, "y": 5.0, "mate": "wr-walk-n" }
+      ],
+      "anchors": [
+        { "x": 30, "z": -26, "expect_top": 0.0, "tol": 0.05 },
+        { "x": 0, "z": -30, "expect_top": 2.6, "tol": 0.05 },
+        { "x": 4, "z": -36, "expect_top": 5.2, "tol": 0.05 },
+        { "x": 30, "z": -50, "expect_top": 5.0, "tol": 0.05 },
+        { "x": 41.5, "z": -47.3, "expect_top": 5.0, "tol": 0.05 },
+        { "x": 50, "z": -30, "expect_top": 5.0, "tol": 0.05 }
+      ],
+      "waypoints": [
+        { "name": "the keep stair foot", "x": 0, "z": -20.5 },
+        { "name": "the lower ward", "x": 0, "z": -30 },
+        { "name": "the keep platform", "x": 4, "z": -38 },
+        { "name": "the bell tower foot", "x": 8.5, "z": -41 },
+        { "name": "the north wall-walk", "x": 30, "z": -50 },
+        { "name": "the yew close", "x": 36, "z": -30 },
+        { "name": "the east wall-walk, north end", "x": 50, "z": -30 }
+      ],
+      "interactions": [
+        { "name": "the bell rope", "at": [8.5, -41.0] },
+        { "name": "the beacon cage", "at": [-3.0, -42.0] }
+      ],
+      "landmarks_citywide": [
+        { "object": "district:keephill:bell-tower", "must_read_from_vistas": ["from-the-road"], "must_read_from_districts": ["southgate", "marketlow", "wardrow"] },
+        { "object": "district:keephill:wardens-hall", "must_read_from_vistas": ["over-the-market"], "must_read_from_districts": ["marketlow"] }
+      ],
+      "massing": [
+        { "x": 0, "z": -38.5, "w": 9, "d": 6.4, "h": 7.5 },
+        { "x": 10, "z": -40, "w": 4.8, "d": 4.8, "h": 14 },
+        { "x": 34, "z": -30, "w": 7, "d": 6, "h": 6 },
+        { "x": 50, "z": -50, "w": 5, "d": 5, "h": 10.5 }
+      ],
+      "enterable": [
+        {
+          "$comment": "The Warden's Hall on the keep platform (ground 5.2): the Reeve's final shelter and the room the run is saved from in wave 6. Door on the south face at z -35.3, offset +2, so climb 2's head (z -32.6, x 2.7..5.3) lands 2.7 m in front of it. The hall's interior floor is at 5.2 + 0.1; interior_camera stands on it.",
+          "building": "wardens-hall",
+          "door": { "at": [2.0, -35.3], "face": "z+" },
+          "interior_waypoint": { "name": "the warden's hall", "x": 0.0, "z": -38.5 },
+          "interior_camera": { "name": "wardens-hall-interior", "position": [3.2, 6.75, -36.2], "target": [-2.5, 6.0, -40.5], "subject": "wardens-hearth" },
+          "min_props": 12
+        }
+      ],
+      "budgets": { "max_meshes": 460, "max_triangles": 170000 }
+    },
+    {
+      "id": "millreach",
+      "name": "The Mill Reach",
+      "brief": "The working west of the town under the west wall: the tower windmill with its sails turning in the last of the wind, the granary, the tannery, the miller's cottage, sheep pens, the cart track in from the market lane, and the whole south-west and west wall-walk with the SW corner tower and the stair turret at z 30. No gate here: this is the wall you HOLD, and the Millstone Warden (the golem, an ally) stands in the mill yard. The mill lane (sg-w-lane) is the back way from the gate square. COVER: the mill yard needs at least six obstacles (the cart, sacks, the rick, the pens, the granary's corner). SIGHT LINES: the wall-walk runs the whole west side and looks down the mill yard and out over the moor at the Company's western camp fires; the along-the-wall vista is this district's whole argument. CHOKEPOINTS: the mill lane mouth at the gate square and the narrow between the granary and the tannery. HIGH GROUND: the west wall-walk, the mill's gallery (a platform). Accent: the mill sails' faded ochre canvas. Ten minutes ago: flour was being sacked and stopped; the sheep were driven in; somebody dropped a lantern on the track.",
+      "envelope": { "x0": -54, "z0": -12, "x1": -18, "z1": 54 },
+      "after": ["southgate", "marketlow"],
+      "sockets": [
+        { "id": "mr-e-lane",      "kind": "path", "at": [-18, 34], "axis": "x", "width": 3.0, "y": 0.0, "mate": "sg-w-lane" },
+        { "id": "mr-market-lane", "kind": "path", "at": [-18, 6],  "axis": "x", "width": 3.6, "y": 0.0, "mate": "market-lane-w" },
+        { "id": "mr-n-lane",      "kind": "path", "at": [-36, -12], "axis": "z", "width": 3.2, "y": 0.0, "mate": "cc-s-lane" },
+        { "id": "mr-walk-s",      "kind": "path", "at": [-18, 50], "axis": "x", "width": 2.4, "y": 5.0, "mate": "sg-walk-w" },
+        { "id": "mr-walk-n",      "kind": "path", "at": [-50, -12], "axis": "z", "width": 2.4, "y": 5.0, "mate": "cc-walk-s" }
+      ],
+      "anchors": [
+        { "x": -36, "z": 20, "expect_top": 0.0, "tol": 0.05 },
+        { "x": -50, "z": 10, "expect_top": 5.0, "tol": 0.05 },
+        { "x": -47.3, "z": 31.5, "expect_top": 5.0, "tol": 0.05 },
+        { "x": -30, "z": 50, "expect_top": 5.0, "tol": 0.05 }
+      ],
+      "waypoints": [
+        { "name": "under the mill", "x": -38, "z": 24 },
+        { "name": "the mill lane", "x": -22, "z": 34 },
+        { "name": "the west wall-walk", "x": -50, "z": 10 },
+        { "name": "the SW tower foot", "x": -46, "z": 46 },
+        { "name": "the tannery yard", "x": -40, "z": -4 }
+      ],
+      "interactions": [
+        { "name": "the mill brake", "at": [-37.0, 22.0] }
+      ],
+      "landmarks_citywide": [
+        { "object": "district:millreach:mill", "must_read_from_vistas": ["along-the-wall"], "must_read_from_districts": ["southgate"] }
+      ],
+      "massing": [
+        { "x": -38, "z": 24, "w": 8, "d": 8, "h": 14 },
+        { "x": -28, "z": 42, "w": 9, "d": 6, "h": 6 },
+        { "x": -50, "z": 50, "w": 5, "d": 5, "h": 10.5 },
+        { "x": -42, "z": 4, "w": 6, "d": 5, "h": 5.5 },
+        { "x": -30, "z": -4, "w": 7, "d": 5, "h": 5.5 }
+      ],
+      "budgets": { "max_meshes": 400, "max_triangles": 150000 }
+    },
+    {
+      "id": "chapelclose",
+      "name": "The Chapel Close",
+      "brief": "The quiet north-west under the north and west wall-walks: ST. WENNA'S chapel (ENTERABLE — the hedge-wizard's shelter, the ward stone inside its porch), the graveyard with its yews, the almshouse row, and the WIZARD'S TOWER in the corner by the NW tower, its upper windows already showing the ward-glow: the town's ONLY cool accent and ONLY strong emissive. Wave 5 makes this the arena — the storm reaches the back of the town — so the close needs cover among the graves (table tombs, the lych-gate, the well, the almshouse's pentice) and the chapel needs to be a real refuge with a door the fill can walk through. The north wall-walk with the stair turret at x -33 and the NW corner tower are this district's high ground. COVER: at least six obstacles in the close. SIGHT LINES: the-close vista along the parapet to the tower; the market-sees-tower corridor crosses the chapel's NE corner, so the chapel's ridge stays under 9 m. CHOKEPOINTS: the lych-gate and the lane in from the mill reach. Ten minutes ago: candles being lit for a vigil nobody will hold, the wizard's door open, a cat on the tomb.",
+      "envelope": { "x0": -54, "z0": -54, "x1": -18, "z1": -12 },
+      "after": ["millreach", "keephill"],
+      "sockets": [
+        { "id": "cc-s-lane", "kind": "path", "at": [-36, -12], "axis": "z", "width": 3.2, "y": 0.0, "mate": "mr-n-lane" },
+        { "id": "cc-lane-e", "kind": "path", "at": [-18, -30], "axis": "x", "width": 3.0, "y": 0.0, "mate": "keep-lane-w" },
+        { "id": "cc-walk-s", "kind": "path", "at": [-50, -12], "axis": "z", "width": 2.4, "y": 5.0, "mate": "mr-walk-n" },
+        { "id": "cc-walk-e", "kind": "path", "at": [-18, -50], "axis": "x", "width": 2.4, "y": 5.0, "mate": "keep-walk-w" }
+      ],
+      "anchors": [
+        { "x": -36, "z": -30, "expect_top": 0.0, "tol": 0.05 },
+        { "x": -50, "z": -30, "expect_top": 5.0, "tol": 0.05 },
+        { "x": -31.5, "z": -47.3, "expect_top": 5.0, "tol": 0.05 },
+        { "x": -30, "z": -50, "expect_top": 5.0, "tol": 0.05 }
+      ],
+      "waypoints": [
+        { "name": "the chapel door", "x": -30, "z": -17.5 },
+        { "name": "the graveyard", "x": -28, "z": -40 },
+        { "name": "the wizard's tower foot", "x": -40, "z": -34 },
+        { "name": "the north wall-walk, west run", "x": -30, "z": -50 },
+        { "name": "the west wall-walk, north half", "x": -50, "z": -30 }
+      ],
+      "interactions": [
+        { "name": "the ward stone", "at": [-33.0, -17.0] }
+      ],
+      "landmarks_citywide": [
+        { "object": "district:chapelclose:wizard-tower", "must_read_from_vistas": ["the-close"], "must_read_from_districts": ["marketlow"] }
+      ],
+      "massing": [
+        { "x": -30, "z": -22, "w": 7.2, "d": 5.6, "h": 8 },
+        { "x": -44, "z": -40, "w": 6, "d": 6, "h": 16 },
+        { "x": -26, "z": -46, "w": 8, "d": 5, "h": 6 },
+        { "x": -50, "z": -50, "w": 5, "d": 5, "h": 10.5 }
+      ],
+      "enterable": [
+        {
+          "$comment": "St. Wenna's: the hedge-wizard's shelter and the vigil nobody holds — candles, the altar, a tomb, pews. Shell 7.2 x 5.6 at [-30, -22], door on the south face (z+) at z -19.2 onto the lane from the market. Ridge under 9 m (the market-sees-tower corridor).",
+          "building": "chapel",
+          "door": { "at": [-30.0, -19.2], "face": "z+" },
+          "interior_waypoint": { "name": "the chapel nave", "x": -30.0, "z": -22.0 },
+          "interior_camera": { "name": "chapel-interior", "position": [-27.6, 1.55, -20.6], "target": [-32.5, 0.9, -24.0], "subject": "chapel-altar" },
+          "min_props": 8
+        }
+      ],
+      "budgets": { "max_meshes": 440, "max_triangles": 160000 }
+    },
+    {
+      "id": "wardrow",
+      "name": "The Ward Row",
+      "brief": "The east of the town: a close-set row of crooked cottages along the row lane from the market's east stair to the EAST GATE — the second gate, and wave 3's breach. A. STANHOPE'S SMITHY (ENTERABLE — the smith's post and shelter, the barricade beat's start, the forge banked) stands at the north end by the lane from Keep Hill; THE PLOUGH & LANTERN inn at the south end; kitchen gardens, washing lines, the bake-oven, and three BARRICADE points on the lane that the smith and the player raise in breather 2 (the kit's barricade: two states, collider toggle). The east and south-east wall-walks with the SE tower and the stair turret at z 4 are this district's high ground. The east gate spans the terrain gap at z 18.5..25.5 the same way the south gatehouse does. COVER: the lane needs at least six obstacles once the barricades are up and four before; the smithy yard three. SIGHT LINES: the down-the-row vista from the market stair to the gate; keep-sees-eastgate from the keep. CHOKEPOINTS: the barricades and the gate passage. Accent: the painted doors, one bottle-green family. Ten minutes ago: doors slammed, a ladder left against an eave, the forge fire fed one last time.",
+      "envelope": { "x0": 18, "z0": -18, "x1": 54, "z1": 54 },
+      "after": ["southgate", "marketlow", "keephill"],
+      "sockets": [
+        { "id": "wr-w-lane",      "kind": "path", "at": [18, 36], "axis": "x", "width": 3.6, "y": 0.0, "mate": "sg-e-lane" },
+        { "id": "wr-market-lane", "kind": "path", "at": [18, 4],  "axis": "x", "width": 3.6, "y": 0.0, "mate": "market-lane-e" },
+        { "id": "wr-lane-n",      "kind": "path", "at": [36, -18], "axis": "z", "width": 3.6, "y": 0.0, "mate": "keep-lane-e" },
+        { "id": "wr-walk-s",      "kind": "path", "at": [18, 50], "axis": "x", "width": 2.4, "y": 5.0, "mate": "sg-walk-e" },
+        { "id": "wr-walk-n",      "kind": "path", "at": [50, -18], "axis": "z", "width": 2.4, "y": 5.0, "mate": "keep-walk-e" }
+      ],
+      "anchors": [
+        { "x": 36, "z": 20, "expect_top": 0.0, "tol": 0.05 },
+        { "x": 50, "z": 0, "expect_top": 5.0, "tol": 0.05 },
+        { "x": 47.3, "z": 5.5, "expect_top": 5.0, "tol": 0.05 },
+        { "x": 36, "z": 50, "expect_top": 5.0, "tol": 0.05 },
+        { "x": 50, "z": 22, "expect_top": 0.0, "tol": 0.05 }
+      ],
+      "waypoints": [
+        { "name": "the row lane", "x": 36, "z": 20 },
+        { "name": "under the east gate", "x": 50, "z": 22 },
+        { "name": "the smithy yard", "x": 30, "z": -3 },
+        { "name": "the east wall-walk", "x": 50, "z": 0 },
+        { "name": "the SE tower foot", "x": 46, "z": 46 },
+        { "name": "the east road", "x": 58, "z": 22 }
+      ],
+      "interactions": [
+        { "name": "the lane barricade", "at": [40.0, 22.0] },
+        { "name": "the forge bellows", "at": [31.0, -4.0] }
+      ],
+      "landmarks_citywide": [
+        { "object": "district:wardrow:eastgate", "must_read_from_vistas": ["down-the-row"], "must_read_from_districts": ["marketlow"] }
+      ],
+      "massing": [
+        { "x": 50, "z": 22, "w": 5, "d": 10, "h": 9 },
+        { "x": 30, "z": -8, "w": 7, "d": 5.4, "h": 6 },
+        { "x": 36, "z": 30, "w": 6, "d": 5, "h": 6 },
+        { "x": 44, "z": 36, "w": 6, "d": 5, "h": 6 },
+        { "x": 28, "z": 42, "w": 9, "d": 6, "h": 7 },
+        { "x": 50, "z": 50, "w": 5, "d": 5, "h": 10.5 }
+      ],
+      "enterable": [
+        {
+          "$comment": "The smithy: the smith's post and shelter, the forge banked, the barricade beat begins at its door. Shell 7 x 5.4 at [30, -8], door on the south face (z+) at z -5.3, offset +1, opening onto the smithy yard with the bellows interaction beside it.",
+          "building": "smithy",
+          "door": { "at": [31.0, -5.3], "face": "z+" },
+          "interior_waypoint": { "name": "the forge room", "x": 30.0, "z": -8.0 },
+          "interior_camera": { "name": "smithy-interior", "position": [27.4, 1.55, -6.2], "target": [32.6, 0.9, -9.5], "subject": "smithy-hearth" },
+          "min_props": 8
+        }
+      ],
+      "budgets": { "max_meshes": 440, "max_triangles": 160000 }
+    }
+  ],
+
+  "game": {
+    "$comment": "The siege vocabulary check-game.mjs measures against the BUILT scene. Arena rects are inside their district; cover = collider-bearing obstacles fully inside; elevation = 2 m samples standing > 0.3 m over the DISTRICT LEVEL; landmarks = this district's landmarks_citywide read from the rect centre. Spawn rings stand in the surrounds outside each gate. NPC posts must be standable AND present (a tagged character within 2 m). Every objective references real things.",
+    "perspective": "first-person",
+    "player": { "spawn": [0, 30], "yaw": 0, "eye_m": 1.62, "radius_m": 0.34, "step_m": 0.38 },
+    "gates": [
+      { "id": "south-gate", "district": "southgate", "at": [0, 50], "axis": "z",
+        "spawn_ring": { "centre": [0, 60], "r_min": 3, "r_max": 8 },
+        "approach": [[0, 58], [0, 50], [0, 40]] },
+      { "id": "east-gate", "district": "wardrow", "at": [50, 22], "axis": "x",
+        "spawn_ring": { "centre": [60, 22], "r_min": 3, "r_max": 8 },
+        "approach": [[58, 22], [50, 22], [40, 22]] }
+    ],
+    "arenas": [
+      { "id": "gate-square", "district": "southgate",   "rect": { "x0": -16, "z0": 18, "x1": 16, "z1": 47 },  "min_cover": 6, "min_elevation": 6,  "min_landmarks": 1, "approach": "south-gate" },
+      { "id": "the-market",  "district": "marketlow",   "rect": { "x0": -17, "z0": -17, "x1": 17, "z1": 15 }, "min_cover": 8, "min_elevation": 20, "min_landmarks": 0, "approach": "south-gate" },
+      { "id": "the-row",     "district": "wardrow",     "rect": { "x0": 20, "z0": -16, "x1": 47, "z1": 47 },  "min_cover": 6, "min_elevation": 6,  "min_landmarks": 1, "approach": "east-gate" },
+      { "id": "the-mill",    "district": "millreach",   "rect": { "x0": -47, "z0": -10, "x1": -20, "z1": 47 }, "min_cover": 6, "min_elevation": 6,  "min_landmarks": 1, "approach": "south-gate" },
+      { "id": "the-close",   "district": "chapelclose", "rect": { "x0": -47, "z0": -47, "x1": -20, "z1": -14 }, "min_cover": 6, "min_elevation": 6, "min_landmarks": 1, "approach": "east-gate" },
+      { "id": "the-keep",    "district": "keephill",    "rect": { "x0": -16, "z0": -47, "x1": 46, "z1": -20 }, "min_cover": 8, "min_elevation": 30, "min_landmarks": 2, "approach": "south-gate" }
+    ],
+    "npc_posts": [
+      { "id": "reeve",       "character": "elder",  "district": "marketlow",   "at": [-13.2, 5.2],  "facing": [1, 0],  "role": "objective-giver", "shelter": "guildhall",    "performer": true },
+      { "id": "runner",      "character": "mika",   "district": "southgate",   "at": [3.0, 27.0],   "facing": [0, -1], "role": "escort",          "shelter": "guildhall",    "performer": true },
+      { "id": "bowman",      "character": "archer", "district": "southgate",   "at": [8.0, 50.0],   "facing": [0, 1],  "role": "militia",         "shelter": null,           "performer": true },
+      { "id": "smith",       "character": "brute",  "district": "wardrow",     "at": [33.0, -4.2],  "facing": [0, 1],  "role": "barricades",      "shelter": "smithy",       "performer": true },
+      { "id": "millwarden",  "character": "golem",  "district": "millreach",   "at": [-32.5, 22.0], "facing": [1, 0],  "role": "guardian",        "shelter": null,           "performer": true },
+      { "id": "hedgewizard", "character": "mage",   "district": "chapelclose", "at": [-40.0, -34.0], "facing": [1, 0], "role": "ward",            "shelter": "chapel",       "performer": true },
+      { "id": "vixen",       "character": "fox",    "district": "keephill",    "at": [27.0, -34.0], "facing": [-1, 0], "role": "ambient",         "shelter": null,           "performer": false, "flees_to": [36, -30] }
+    ],
+    "objectives": [
+      { "id": "o1-escort-runner", "kind": "escort",   "npc": "runner", "from": [3, 27],       "to": [-14.2, 5.0], "shelter": "guildhall",    "leash_m": 8,  "max_seconds": 90,  "after_wave": "w1" },
+      { "id": "o2-barricades",    "kind": "activate", "district": "wardrow", "points": [[40, 22], [36, 12], [28, 36]], "count": 3, "max_seconds": 90, "after_wave": "w2" },
+      { "id": "o3-relight-wall",  "kind": "activate", "points": [[-10, 50], [-50, 20], [-50, -30], [30, -50]], "count": 4, "max_seconds": 120, "after_wave": "w3" },
+      { "id": "o4-escort-reeve",  "kind": "escort",   "npc": "reeve",  "from": [-13.2, 5.2],  "to": [2.0, -34.0], "shelter": "wardens-hall", "leash_m": 8,  "max_seconds": 120, "after_wave": "w4" },
+      { "id": "o5-hold-keep",     "kind": "hold",     "arena": "the-keep", "seconds": 240, "wave": "w6" },
+      { "id": "o6-ring-the-bell", "kind": "interact", "interaction": "the bell rope", "district": "keephill", "after": "captain-dead", "channel_seconds": 3 }
+    ]
+  }
+}
