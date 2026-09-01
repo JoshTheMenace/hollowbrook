@@ -1,14 +1,12 @@
-# REVIEW-BUNDLE — INTENSITY RIDE (battery B4, round 1)
+# REVIEW-BUNDLE — INTENSITY RIDE (battery B4, round 2)
 
-Factual launch + instrumentation only. Loop contract: LOOP-CONTRACT.md —
-contract 5351bda (13:08), amendments A1 98a9255 (13:12), A2 7134d9c
-(13:17) + addendum 8931e5e (13:20), A3 0b12aa9 (13:22), A4 366a58c
-(13:23); substrate 143ef88; build daaef2b. A1–A4 were each committed
-before the code they authorize. **Attribution slip, disclosed:** A5 (the
-fifth-measurement record, which authorizes no code) was written to the
-contract after the measurement and then swept into the build commit
-daaef2b by a directory-level `git add` — it should have been its own
-commit titled as an amendment. No evaluation here.
+Factual launch + instrumentation only. Loop contract incl. A1–A6:
+LOOP-CONTRACT.md. A6 at 228ad07 (14:04) BEFORE the round-2 code; shared
+substrate ee984ca (FixedStep + InputTape); entry a0d2f1b. Round 1 was
+daaef2b (bundle 11e625e). Commit hygiene note: this entry's commit was
+first cut as 20a5c9c in a series where the preceding B1 commit had
+swallowed foreign staged files; the series was rewritten (a0d2f1b) — see
+the B1 bundle. No evaluation here.
 
 ## Launch
 
@@ -18,13 +16,49 @@ npm run dev        # port 5183
 # open http://127.0.0.1:5183/ride.html
 ```
 
-WASD moves; the blade swings on its own; 1/2/3 or click picks a card at
-level-up (the sim pauses while you choose). Three minutes.
-
-## Gates (exit-coded, in-tree) — output PASTED from the run at daaef2b
+## Gates — output PASTED from the runs at e54f504 (tree identical to a0d2f1b for this entry)
 
 ```
-node scripts/check-ride.mjs
+node scripts/check-ride-replay.mjs      # headless Chrome; the reproducibility gate (A6)
+```
+```
+recorded: 4789 ticks, 4773 moves, 7 checkpoints, kills 32, dropped 0.0000s
+PASS  recording produced checkpoints and moves
+PASS  replay @ 30 fps: 7 checkpoints byte-identical — kills 32 (recorded 32), dropped 0.0000s
+PASS  replay @ 60 fps: 7 checkpoints byte-identical — kills 32 (recorded 32), dropped 0.0000s
+PASS  replay @ 90 fps: 7 checkpoints byte-identical — kills 32 (recorded 32), dropped 0.0000s
+PASS  replay @ 144 fps: 7 checkpoints byte-identical — kills 32 (recorded 32), dropped 0.0000s
+PASS  replay @ jittered 30-70 fps: 7 checkpoints byte-identical — kills 32 (recorded 32), dropped 0.0000s
+
+ALL PASS
+```
+
+```
+node scripts/check-ride-camera.mjs      # headless Chrome, play camera, canonical seeded start
+```
+```
+{"frames":8485,"visibleP10":0.833,"survived":173.2,"climaxLegibleFrac":0.696,"climaxSamples":92,"eliteLegibleFrac":1,"pass":true}
+PASS  play camera: p10 of combat-range threats in frustum >= 0.8 — p10 0.833 over 8485 frames (bot survived 173.2s)
+PASS  climax legibility: >= 60% of combat-range threats legible — 0.696 over 92 samples
+PASS  elite legible as an elite (marker pixels) >= 80% of its frames — 1
+
+ALL PASS
+```
+
+```
+node scripts/check-ride-feel.mjs
+```
+```
+PASS  coverage: 11 declared, 11 wired
+PASS  runtime feel check
+ladder magnitudes: kill@0.15=2.28  kill@0.55=4.44  kill@1.0=9.28  elite-kill=21.20  hurt@1.0=7.80  hit@1.0=1.78
+PASS  ladder monotone in intent/value + named pairs
+
+ALL PASS
+```
+
+```
+node scripts/check-ride.mjs             # headless curve gate — unchanged from round 1 (3 RED, recorded)
 ```
 ```
 ✗ track:pearson: median r 0.736 (>= 0.75)
@@ -41,102 +75,38 @@ node scripts/check-ride.mjs
 FAIL (3) — plot: .shots/ride-curve.svg
 ```
 
-```
-node scripts/check-ride-camera.mjs      # headless Chrome, play camera, canonical seeded start
-```
-```
-{"frames":7169,"visibleP10":0.8,"survived":173.1,"climaxLegibleFrac":0.697,"climaxSamples":92,"eliteLegibleFrac":1,"pass":true}
-PASS  play camera: p10 of combat-range threats in frustum >= 0.8 — p10 0.8 over 7169 frames (bot survived 173.1s)
-PASS  climax legibility: >= 60% of combat-range threats legible — 0.697 over 92 samples
-PASS  elite legible as an elite (marker pixels) >= 80% of its frames — 1
+Drift: ride rows all match incl. `SIM_DT`, `TRACK.radius/smooth/
+breather1/breather2`, `CAMERA.combatRange`, noise profiles; prose scan
+passes.
 
-ALL PASS
-```
+## What changed in round 2 (A6 only — choreography untouched pending the round-1 verdict)
 
-```
-node scripts/check-ride-feel.mjs        # headless Chrome, the SAME wired table
-```
-```
-PASS  coverage: 11 declared, 11 wired
-PASS  runtime feel check
-ladder magnitudes: kill@0.15=2.28  kill@0.55=4.44  kill@1.0=9.28  elite-kill=21.20  hurt@1.0=7.80  hit@1.0=1.78
-PASS  ladder monotone in intent/value + named pairs
+- The shell drives `RideRun` on `SIM_DT` (1/120) through `FixedStep`; the
+  player and every critter are interpolated between ticks; the bot's (or
+  the player's) movement input is sampled per tick, quantized to six
+  decimals BEFORE the sim consumes it, and recorded to a tick-indexed tape.
+- `check-ride-replay.mjs`: a 40-s tape replayed at five cadences is
+  byte-identical at all seven checkpoints (time, kills, hp, level, xp,
+  player position, every enemy's position and hp).
+- The play-camera gate re-run on the fixed-step shell: p10 0.80 → 0.833,
+  climax legibility 0.696, elite 1.0.
+- The headless curve gate is unchanged (it always stepped at 1/60 on the
+  pure `RideRun`); its three red rows stand exactly as in round 1 and are
+  recorded, not tuned.
 
-ALL PASS
-```
+## Recorded, not scored (carried from round 1)
 
-```
-node scripts/check-contract-drift.mjs   # ride rows
-```
-```
-PASS  ride: RIDE_SECONDS contract=180 code=180
-PASS  ride: CURVE.length contract=10 code=10
-PASS  ride: TRACK.minR contract=0.75 code=0.75
-PASS  ride: TRACK.maxMAE contract=0.18 code=0.18
-PASS  ride: TRACK.breatherDrop contract=0.15 code=0.15
-PASS  ride: SPAWN.everyMax contract=1.8 code=1.8
-PASS  ride: SPAWN.everyMin contract=0.6 code=0.6
-PASS  ride: SPAWN.hpScaleMax contract=1.35 code=1.35
-PASS  ride: SPAWN.lead contract=4 code=4
-PASS  ride: CLIMAX.at contract=150 code=150
-PASS  ride: CLIMAX.minMusic contract=0.82 code=0.82
-PASS  ride: CLIMAX.holdUntil contract=172 code=172
-PASS  ride: HEADROOM.min contract=1.3 code=1.3
-PASS  ride: HEADROOM.floorPerMin contract=10 code=10
-ALL PASS — 28 constants match
-```
-
-Drift-baseline provenance: TRACK, CLIMAX.at/minMusic, CURVE.length and
-RIDE_SECONDS were designed before the code (5351bda). SPAWN.*,
-CLIMAX.holdUntil and HEADROOM.* were set or moved by amendments after
-measurements — "recorded, not designed" in the sense of the TRAPS rule;
-their later changes need a design justification.
-
-## Red rows, stated plainly
-
-- Tracking r 0.736 (target 0.75) and MAE 0.182 (target 0.18). Five
-  measurements are in the amendment log with what moved each time. The
-  residual shape error: the climax's first seconds read 0.44 against an
-  intent of 1.0, and the release decays slower than the curve drops.
-- Novice referee 1/6. The 340 ms / ±16° bot does not survive a ring at
-  any size tried (A3: 8 boneheads; A4: 5). Expert 6/6.
-- Observed in the evidence, not gated: the elite (420 HP × 1.35) is alive
-  at 180 s on every seed — the "release" still has the elite standing;
-  the contract's "the last kill echoes" does not happen. At night, away
-  from the café, the arena reads as a flat wash disc under the bloom
-  light (ride-climax, ride-release).
-
-## What the curve drives (mechanics, all from `intentAt(t)`)
-
-spawn cadence 1.8 → 0.6 s; mix widens (imp capped at 1.2 past 0.75);
-enemy HP scale 1 → 1.35; scripted bursts LEAD their beats by 4 s (21 s
-6 slimes, 66 s 5 boneheads, 116 s 24 bats, 146 s 6 slimes, 150 s elite);
-no spawns after 172 s; `AdaptiveMusic.setIntensity(intent)` every frame
-(drive drums open ≥ 0.82); dusk → night fade at the first beat ≥ 0.8;
-bloom light 14 → 28 with intent; every feel magnitude scales with intent
-(ladder above); imps telegraph their charge (swell + ring, 0.4 s).
+- The elite outlives the hold on every seed; the release still has it
+  standing. At night away from the café the arena reads as a flat wash
+  disc. Both unchanged by A6.
 
 ## Instrumentation
 
-- `__ride` — { ride, startRun, feel, hero, camera, music }.
-- `__autoplay(on, seed)` — the standard survivors referee bot at EXPERT
-  noise plays the real loop at rAF cadence; bypasses the player's cards.
-- `__playCheck(seconds)` — canonical seeded start; frustum p10 over
-  combat-range threats; ID-pass legibility sampled through the climax.
-- `__legibility()`, `__feelCheck()`, `__feelLadder()`.
+- `__drive(rawDts, {everyTicks})`, `__replay(seed, events)`,
+  `__autoplay(on, seed, {record})`, `__ride.tape`, `__ride.stateHash()`.
+- `__playCheck(seconds)`, `__legibility()`, `__feelCheck()`, `__feelLadder()`.
 
-## Evidence (REAL compositor frames, play camera only, .shots/)
+## Evidence
 
-ride-title, ride-arrival (5 s), ride-push1 (30 s), ride-breathe (50 s),
-ride-surround (125 s), ride-climax (158 s), ride-release (178 s) —
-captured by `capture-ride-evidence.mjs` from an autoplay run (seed 1);
-`ride-curve.svg` — intent (amber) vs normalized measured (blue), expert
-seed 1, written by `check-ride.mjs` at this commit.
-
-## Known notes
-
-- Skill axis HYBRID declared; headroom axis substituted by coordinator
-  ruling (quoted in A2); kills row kept.
-- The imp telegraph exists in the shell; the contract's "no
-  un-telegraphed charger ≥ 80 %" is not yet a separate gate row
-  (declared open).
+Round 1's frames (ride-* at daaef2b) and ride-curve.svg stand; this round
+is the reproducibility gate (numeric).
