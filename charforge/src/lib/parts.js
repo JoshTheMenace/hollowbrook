@@ -42,14 +42,22 @@ export function toonMaterial(color, { rim = 0.35, rimColor = '#ffe9c4', vertexCo
 
 // Vertical hand-painted gradient baked into vertex colors: darker toward the
 // ground (fake AO), lighter on top. Enable material.vertexColors to use.
-export function paintGradient(geo, bottomColor, topColor) {
+//
+// QUANTIZED to `steps` discrete tones (default 3, the world's band count).
+// A cel ramp quantizes LIGHT, not albedo — an airbrushed albedo gradient
+// falls smoothly through every band the world steps through (celbridge
+// art review r3: soft-gradient share 21.9% on the character vs 3.9% in
+// the world). Stepping the albedo at source makes every character inherit
+// the world's tone language.
+export function paintGradient(geo, bottomColor, topColor, steps = 3) {
   const pos = geo.attributes.position;
   const cb = new THREE.Color(bottomColor), ct = new THREE.Color(topColor), c = new THREE.Color();
   geo.computeBoundingBox();
   const { min, max } = geo.boundingBox;
   const colors = new Float32Array(pos.count * 3);
   for (let i = 0; i < pos.count; i++) {
-    const t = THREE.MathUtils.smoothstep(pos.getY(i), min.y, max.y);
+    let t = THREE.MathUtils.smoothstep(pos.getY(i), min.y, max.y);
+    if (steps > 1) t = Math.round(t * (steps - 1)) / (steps - 1);
     c.lerpColors(cb, ct, t);
     colors.set([c.r, c.g, c.b], i * 3);
   }
