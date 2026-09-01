@@ -124,3 +124,13 @@ must match the player's" (nightbloom-play-review-r1).
 | "Lines are not read, they are collected": multiPops 14.6 (greedy) vs 15.1 (router) — clusters of 3 inside 1.6 m are swept by any 3.2 m dash, so line-reading earns nothing | Fix the decision by cluster shape/spacing/value aimed at the multiPops column, never by the score window or the bot. |
 | B2 r4 diagnostic: a `daynight.set(phase)` inside the measurement hook re-applied the phase table over every light tweak — six "variants" measured identically | A diagnostic hook must not re-initialise the state it is diagnosing; expose a `keepPhase` (or equivalent) and calibrate the instrument with a known-flat case (a constant-colour body scored 0.2 % soft). |
 | B2 r4: quantizing vertex colours at the vertices moved the soft-gradient share 8.3 → 8.3 % — the gradient lives in the GPU's interpolation across each triangle | Tone steps are per FACE (non-indexed geometry, one colour per triangle), not per vertex. |
+
+## Fixed-timestep conversions (B1 r3, B4 r2)
+
+| Trap | The rule |
+|---|---|
+| Replay checkpoints taken "at the first frame past tick N" landed on different ticks at different frame rates — byte-identical sims looked divergent | Checkpoint and measure INSIDE the tick callback, on exact tick numbers; frame-level probes measure the render, not the sim. |
+| The ride's tape stored moves rounded to six decimals while the recording applied full-precision vectors — divergence at the 7th decimal by tick 1200, at every cadence including the recording's own | The sim consumes exactly what the tape stores: quantize the input BEFORE applying it, then record the quantized value. |
+| A dash-reach probe sampled `dashing()` after the tick's inputs had been applied — 0 dashes measured at every rate | Capture pre-state before inputs and bot decisions, not after. |
+| Screen shake re-aimed the camera at a fixed target after offsetting its position — 0.03 px of measured shake | Shake translates the whole frame: move the look target with the camera, then measure in pixels at the play camera. |
+| A line-alignment test folded angles with the wrong modulus — zero aligned sweeps for every policy (and combos collapsed with them) | Axis-symmetric angular distance is `abs(((Δ + π/2) mod π + π) mod π − π/2)`; test the instrument on a known-aligned case before reading a design conclusion from it. |
