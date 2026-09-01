@@ -18,8 +18,13 @@ export const CURVE = [
 // A4: hold is a swarm not a wall (0.6 / 1.35); bursts LEAD their beat by
 // `lead` seconds because spawn→threat→smoothing registers ~4 s late
 export const SPAWN = { everyMax: 1.8, everyMin: 0.6, hpScaleMax: 1.35, lead: 4 };
-export const TRACK = { minR: 0.75, maxMAE: 0.18, breatherDrop: 0.15, smooth: 3, radius: 8, breather1: 45, breather2: 95 };
+export const TRACK = { minR: 0.75, maxMAE: 0.18, breatherDrop: 0.15, smooth: 3, radius: 8, breather1: 45, breather2: 95, beatErr: 0.2, detrendedR: 0.5 };
 export const CAMERA = { combatRange: 12 };
+// A7 constants (each item's implementation lands in its own commit)
+export const ELITE = { hpMul: 0.55 };                    // §3 the climax is a fight the player can END
+export const FLOOR = { min: 3, span: 5 };                // §6 pressure floor: min + intent·span enemies alive
+export const MUSIC = { corr: 0.6, driveEnemies: 4 };     // §5 music follows measured pressure
+export const REFEREE = { reactionCliffMs: 240 };         // §7 the cliff must sit outside the human band
 // A6: the shell drives the sim on this step, never on the render dt
 export const SIM_DT = 1 / 120;
 export const CLIMAX = { at: 150, minMusic: 0.82, holdUntil: 172 };
