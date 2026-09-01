@@ -107,6 +107,9 @@ SPAWN.everyMin = 0.5
 SPAWN.hpScaleMax = 1.5
 CLIMAX.at = 150
 CLIMAX.minMusic = 0.82
+CLIMAX.holdUntil = 172
+HEADROOM.min = 1.3
+HEADROOM.floorPerMin = 10
 ```
 
 ## Amendments
@@ -170,3 +173,40 @@ shape still fails, the choreography changes — not the weights.
 Shell bug (not a contract matter, recorded): the autoplay instrument
 tripped the player's upgrade cards and froze the sim at the first
 level-up during `__playCheck` (22.3 s); instruments bypass the cards.
+
+**Coordinator ruling on the headroom axis (quoted):** "APPROVED, and this
+is the legitimate case the rule was written to distinguish — the metric
+is structurally incapable of varying (kills saturate because the script
+guarantees every spawn dies), which is a measurement-validity argument,
+not 'it failed so change it.' Conditions: (1) the kills row stays in A2
+as a recorded finding with its 1.06× number; (2) define damage-taken so
+it doesn't saturate the other way — novice deaths truncate damage taken,
+so measure it as damage per minute survived, and floor the expert
+denominator so a near-zero expert doesn't blow the ratio up into a vanity
+number; (3) state the design implication in the contract: a ride where
+the kill count is fixed by choreography means ALL the danger is incoming
+damage, so the feel ladder and the telegraphs are load-bearing for skill
+expression — that's a design property to gate, not just a metric note;
+(4) survival referee stays as written: expert 5/6 against a 6/6 target is
+currently a FAIL — resolve it by tuning the choreography or the
+telegraphs, never the window."
+
+Applied:
+- Headroom = damage taken per minute survived, novice ÷ max(expert,
+  `HEADROOM.floorPerMin`) ≥ `HEADROOM.min` (1.3). Kills row kept: 1.06×.
+- Design implication, stated: with the kill count fixed by the script,
+  every unit of danger is INCOMING damage. Therefore (a) the intent
+  ladder on `player-hurt` and `kill` is load-bearing and stays gated; (b)
+  every source of damage telegraphs — the imp's charge gets a wind-up
+  read (flash + swell over its 0.4 s before the lunge) like the elite's
+  marker; gated in the feel/legibility pass as "no un-telegraphed
+  charger": the imp is legible during its wind-up ≥ 80 % of sampled
+  charge frames.
+- Survival (expert seed 4 died at 179 s, in the release): the release
+  beat now means what it says — after `CLIMAX.holdUntil` the timeline
+  stops spawning (the remaining board is the release). The window stays
+  6/6; the next measurement is recorded whatever it says.
+- Camera bug found by `check-ride-camera.mjs` (recorded): the camera
+  occluder set included the player's own body, so the pullback probe hit
+  his hair and parked the camera inside his head (p10 0, legibility
+  0.023). Occluders are world geometry only.
