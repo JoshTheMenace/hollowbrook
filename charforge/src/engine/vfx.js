@@ -21,7 +21,7 @@ export class VFX {
       transparent: true, depthWrite: false,
       vertexShader: `attribute float psize; varying vec3 vColor;
         void main(){ vColor = color; vec4 mv = modelViewMatrix * vec4(position,1.0);
-        gl_PointSize = psize * (240.0 / -mv.z); gl_Position = projectionMatrix * mv; }`,
+        gl_PointSize = psize * (900.0 / -mv.z); gl_Position = projectionMatrix * mv; }`,
       fragmentShader: `varying vec3 vColor;
         void main(){ vec2 d = gl_PointCoord - 0.5; if (dot(d,d) > 0.25) discard;
         gl_FragColor = vec4(vColor, 1.0); }`,
@@ -75,6 +75,9 @@ export class VFX {
       transform: 'translate(-50%,-50%)', whiteSpace: 'nowrap',
     });
     this.textLayer.appendChild(el);
+    // at most two floating texts on screen: the newest moment wins (juicebox
+    // r1/r2: the celebration collided into illegibility)
+    while (this.texts.length >= 2) { this.texts.shift().el.remove(); }
     this.texts.push({ el, worldPos: worldPos.clone(), life: 0, ttl, rise, camera });
   }
 
