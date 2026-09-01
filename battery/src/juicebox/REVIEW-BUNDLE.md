@@ -1,8 +1,13 @@
-# REVIEW-BUNDLE — JUICE BOX (battery B1, round 2)
+# REVIEW-BUNDLE — JUICE BOX (battery B1, round 3 — the closing round)
 
-Factual launch + instrumentation only. Loop contract incl. Amendments A5
-(6157480, 12:50) and A6 (2f8cbd8, 12:57), both committed BEFORE the
-implementation they authorize. No evaluation here.
+Factual launch + instrumentation only. Loop contract incl. A5–A7:
+LOOP-CONTRACT.md. A7 at e892c8d (13:44) BEFORE the round-3 code; shared
+substrate ee984ca (FixedStep + InputTape, VFX point size, text cap) and
+e54f504 (drift gate prose scan); entry 7328d19. Commit hygiene note: the
+entry commit was first cut as ef56565, which swallowed 14 staged files
+belonging to the FPS build; it was rewritten to 7328d19 with only B1
+paths (incident reported to the coordinator; TRAPS row added). No
+evaluation here.
 
 ## Launch
 
@@ -12,94 +17,120 @@ npm run dev        # port 5183
 # open http://127.0.0.1:5183/juicebox.html
 ```
 
-WASD/arrows or click to dash. `[` `]` change seed.
-
-## Gates (exit-coded, in-tree)
+## Gates — output PASTED from the runs at e54f504 (tree identical to 7328d19 for this entry)
 
 ```
-node scripts/check-juicebox.mjs --detail   # designed curve (A5/A6 rows)
-node scripts/check-juicebox-feel.mjs       # coverage + LADDER (headless Chrome)
-node scripts/check-contract-drift.mjs      # contract constants vs code (all entries)
+node scripts/check-juicebox-replay.mjs     # headless Chrome; the reproducibility gate
+```
+```
+recorded: 3594 ticks, 51 inputs, 5 checkpoints, score 370, dropped 0.0000s
+PASS  recording produced checkpoints and inputs
+PASS  replay @ 30 fps: 5 checkpoints byte-identical to the recording — score 370 (recorded 370), dropped 0.0000s
+PASS  replay @ 60 fps: 5 checkpoints byte-identical to the recording — score 370 (recorded 370), dropped 0.0000s
+PASS  replay @ 90 fps: 5 checkpoints byte-identical to the recording — score 370 (recorded 370), dropped 0.0000s
+PASS  replay @ 144 fps: 5 checkpoints byte-identical to the recording — score 370 (recorded 370), dropped 0.0000s
+PASS  replay @ jittered 30-70 fps: 5 checkpoints byte-identical to the recording — score 370 (recorded 370), dropped 0.0000s
+PASS  delivered dash reach @ 30 fps = 3.2 ± 0.05 m — median 3.200 m over 51 dashes
+PASS  delivered dash reach @ 60 fps = 3.2 ± 0.05 m — median 3.200 m over 51 dashes
+PASS  delivered dash reach @ 90 fps = 3.2 ± 0.05 m — median 3.200 m over 51 dashes
+PASS  delivered dash reach @ 144 fps = 3.2 ± 0.05 m — median 3.200 m over 51 dashes
+PASS  delivered dash reach @ jittered 30-70 fps = 3.2 ± 0.05 m — median 3.200 m over 51 dashes
+
+ALL PASS
 ```
 
-Recorded run at this commit, verbatim:
+```
+node scripts/check-juicebox-feel.mjs       # rendered-space ladder on COMPOSITES, play camera
+```
+```
+PASS  coverage: 11 declared, 11 wired
+PASS  runtime feel check
+wired-parameter ladder (kept, informational): whiff=0.72  single-pop=2.44  double-line=7.70  gold-pop=13.64  triple-line=11.20  oni-hit=7.32
+  whiff   shake 0.0 px · hitstop 0 f · changed px 14390 · text false → 10.00
+  single  shake 0.0 px · hitstop 0 f · changed px 13491 · text true → 12.00
+  double  shake 7.8 px · hitstop 4 f · changed px 14561 · text true → 27.83
+  gold    shake 7.2 px · hitstop 6 f · changed px 7859 · text true → 31.17
+  triple  shake 29.8 px · hitstop 6 f · changed px 33572 · text true → 53.75
+  hit     shake 3.8 px · hitstop 3 f · changed px 14618 · text false → 19.84
+PASS  rendered ladder monotone in banked value (whiff < single < double < gold < triple)
+PASS  being hit is not louder than the best good moment (rendered) — hit 19.84 vs triple 53.75
+PASS  gold shakes visibly more than a single (≥ 3 px more) — 7.17 vs 0 px
+PASS  a single pop changes ≥ 400 px (particles read at the court camera) — 13491 px changed
+
+ALL PASS
+```
 
 ```
-✓ curve:greedy-score: median greedy score 3210 (window 1500..4500, A6)
-✓ curve:execution-headroom: expert-reflex router 1410 vs novice-reflex router 930 (need >= 1.3x = 1209)
-· curve:planning-headroom: oracle 1480 vs router 1410 at the same noise = 1.05x (recorded; A5 withdraws the substitution)
-✓ curve:reachability: 0/653 scheduled spirits unreachable from the worst corner
+node scripts/check-juicebox.mjs            # headless curve gate at SIM_DT — 4 RED rows, recorded
+```
+```
+sim dt = 0.008333 s (SIM_DT); referee also run at 1/60 s below for the record
+· curve:greedy-score (recorded, window retired by A7): median greedy 1490, router 1340
+✗ decision:router-reads-lines: router multiPops 3 vs greedy 5 (need >= 1.4x = 7.0) — lines READ, not collected
+✗ decision:router-outscores-greedy: router median 1340 vs greedy median 1490; router wins 3/7 seeds
+· referee @ dt 1/60 (record): router median 1100 vs 1340 at SIM_DT
+✓ curve:execution-headroom: expert-reflex router 950 vs novice-reflex router 630 (need >= 1.3x = 819)
+· curve:planning-headroom: oracle 840 vs router 950 at the same noise = 0.88x (recorded; A5 withdraws the substitution)
+✓ curve:reachability: 0/661 scheduled spirits unreachable from the worst corner
 ✓ curve:gold-reachable: gold at 7m needs 1.32s < ttl 2.3s
-✓ curve:dead-air: median dead air 0.00s (<= 1.5s)
-✓ curve:max-combo: router median best combo 5 (need >= 5)
+✓ curve:dead-air: median dead air 0.30s (<= 1.5s)
+✗ curve:max-combo: router median best combo 3 (need >= 5)
 ✓ curve:population: max simultaneous spirits 8 (band 1..8)
 ✓ oni:stun-tax: router stunned 0.0% of run time (< 8%); stuns median 0
-· oni:standing-still-control: still bot: stunned 11.6% of run, 14 stuns (control, not a pass)
+· oni:standing-still-control: still bot: stunned 11.7% of run, 14 stuns (control, not a pass)
 ✓ supply:popped-fraction: router pops 66% of scheduled spirits (>= 45%)
-✓ supply:combo-uptime: router at combo >= 2 for 47% of the run (>= 40%)
+✗ supply:combo-uptime: router at combo >= 2 for 28% of the run (>= 40%)
 ✓ economy:line-beats-gold: triple line 140 vs solo gold 60
-✓ determinism: seed 42 twice: 2680/65 vs 2680/65
-
-ladder magnitudes: whiff=0.56  single-pop=2.44  double-line=7.70  gold-pop=8.41  triple-line=11.20  oni-hit=7.32
-PASS  ladder monotone in value + named pairs
-
-ALL PASS — 14 constants match
+✓ determinism: seed 42 twice: 1010/61 vs 1010/61
+FAIL (4)
 ```
 
-## What changed since r1 (mechanical list, by review order)
+Drift: 33 juicebox constants match and the prose scan passes
+(`node scripts/check-contract-drift.mjs`, ALL PASS — 56 constants across
+three entries).
 
-1. **Ladder** — feel table moved to `feel-table.js` (the gate wires the
-   SAME table the shell runs). shake/hitstop/burst are functions of value
-   (shared engine: `Feel.magnitude`, `Feel.checkLadder`, fn-valued fx).
-   r1 measured: whiff 0.194 trauma, gold pop 0 shake / 0 hitstop, multi-pop
-   binary. Now: see magnitudes above; multi-pop scales with count.
-2. **Oni** — freezes to telegraph 0.5 s (swelling ring + scale), bites its
-   1.07 m threat radius; a dash is an i-frame; stun 1.2 → 0.5 s; cooldown
-   1.0 s. Router bot reads the telegraph and dodges. Stun tax gated < 8 %
-   (router 0.0 %); standing-still control printed (11.6 %, 14 stuns).
-3. **Gold economy** — gold resolves at spawn RELATIVE TO THE PLAYER (far
-   side, 5–7 m band; deterministic for identical play, unscriptable
-   board-blind). Repriced: n-th pop of a dash = 10·n·combo; gold 30·combo,
-   +1 combo. Triple line 140 > solo gold 60. Original planning metric
-   re-measured: **1.05×** (A6 first measurement was 0.80×; after the oni
-   freeze the oracle's pre-positioning stopped colliding with frozen onis).
-   Execution axis: 1.52× (both policies router, EXPERT vs NOVICE noise).
-4. **Combo** — fade DECAYS one step (was board-wide reset). Gates:
-   popped fraction ≥ 45 % (66 %), combo uptime ≥ 40 % (47 %). Pop text is
-   staggered by n-th/combo parity.
-5. **Legibility** — recovery ring under the box (fills over 0.45 s; solid
-   red while stunned); gold = unlit bright #ffe36a with a rotating halo,
-   decor lanterns dimmed to #8a6a4a; final 10 s: court rim pulses red,
-   vignette, clock ticks; best score in localStorage, score screen shows
-   delta ("new best +N" / "best N (−M)").
-6. **Contract sync** — A5 declares the real constants (recovery 0.45,
-   chain 1.6, oni everything); drift gate diffs 14 constants across
-   juicebox + errand.
-7. Tooling — `.shots/` excluded from the Vite watcher in this entry
-   (`server.watch.ignored`).
+## The r2 findings, mechanically
+
+| r2 finding | measured then | now |
+|---|---|---|
+| shell integrates per render frame; realised dash 2.13–3.20 m; 1.29× on one seed with zero input variation; replayed tape 680 vs 1740 | see left | sim on `SIM_DT` 1/120 through `FixedStep`; render interpolates; inputs stamped with their sim tick; **byte-identical state at 30/60/90/144 fps and jittered dt; dash 3.200 m at every rate** |
+| every gate at dt = 1/60 | — | the curve gate states its dt and steps at SIM_DT; the 1/60 referee is printed for the record (router median 1100 vs 1340 — the pure sim IS step-dependent, which is why the shell may never run it at anything else) |
+| drift gate read only the block; prose carried 3.6 m / 0.16 s / 1.9 s / 5× / 1.78× | 14 constants | prose reconciled; block extended to 33 constants (10 marked recorded, not designed); the gate scans prose for unit-bearing numbers the block does not carry |
+| ladder judged synthetic singles; double 16.07 > gold 8.41; particles 1–2 px | — | rendered ladder on composites at the play camera (shake px, hit-stop frames, changed px, text): single 12.0 < double 27.8 < gold 31.2 < triple 53.8; hit 19.8; shake translates the frame; VFX point size ×3.75 |
+| "lines are not read, they are collected" — multiPops 14.6 vs 15.1 | — | clusters are LINES (1.3–1.7 m spacing, per-cluster axis); the n-th pop multiplier, combo growth and the multiPops count pay only within 15° of the axis; the referee gains an alignment dash. Result: **aligned multiPops greedy 5 vs router 3; router median 1340 vs greedy 1490; router wins 3/7** — RED, recorded. The referee aligns 4–10 times per run and converts poorly; A7's design change did not make reading pay. |
+| whiff 53–62 % of inputs silent | — | `whiff` event: grey trail fizzle + dull tick + 4 dark specks |
+| player occluded by the oni during a stun | — | oni renders behind; the box draws through it while stunned; the ring is always on top |
+| text collision; fade has no read; gold blink shrinks it; seed label shows two seeds | — | texts capped at two; fading spirit shrinks + dims over its last 0.5 s and the combo label steps down; gold blinks by opacity; score screen shows the run's own seed |
+| A6 window drawn from the instrument's spread | — | retired; decision rows replace it |
+
+## Recorded, not scored
+
+- Combo ceiling 3 and combo uptime 28 % under aligned-only growth (were 5
+  / 45 % when any clip grew the combo): the combo economy was living on
+  collected lines.
+- Execution headroom 1.51× (expert 950 vs novice 630) at SIM_DT.
+- Oni: stun tax 0.0 % for the router, 11.7 % standing still — the r2
+  "inert vs counterplay" ambiguity stands; no new instrument.
 
 ## Instrumentation
 
-- `__feelCheck()`, `__feelLadder()` — coverage / ladder on the live table.
-- `__latencyCheck()`, `__playCheck(seconds)` — unchanged from r1.
-- `__autoplay(on)` — an EXPERT-noise greedy bot plays through the real
-  loop at rAF cadence (for evidence capture only; `stats()` on the run
-  reports stunTax / poppedFraction / comboUptime / whiffs).
-- `__game` — { run, startRun, feel, music, camera, seedSet }.
+- `__drive(rawDts, {everyTicks})` — drives the shell at an explicit render
+  cadence; exact-tick checkpoints + realised dash lengths.
+- `__game.startRun({record, replay, seedOverride})`, `__game.tape`,
+  `__game.stateHash()`, `__game.pause()`.
+- `__renderedMoment(kind)` — fires a composite at a fixed court point and
+  measures shake px / hit-stop frames / changed px / text.
+- `__feelCheck`, `__feelLadder` (wired-parameter, informational),
+  `__latencyCheck`, `__playCheck`, `__autoplay`.
 
-## Evidence (REAL compositor frames through the fixed play camera, .shots/jb2-*.png)
+## Evidence
 
-jb2-title, jb2-open, jb2-multipop (captured on the `multi-pop` event),
-jb2-telegraph (mid wind-up), jb2-gold-live, jb2-final10, jb2-score.
-Captured by `scripts/capture-juicebox-evidence.mjs`; autoplay run stats
-for that capture: score 1730, bestCombo 4, pops 62, whiffs 49, stuns 1,
-stunTax 0.8 %, poppedFraction 60 %, comboUptime 24 % (a greedy bot, not
-the router — the gate rows above are the router's numbers).
+The reviewer's own harness produced r2's frames; this round's evidence is
+the gate output above (the round is about reproducibility and rendered
+magnitude, both numeric). `capture-juicebox-evidence.mjs` still writes
+jb2-* frames from an autoplay run if frames are wanted.
 
-## Recorded, not scored (builder states facts)
-
-- Greedy-nearest outscores the router on 4/7 seeds under the A5 economy
-  (table in `--detail`). Bots are instruments; whether nearest-dash
-  spam should beat routing is a design question for the review.
-- Planning headroom 1.05×: the design pays little for planning; it pays
-  for execution (1.52×) and line-reading.
+## B1 closes here (per A7 and the coordinator). Lessons carried to Stage C:
+fixed timestep + replay gate (shared engine), delivered-value drift, the
+rendered ladder, windows from intent, and "a line must be READ" as an
+unsolved design question.
