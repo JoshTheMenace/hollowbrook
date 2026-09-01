@@ -49,19 +49,26 @@ What the intent curve DRIVES (each a pure function of intent):
 
 ## What must hold (gated)
 
-1. **Tracking** — the MEASURED intensity (a normalized blend of threat
-   pressure: live enemies within `TRACK.radius` (8 m), incoming-damage
-   rate, kill rate, smoothed over `TRACK.smooth` (3 s)) tracks the intent
-   curve: Pearson r ≥ 0.75 over the run and mean absolute error ≤ 0.18,
-   for the router bot at EXPERT noise. Breathers are real: measured
-   intensity at `TRACK.breather1` (45 s) and `TRACK.breather2` (95 s) is
-   at least 0.15 below its value at the preceding peak.
-2. **Climax** — at 150–172 s the elite is alive and the drive-drums tier
-   is audible (music intensity ≥ 0.82 → the `drumsDrive` window is open).
-3. **Winnability, refereed honestly** — NOVICE bot survives the full 180 s
-   on ≥ 4/6 seeds; EXPERT on 6/6. Partial survival prints as seconds,
-   never a checkmark.
-4. **Headroom** — expert kills ≥ 1.3× novice kills (same policy).
+1. **Tracking** (as amended by A7) — the MEASURED intensity (a blend of
+   threat pressure: live enemies within `TRACK.radius` (8 m), incoming-
+   damage rate, kill rate, smoothed over `TRACK.smooth` (3 s); judged
+   max-normalized) follows the intent curve's SHAPE: per-beat keyframe
+   error ≤ `TRACK.beatErr`, detrended r ≥ `TRACK.detrendedR`, breathers
+   at `TRACK.breather1` (45 s) and `TRACK.breather2` (95 s) ≥ 0.15 deep
+   within ±5 s — and the null models (flat, ramp, noise, the stock
+   survivors run) must FAIL. (The original r ≥ 0.75 / MAE ≤ 0.18 rows are
+   retired: a ramp passed them.)
+2. **Climax** — the elite arrives at 150 s and dies inside the hold
+   (150–172 s) on ≥ 5/6 expert seeds; the drive-drums window is open
+   ≥ 15 s of the hold, driven by measured pressure (A7 §5).
+3. **Winnability, refereed honestly** — NOVICE (340 ms) survival is
+   recorded; the 240 ms / 11° referee survives ≥ 4/6; EXPERT 6/6 incl.
+   the camera gate's seed. Partial survival prints as seconds, never a
+   checkmark. The referee picks cards by a deliberate survival-first
+   policy.
+4. **Headroom** — damage taken per minute survived, novice ÷ expert
+   ≥ `HEADROOM.min` (coordinator ruling, A2); the total-damage ratio is
+   printed beside it.
 5. **Feel ladder** — `check-ride-feel.mjs`: kill magnitude at intent 1.0 >
    at 0.55 > at 0.15; player-hurt never outranks the climax kill; coverage
    of every `RIDE_EVENTS` type.
@@ -122,6 +129,14 @@ CAMERA.combatRange = 12
 EXPERT.delay = 0.12
 NOVICE.delay = 0.34
 SIM_DT = 0.008333333333333333
+TRACK.beatErr = 0.2
+TRACK.detrendedR = 0.5
+ELITE.hpMul = 0.55
+FLOOR.min = 3
+FLOOR.span = 5
+MUSIC.corr = 0.6
+MUSIC.driveEnemies = 4
+REFEREE.reactionCliffMs = 240
 ```
 
 ## Amendments
@@ -328,3 +343,96 @@ rate; "seeded" is not "reproducible"). Round 2:
   disc. Neither is changed by A6; the review decides whether they are
   defects.
 - `SIM_DT` joins the constants block (designed in A6).
+
+**A7 (post play-review r1, composite 0.46 — committed BEFORE the round-2
+code; the A6-only bundle d8419aa is superseded and was never reviewed).**
+The review is an instrument audit; every finding below carries its number
+and the change that must move it. Each item is implemented in ITS OWN
+commit with its own measurement (r1: four amendments, one code commit —
+"satisfies the letter, forfeits the proof"); substrate commits get their
+own second.
+
+1. **The elite health bar drew nothing.** `barFillMat` opaque under
+   `barBackMat` transparent: three.js renders the whole opaque list before
+   the whole transparent list, so `renderOrder` cannot order them — bar
+   pixels identical at 96.5 % and 14 % HP, in the bundle's own frame. Fix:
+   plate and fill in the SAME list (both transparent), fill on top. Gate:
+   the camera gate asserts on the bar's pixels — fill width (red pixels in
+   the bar's screen box) tracks HP within ±10 % at two sampled HP values.
+2. **Elite legibility was a tautology** (`depthTest:false` marker + dead
+   bar pixels; body alone px 179 / sep 0.351 → `legible:false`). Gate:
+   the elite row judges BODY pixels only (px ≥ 56, sep ≥ 0.09 like chaff
+   at its size); the marker is a separate row (marker px ≥ 10 visible
+   while the elite is in frame). Both must pass.
+3. **The release was an anticlimax**: elite alive at 180 s on 6/6 expert
+   seeds at median 55 % HP; tier label read HOLD until the end card.
+   Design: the climax is a fight the player can END — the elite arrives
+   with `ELITE.hpMul` 0.55 of the survivors brute (≈ 230 HP at hpScale
+   1.35), and the ride ENDS on the elite's death (victory) once the board
+   within 12 m is clear, or at 180 s. Target: elite dies inside the hold
+   (150–172 s) on ≥ 5/6 expert seeds; the tier readout shows RELEASE
+   from the elite's death. The readout names the CURRENT measured state
+   (calm / pressed / surround / climax / release), never a keyframe index.
+4. **The tracking gate did not discriminate the thesis.** Pearson r is
+   invariant under positive scaling (max-normalizing moved r by 0.000000
+   and MAE alone 0.244 → 0.182 — disclosed then, mis-framed; recorded
+   here plainly). A linear ramp passes (0.792 / 0.145); the intent with
+   its breathers deleted passes (0.845 / 0.084); a STOCK unchoreographed
+   survivors run scores 0.842 / 0.102 and beats the ride. Replaced by
+   three rows, all on the max-normalized series: (a) per-beat keyframe
+   error — mean |measured − intent| at the ten keyframes ≤ `TRACK.beatErr`
+   (0.2); (b) detrended correlation — r after removing each series' linear
+   trend ≥ `TRACK.detrendedR` (0.5); (c) breathers — depth ≥ 0.15 within
+   ±5 s of 45 s and 95 s. The gate prints a NULL-MODEL TABLE — flat, ramp
+   0→1, seeded noise, and the stock survivors baseline measured through
+   the same instrument — and every null model must FAIL at least one row,
+   or the gate fails itself. `ride-curve.svg` states that the blue series
+   is max-normalized.
+5. **Every layer was gated against intent, i.e. the design.** Music was
+   `setIntensity(intent)`: 48.3 s of drums over ≤ 2 enemies; 33 % of the
+   ride at ≤ 2 enemies; "drive-tier-open" compared three literals. Design:
+   music intensity follows MEASURED pressure (`measure()` on the live
+   run, EMA 3 s) with the intent as a ceiling, never a floor above 0.15.
+   Gate (shell, headless Chrome, reads the gain nodes): correlation of
+   music intensity with enemies-within-8 m ≥ 0.6 over the run; the drive
+   window (≥ 0.82) is never open for > 3 s with < 4 enemies within 8 m;
+   the climax hold has the drive window open ≥ 15 s.
+6. **Floor pressure and early stakes**: 58.8 s at ≤ 2 enemies, 8.5 s
+   continuous ≤ 1, 6.0 s empty; attentive play took 16 damage in three
+   minutes. Design: a pressure FLOOR — the timeline keeps at least
+   `FLOOR.min` + intent × `FLOOR.span` enemies alive (3 + 5·intent),
+   spawning to the floor when the board falls under it; the second push's
+   ring becomes boneheads AND imps (chargers deal the stakes). Targets:
+   share of the run at ≤ 2 enemies within 8 m ≤ 12 %; expert damage taken
+   in the first 145 s ≥ 40.
+7. **The referee**: reaction sweep 120 ms 6/6 · 180 4/6 · 240 2/6 · 280
+   1/6 · 340 1/6 — the survival cliff sits between 180 and 240 ms, inside
+   the human band; cards were picked at random (±3/6 dispersion). Design
+   + instrument: the referee picks cards by a deliberate survival-first
+   policy (HP/regen passives, then the blade); the gate prints the
+   reaction sweep as a row; the novice referee stays at 340 ms (recorded)
+   and a **240 ms / 11° referee must survive ≥ 4/6** — the cliff moves
+   out of the human band by the floor/stakes design, not by the window.
+8. **Headroom**: per-minute-survived flatters (total damage 1.32× vs
+   2.00×). Both are printed; the gate row uses per-minute (ruling) and the
+   total-damage ratio is a recorded row beside it.
+9. **The lighting arc was never built** (one irreversible `fadeTo('night')`
+   at 120 s). Design: sun and hemisphere scale down with smoothed intent
+   (1 → 0.35), the practicals warm up with it (1 → 2.2×), and the release
+   drops the hemisphere further so the practicals carry the frame. Gate
+   (shell): sun intensity at the climax ≤ 50 % of its arrival value;
+   practicals ≥ 1.8× arrival; read from the live lights.
+10. **The telegraph gate claimed in A2 did not exist.** Built now: the
+    camera gate samples frames where an imp is winding up (`chargeT` <
+    0.4) and requires the imp's BODY legible in ≥ 80 % of them.
+11. Prose reconciled to this amendment (the tracking rows, the headroom
+    axis, the lighting arc). `win:expert` counts the camera gate's seed:
+    6/6 became 6/7 in r1 and is reported as such.
+
+Recorded, not targets: the shell's reproducibility (r1 finding) was
+closed by A6 (byte-identical replay at five cadences); r1's "Determinism:
+shell NOT reproducible" is the state before A6.
+
+Constants added: `TRACK.beatErr = 0.2`, `TRACK.detrendedR = 0.5`,
+`ELITE.hpMul = 0.55`, `FLOOR.min = 3`, `FLOOR.span = 5`, `MUSIC.corr =
+0.6`, `MUSIC.driveEnemies = 4`, `REFEREE.reactionCliffMs = 240`.
