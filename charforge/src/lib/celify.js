@@ -21,6 +21,17 @@ export function celify(root, cel, {
   accentGuard = [],          // [[name, hue0..1, tol, maxSat]] scene-owned bands
   worldSatCap = null,        // world's measured max saturation; cap everything...
   ownedAccent = null,        // ...except { name, hue, tol, satCap } — the ONE owned accent
+  fill = null,               // a flat grey bounce fill (hex) on every non-practical surface:
+                             // lifts the minimum channel so the world's warm key light
+                             // cannot push warm skin past the world's rendered band
+                             // (B2 r3: the KEY LIGHT does it, not the albedo)
+  facet = false,             // flat-shade every mesh (one normal per face)
+  toneSteps = 0,             // quantize every vertex-colour attribute to N tone steps
+                             // (value) and 2 saturation steps per mesh — the world's ramp
+                             // applied to ALBEDO. B2 r4 diagnostic: with vertex colours
+                             // off the character's soft-gradient share fell 8.3% -> 3.9%
+                             // and top-8 bins rose 37% -> 70%; the painted vertex colours
+                             // ARE the airbrush (lighting/shadows/normals moved nothing)
 } = {}) {
   const inOwned = (h) => ownedAccent && Math.abs(shortHue(h - ownedAccent.hue)) < (ownedAccent.tol ?? 0.05);
   // corrections are ACCOUNTED: the guard is a safety net with a budget the
@@ -63,17 +74,47 @@ export function celify(root, cel, {
     report.meshes++;
     const src = o.material;
     if (!src || src.userData?.celified) { report.skipped++; return; }
+    if (facet && o.geometry && !o.geometry.userData.faceted) {
+      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry;
+      g.computeVertexNormals();          // non-indexed: normals are per face
+      g.userData.faceted = true;
+      if (g !== o.geometry) { g.userData.rawColorArray = o.geometry.userData.rawColorArray; o.geometry = g; }
+    }
     // vertex-color surfaces: grade the attribute itself (effective color path)
     const colAttr = o.geometry?.attributes?.color;
     if (src.vertexColors && colAttr && !gradedGeo.has(o.geometry)) {
       gradedGeo.add(o.geometry);
       const arr = colAttr.array;
       o.geometry.userData.rawColorArray = arr.slice();   // for honest A/B restore
+      // tone steps: per mesh, value quantized to `toneSteps` levels across
+      // the mesh's own painted range, saturation to 2 — a stepped cel paint
+      let vmin = 1, vmax = 0, smin = 1, smax = 0;
+      if (toneSteps > 1) {
+        for (let i = 0; i < colAttr.count; i++) {
+          const { s, v } = rgbToHsv(...[arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2]].map(linToSrgb));
+          vmin = Math.min(vmin, v); vmax = Math.max(vmax, v); smin = Math.min(smin, s); smax = Math.max(smax, s);
+        }
+      }
+      const step = (x, lo, hi, n) => (hi - lo < 1e-4 ? x : lo + Math.round(((x - lo) / (hi - lo)) * (n - 1)) / (n - 1) * (hi - lo));
       for (let i = 0; i < colAttr.count; i++) {
         const [r, g, b] = [arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2]].map(linToSrgb);
-        const graded = gradeHsv(rgbToHsv(r, g, b));
+        let hsv = rgbToHsv(r, g, b);
+        // tone is the VALUE axis; saturation is left as painted (stepping it
+        // to the mesh maximum raised the skin's rendered p90 0.557 -> 0.568)
+        if (toneSteps > 1) hsv = { h: hsv.h, s: hsv.s, v: step(hsv.v, vmin, vmax, toneSteps) };
+        const graded = gradeHsv(hsv);
         const [nr, ng, nb] = hsvToRgb(graded.h, graded.s, graded.v).map(srgbToLin);
         arr[i * 3] = nr; arr[i * 3 + 1] = ng; arr[i * 3 + 2] = nb;
+      }
+      // the gradient lives in the GPU's interpolation between differently
+      // toned vertices, not in the vertex values — on non-indexed geometry
+      // give each FACE one tone (its middle vertex's) so faces are flat
+      if (toneSteps > 1 && !o.geometry.index) {
+        for (let t = 0; t + 2 < colAttr.count; t += 3) {
+          const lum = [0, 1, 2].map((k) => 0.2126 * arr[(t + k) * 3] + 0.7152 * arr[(t + k) * 3 + 1] + 0.0722 * arr[(t + k) * 3 + 2]);
+          const mid = [0, 1, 2].sort((a, b2) => lum[a] - lum[b2])[1];
+          for (const k of [0, 1, 2]) if (k !== mid) { arr[(t + k) * 3] = arr[(t + mid) * 3]; arr[(t + k) * 3 + 1] = arr[(t + mid) * 3 + 1]; arr[(t + k) * 3 + 2] = arr[(t + mid) * 3 + 2]; }
+        }
       }
       o.geometry.userData.celColorArray = arr.slice();
       colAttr.needsUpdate = true;
@@ -84,7 +125,7 @@ export function celify(root, cel, {
       const next = cel({
         color: src.color ? guardHex('#' + src.color.getHexString()) : '#ffffff',
         vertexColors: !!src.vertexColors,
-        emissive,
+        emissive: emissive ?? (fill && !(src.userData?.practical || o.userData?.practical) ? fill : null),
         emissiveIntensity: emissive ? (src.emissiveIntensity ?? 1) : 1,
         transparent: !!src.transparent,
         opacity: src.opacity ?? 1,

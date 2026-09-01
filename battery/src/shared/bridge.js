@@ -36,4 +36,18 @@ export const BRIDGE = Object.freeze({
   // hole); the authoritative judgement is the RENDERED gate vs the world's
   // rendered band (check-celbridge-rendered.mjs).
   ownedAccent: { name: 'hair-indigo', hue: 225 / 360, tol: 0.05, satCap: base + 0.1 },
+  // A3: the character's bounce fill — the lever on the LIT band's saturation
+  // (the world's warm key light on warm skin), declared as a bridge knob
+  fill: '#141414',
+  facet: true,
+  // A3 tone steps: the world's ramp applied to ALBEDO — every painted
+  // vertex-colour attribute quantized to 3 value steps / 2 saturation steps
+  // (the diagnostic: vertex colours off = soft share 8.3% -> 3.9%)
+  toneSteps: 3,
+});
+
+// one options object for every shell that bridges a character
+export const CELIFY_OPTS = Object.freeze({
+  accentGuard: BRIDGE.accentGuard, worldSatCap: BRIDGE.worldSatCap, ownedAccent: BRIDGE.ownedAccent,
+  fill: BRIDGE.fill, facet: BRIDGE.facet, toneSteps: BRIDGE.toneSteps,
 });
