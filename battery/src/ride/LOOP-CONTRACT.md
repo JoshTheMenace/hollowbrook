@@ -210,3 +210,42 @@ Applied:
   occluder set included the player's own body, so the pullback probe hit
   his hair and parked the camera inside his head (p10 0, legibility
   0.023). Occluders are world geometry only.
+
+**A3 (third measurement, after A2's release-stops-spawns; before any
+further code change).**
+- Survival: expert **6/6** (the release fix held). Novice **2/6**
+  (179, 171, 180, 180, 167, 154 s) — every novice death is inside the
+  climax/hold (150–172 s) or the first seconds after it.
+- Headroom (damage per minute survived): novice 49.2 vs expert 28.0 =
+  **1.76×** (≥ 1.3). Kills row: 1.04× (recorded).
+- Tracking (normalized): r **0.665** (≥ 0.75), MAE **0.214** (≤ 0.18),
+  breather drop **0.141** (≥ 0.15). Measured at the keyframes, expert
+  seed 1: 25 s 0.18 · 45 s 0.13 · **70 s 0.12** (intent 0.65) · 95 s 0.09
+  · **120 s 0.21** (intent 0.80) · 140 s 0.09 · **150 s 0.13** (intent
+  1.00) · 172 s 0.59 · 180 s 0.33. The pushes at 70 s and 120 s and the
+  climax's first seconds do not register: by 70 s the blade is level 4–5
+  and clears the cadence at range, so "near" never accumulates; the bat
+  ring (9 HP each) is gone in two swings. The shape is wrong because the
+  pushes are not pushes, not because the instrument is.
+- Camera (headless Chrome, before the light/boom change): p10 **0.636**
+  (≥ 0.8), climax legibility **0.432** (≥ 0.6), elite legibility 1.0.
+  A 46° camera on a 13 m boom shows ±5.5 m along the tilt; the 12 m
+  combat radius cannot be in frame by construction, and at the night
+  climax dark chaff on dark ground fails the contrast term.
+
+Design changes (choreography and presentation; windows untouched):
+- Pushes become scripted BURSTS on top of the cadence so they land
+  regardless of weapon level: 25 s — a cluster of 6 slimes at 6 m;
+  70 s — a ring of 8 boneheads (30 HP, the blade cannot clear it in one
+  swing) at 7 m; 120 s — the bat ring stays, 18 → 24; 150 s — the elite
+  arrives WITH a ring of 10 slimes so the climax's first seconds are
+  dense, not the elite alone walking in.
+- Climax mix: the imp (charger) weight at intent ≥ 0.75 is capped so the
+  hold is a swarm to cut through, not a charger gauntlet (novice deaths
+  clustered on imp charges at 2.6× speed).
+- Presentation for legibility: a warm bloom light rides the player
+  (14–28 intensity, rising with intent); the battle boom goes 13 → 15 m
+  (`hero.battleDist`, a per-game knob added to the shared Hero — default
+  unchanged for nightbloom).
+
+Fourth measurement to be recorded whatever it says.
