@@ -116,3 +116,57 @@ exists to move those numbers, and names them:
 - Parked (outside celify's remit, recorded so it isn't lost): 4-head chibi
   proportion vs realistic-proportion props is the reviewer's second tell
   after hue — a kit-level art-direction question for Phase 2 / Stage C.
+
+**A3 (post art-review r3, composite 0.84 — committed BEFORE the round-4
+implementation; B2 closes as a battery entry after this round).**
+
+Corrections to the record first: 72–100 % of the colour deltas the
+round-3 bundle claimed shipped inside 5a18ded, a commit titled "B3 round
+2…" (ronin.js was staged into the wrong entry's commit); and the bundle's
+"verbatim" gate block was carried forward from an earlier run rather
+than pasted from 6dac816 (0.378/0.358 in tree vs 0.396/0.370 quoted).
+Both are attribution/hygiene slips, disclosed here; from this round every
+block labelled verbatim is pasted from the run at the cited commit.
+
+The structural finding: the world quantizes LIGHT; the character
+graduates ALBEDO. `paintGradient` bakes airbrushed shading into vertex
+colours, and a cel ramp quantizes lighting, not albedo — so the kimono
+and face fall smoothly through every band the stone lantern beside them
+steps through. Measured same-frame: soft-gradient share world 3.9 % vs
+character 21.9 %; identical-adjacent-luma pairs 93.5 % vs 60.6 %; top-8-
+of-128 luma bins 58 % vs 35 %. No gate looks at this, and every charforge
+character carries it.
+
+Targets, each with its number:
+- **Tone steps at source (charforge, shared kit)**: `paintGradient`
+  quantizes to 3 discrete steps per run (the world's own band count),
+  applied in the kit so every character inherits it. Gate:
+  `check-tone-steps.mjs` (rendered, judging space, object-ID mask):
+  character soft-gradient share ≤ 2× the world's in the same frame;
+  character top-8-of-128 luma-bin share ≥ 50 %. (r3: 21.9 % vs 3.9 %;
+  35 %.)
+- **Skin via the key light, not albedo**: body-only rendered sat p90
+  0.559 vs world p99 0.524 (r3, correct mask). The lit band's saturation
+  boost is the world's key-light colour; the fix is a per-character
+  key-light desaturation (the cel factory's `lightTint` for character
+  materials), not another albedo cut. Target: body-only p90 ≤ world p99.
+- **Judging mask by object ID**: the rendered gate masks the character
+  by an ID pass (its own meshes), never by a with/without diff — the
+  cast shadow (13–31 % of the old mask) is ground. All r3 numbers are
+  re-stated under the new mask in the round-4 bundle, whichever way they
+  move.
+- **Owned-accent budget**: share × saturation — pixels above the world
+  base in the owned band ≤ 8 % of character pixels (defeat J: a wholly
+  indigo ronin at exactly satCap passed both gates). **Day value** is
+  gated: char/world rendered luma p50 within [0.6, 1.4] at the three
+  cameras by day.
+- **Ink edge weight**: re-measured under the ID mask before any pipeline
+  work; r3 found the r1 ~22 % does not reproduce (p90 at parity at meet;
+  the excess is interior crease density). If it holds, closed as a
+  finding, not built.
+
+Evidence set for round 4: cb4-meet, cb4-portrait, cb4-far (day, bridged),
+cb4-side-day (the r3 thesis frame: kimono beside the stone lantern),
+cb4-face, cb4-night-meet, cb4-night-portrait, plus the tone-step gate's
+own ID-masked luma histogram (`cb4-tone.svg`). Declared here so the set
+cannot drift silently.
