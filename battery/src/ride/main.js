@@ -13,8 +13,9 @@ import { LOOP } from '@forge/soundforge/content/loop-nightbloom.js';
 import { makeCritter } from '@forge/survivors/critters.js';
 import { toonMaterial, facetBall } from '@forge/lib/parts.js';
 import { buildCorner, cornerLights } from '../shared/corner.js';
-import { BRIDGE } from '../shared/bridge.js';
-import { RideRun, RIDE_EVENTS, CURVE, RIDE_SECONDS, ARENA, kiteBot, makeNoisyMove, EXPERT, mulberry32 } from './curve.js';
+import { CELIFY_OPTS } from '../shared/bridge.js';
+import { RideRun, RIDE_EVENTS, CURVE, RIDE_SECONDS, ARENA, CAMERA, SIM_DT, kiteBot, makeNoisyMove, EXPERT, mulberry32 } from './curve.js';
+import { FixedStep, InputTape } from '@forge/engine/fixedstep.js';
 import { wireRide, LADDER_STEPS, LADDER_PAIRS } from './feel-table.js';
 
 /* INTENSITY RIDE shell (battery B4). The curve is the design (curve.js,
@@ -57,7 +58,7 @@ const pipeline = new Pipeline(renderer, scene, camera, {
 const actor = await Actor.spawn('ronin', { walkSpeed: 1.4, runSpeed: 3.2 });
 actor.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 scene.add(actor.root);
-celify(actor.root, cel, { accentGuard: BRIDGE.accentGuard, worldSatCap: BRIDGE.worldSatCap, ownedAccent: BRIDGE.ownedAccent });
+celify(actor.root, cel, CELIFY_OPTS);
 const hero = new Hero({ actor, camera, canvas, colliders: [], groundAt: () => 0, spawn: [0, 0, 4], yaw: 0, occluderRoot: occluders });
 hero.external = true;      // the sim owns position; the hero drives body + camera
 hero.battleCam = true;
@@ -231,8 +232,10 @@ function fxAdapter() {
 // gems collect through the pure layer; their visuals go when the run drops them
 function syncWorld(dt) {
   const run = ride.run, t = run.time;
+  const a = step ? step.alpha : 1;
   for (const [e, c] of critters) {
-    c.root.position.set(e.pos.x, 0, e.pos.z);
+    const p = prevPos.get(e) ?? e.pos;
+    c.root.position.set(p.x + (e.pos.x - p.x) * a, 0, p.z + (e.pos.z - p.z) * a);
     if (e.vel.lengthSq() > 0.01) c.root.rotation.y = Math.atan2(e.vel.x, e.vel.z);
     if (c._pop > 0) { c._pop -= dt; c.root.scale.setScalar(1 + 0.3 * Math.sin(Math.max(0, c._pop / 0.14) * Math.PI)); }
     else if (e.def.behavior === 'charge' && e.chargeT !== undefined && e.chargeT < 0.4 && !(e.charging > 0)) {
@@ -281,13 +284,46 @@ function syncWorld(dt) {
 }
 
 // ---- run lifecycle --------------------------------------------------------------
-let ride = null, started = false, autoplay = null;
-function startRun(rng = Math.random, autoPick = false) {
+// A6: the sim runs on SIM_DT through FixedStep; the render interpolates.
+// Movement input (player or bot) is sampled per TICK and recorded to a
+// tick-indexed tape; a replay feeds the tape back at any render cadence.
+let ride = null, started = false, autoplay = null, step = null, tape = null, replayTape = null;
+const prevPos = new Map();        // enemy -> {x,z} at the last tick; player under key 'P'
+const probe = { every: 0, checkpoints: [] };
+const stateHash = () => JSON.stringify({
+  t: +ride.run.time.toFixed(6), tick: step.tick, kills: ride.run.kills, hp: +ride.run.stats.hp.toFixed(4), level: ride.run.level, xp: ride.run.xp,
+  pos: [+ride.run.playerPos.x.toFixed(6), +ride.run.playerPos.z.toFixed(6)],
+  enemies: ride.run.enemies.map((e) => [+e.pos.x.toFixed(5), +e.pos.z.toFixed(5), +e.hp.toFixed(3)]),
+});
+function snapshotPrev() {
+  prevPos.clear();
+  prevPos.set('P', { x: ride.run.playerPos.x, z: ride.run.playerPos.z });
+  for (const e of ride.run.enemies) prevPos.set(e, { x: e.pos.x, z: e.pos.z });
+}
+function onTick(tick) {
+  if (!ride || ride.over) return;
+  snapshotPrev();
+  let move = null;
+  if (replayTape) { const m = replayTape.at(tick)[0]; move = m ? new THREE.Vector3(m[0], 0, m[1]) : null; }
+  else if (autoplay) move = autoplay(ride);
+  else { const inp = hero.moveInput(); if (inp.x || inp.z) move = new THREE.Vector3(inp.x, 0, inp.z); }
+  // the sim consumes exactly what the tape stores: quantize BEFORE applying,
+  // or the recording and its replay differ at the 7th decimal and diverge
+  if (move) move.set(+move.x.toFixed(6), 0, +move.z.toFixed(6));
+  if (tape && !replayTape && move) tape.record(tick, [move.x, move.z]);
+  ride.update(SIM_DT, move);
+  if (probe.every && (tick + 1) % probe.every === 0) probe.checkpoints.push({ tick: tick + 1, hash: stateHash() });
+}
+function startRun(rng = Math.random, autoPick = false, { record = false, replay = null } = {}) {
   for (const [, c] of critters) dyn.remove(c.root);
   critters.clear(); dying.length = 0;
   while (dyn.children.length) dyn.remove(dyn.children[0]);
   orbVisuals.length = 0; flashFX.length = 0;
   ride = new RideRun({ fx: fxAdapter(), rng, autoPick });
+  tape = record ? new InputTape() : null;
+  replayTape = replay;
+  step = new FixedStep({ dt: SIM_DT, onTick });
+  snapshotPrev();
   hero.place(0, 4, 0);
   daynight.set('dusk');
   tierEl.textContent = TIER_NAMES[0];
@@ -315,15 +351,13 @@ canvas.addEventListener('pointerdown', () => { if (!started) startRun(); });
 // ---- loop ---------------------------------------------------------------------------
 const clock = new THREE.Clock();
 function tick(rawDt) {
-  const dt = rawDt * feel.hitstop.scale(rawDt);
+  const dt = rawDt * feel.hitstop.scale(rawDt);   // hit-stop dilates sim TIME; ticks never change size
   if (ride && started && !choosing) {
-    let move = null;
-    if (autoplay) move = autoplay(ride);
-    else { const inp = hero.moveInput(); if (inp.x || inp.z) move = new THREE.Vector3(inp.x, 0, inp.z); }
-    ride.update(dt, move);
-    syncWorld(dt);
+    step.advance(dt);
+    syncWorld(rawDt);
     const run = ride.run;
-    hero.position.set(run.playerPos.x, 0, run.playerPos.z);
+    const a = step.alpha, pp = prevPos.get('P') ?? run.playerPos;
+    hero.position.set(pp.x + (run.playerPos.x - pp.x) * a, 0, pp.z + (run.playerPos.z - pp.z) * a);
     hero.eyeY = 0;
     bloomLight.position.set(run.playerPos.x, 3.2, run.playerPos.z);
     bloomLight.intensity = 14 + ride.intent * 14 + Math.sin(run.time * 2.1) * 3;   // breathes, and rises with the ride
@@ -351,16 +385,29 @@ resize();
 requestAnimationFrame(function loop() { tick(Math.min(clock.getDelta(), 0.05)); requestAnimationFrame(loop); });
 
 // ---- gates + evidence --------------------------------------------------------------
-window.__ride = { get ride() { return ride; }, startRun, feel, hero, camera, get music() { return music; } };
-window.__autoplay = (on, seed = 1) => {
-  if (on) { startRun(mulberry32(seed), true); autoplay = makeNoisyMove(kiteBot, { ...EXPERT, seed: seed * 3 + 1 }); }
+window.__ride = { get ride() { return ride; }, get step() { return step; }, get tape() { return tape; }, startRun, feel, hero, camera, get music() { return music; }, stateHash };
+window.__autoplay = (on, seed = 1, opts = {}) => {
+  if (on) { startRun(mulberry32(seed), true, opts); autoplay = makeNoisyMove(kiteBot, { ...EXPERT, seed: seed * 3 + 1 }); }
   else autoplay = null;
+};
+// replay a tape (tick -> [mx, mz]) with the same seed; no bot
+window.__replay = (seed, events) => {
+  autoplay = null;
+  startRun(mulberry32(seed), true, { replay: { at: (tick) => events.filter((e) => e.tick === tick).map((e) => e.input) } });
+};
+// drive frames at an explicit render cadence; checkpoints on exact ticks
+window.__drive = (rawDts, { everyTicks = 600 } = {}) => {
+  probe.every = everyTicks; probe.checkpoints = [];
+  for (const d of rawDts) { if (!ride || ride.over) break; tick(d); }
+  const out = { checkpoints: probe.checkpoints, ticks: step.tick, over: ride.over, kills: ride.run.kills, dropped: step.dropped, tape: tape?.toJSON() ?? null };
+  probe.every = 0;
+  return out;
 };
 
 // ID-pass legibility (ported from nightbloom __playCheck): threats flat-
 // colored by index, everything else black; per-threat pixel share + p90
 // redmean separation from the backdrop; an elite reads only via marker px.
-const LEGIBLE = { minPx: 14, minSep: 0.09, eliteMinPx: 56, eliteMarkerPx: 10, combatRange: 12 };
+const LEGIBLE = { minPx: 14, minSep: 0.09, eliteMinPx: 56, eliteMarkerPx: 10, combatRange: CAMERA.combatRange };
 let _idRT = null, _idBuf = null, _lumaCanvas = null, _idBlack = null;
 const _idMats = [], _idMarkMats = [];
 function measureLegibility() {

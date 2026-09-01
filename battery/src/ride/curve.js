@@ -18,7 +18,10 @@ export const CURVE = [
 // A4: hold is a swarm not a wall (0.6 / 1.35); bursts LEAD their beat by
 // `lead` seconds because spawn→threat→smoothing registers ~4 s late
 export const SPAWN = { everyMax: 1.8, everyMin: 0.6, hpScaleMax: 1.35, lead: 4 };
-export const TRACK = { minR: 0.75, maxMAE: 0.18, breatherDrop: 0.15, smooth: 3 };
+export const TRACK = { minR: 0.75, maxMAE: 0.18, breatherDrop: 0.15, smooth: 3, radius: 8, breather1: 45, breather2: 95 };
+export const CAMERA = { combatRange: 12 };
+// A6: the shell drives the sim on this step, never on the render dt
+export const SIM_DT = 1 / 120;
 export const CLIMAX = { at: 150, minMusic: 0.82, holdUntil: 172 };
 // A2 ruling: headroom = damage taken per minute survived, novice / expert,
 // expert floored so a near-zero denominator cannot make a vanity ratio
@@ -123,7 +126,7 @@ export class RideRun {
       while (run.pendingLevelUps > 0) { run.applyChoice(run.choices()[0]); run.pendingLevelUps--; }
     }
     // EMA toward the instantaneous measurement, τ = TRACK.smooth
-    const inst = measure(run.pressure(8, 3));
+    const inst = measure(run.pressure(TRACK.radius, TRACK.smooth));
     this.measured += (inst - this.measured) * (1 - Math.exp(-dt / TRACK.smooth));
     if (run.time >= this._nextSample) {
       this._nextSample += 0.5;
