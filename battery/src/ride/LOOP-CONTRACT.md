@@ -142,3 +142,31 @@ Design changes (numbers moved, failed numbers kept above):
 
 The tracking, breather, climax, winnability and headroom windows are
 unchanged. Whatever the second measurement says is recorded as-is.
+
+**A2 (second measurement, after A1's code landed; before any gate edit).**
+- Winnability: expert **5/6** (180,180,180,179,180,180 s), novice **3/6**
+  (180,171,180,180,167,154 s) — novice window is ≥ 4/6; short by one.
+- Climax: elite alive through the hold on 6/6; drive tier open.
+- Tracking: r **0.644** (≥ 0.75), MAE **0.288** (≤ 0.18), breather drop
+  **0.109** (≥ 0.15). The measured series sits at 0.09–0.21 for most of
+  the run and 0.59 in the hold: the instrument's fixed normalizers (near
+  ÷ 12, damage ÷ 30, kills ÷ 10) were sized for A0's density and now
+  under-read everything by ~3×. The SHAPE still tracks (the curve plot
+  shows the same rises and falls at a third of the height).
+- Headroom by kills: expert 187 vs novice 177 = **1.06×**. In a scripted
+  ride nearly every spawn dies whoever plays (≈190 spawned); kills cannot
+  express execution skill here. The number is recorded; the axis is NOT
+  substituted without coordinator sign-off (campaign rule). Proposed
+  replacement, pending ruling: damage taken, novice ÷ expert ≥ 1.3×.
+
+Instrument change (the design is untouched): measured intensity is
+judged as a SHAPE — the sampled series is divided by its own run maximum
+before comparison, so the gate has no hand-sized normalizers to drift
+(the weights 0.55 / 0.25 / 0.20 / elite +0.15 stay as written before the
+first measurement). Windows unchanged: r ≥ 0.75, MAE ≤ 0.18 on the
+normalized series, breather drop ≥ 0.15 normalized. If the normalized
+shape still fails, the choreography changes — not the weights.
+
+Shell bug (not a contract matter, recorded): the autoplay instrument
+tripped the player's upgrade cards and froze the sim at the first
+level-up during `__playCheck` (22.3 s); instruments bypass the cards.
