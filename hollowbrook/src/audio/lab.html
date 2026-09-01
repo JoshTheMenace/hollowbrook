@@ -22,6 +22,7 @@ and that the intensity sweep and <code>dawn()</code> actually move gains. Open t
 <button id="go">init (this click is the user gesture)</button>
 <button id="sweep">sweep 0.22 &rarr; 1.00</button>
 <button id="ladder">play the 13 ladder events</button>
+<button id="feel">play every name feeltable.js asks for</button>
 <button id="dawn">dawn()</button>
 <button id="stop">dispose</button>
 <div>intensity <input id="i" type="range" min="0" max="1" step="0.01" value="0"> <span id="iv">0.00</span></div>
@@ -50,7 +51,7 @@ document.getElementById('go').onclick = async () => {
     playing: g.music.playing,
   };
   window.__audioCheck = r;
-  say(JSON.stringify(r), r.state === 'running' && r.stems === 9 && r.sfx === 36 ? 'ok' : 'bad');
+  say(JSON.stringify(r), r.state === 'running' && r.stems === 9 && r.sfx === A.EVENTS.length ? 'ok' : 'bad');
 };
 
 const gains = () => {
@@ -78,6 +79,19 @@ document.getElementById('ladder').onclick = async () => {
     say(`${k}  magnitude ${A.MAGNITUDE[k].magnitude} dB  ->  ${A.play(k) ? 'played' : 'DROPPED'}`);
     await new Promise((r) => setTimeout(r, 900));
   }
+};
+document.getElementById('feel').onclick = async () => {
+  const ft = await import('/src/game/feeltable.js');
+  const names = [...new Set(Object.values(ft.FEEL).map((e) => e.sfx).filter(Boolean))];
+  const ad = A.audioAdapter();
+  let bad = 0;
+  for (const n of names) {
+    const ok = ad.sfx.play(n, { vol: 0.5 });
+    if (!ok) bad++;
+    say(n.padEnd(20) + ' -> ' + (A.ALIASES[n] ?? n) + (ok ? '' : '   DROPPED'), ok ? '' : 'bad');
+    await new Promise((r) => setTimeout(r, 600));
+  }
+  say(names.length + ' names, ' + bad + ' unresolved', bad ? 'bad' : 'ok');
 };
 document.getElementById('dawn').onclick = () => { A.dawn(true); A.setIntensity(0.30, 2); say('dawn()', 'ok'); };
 document.getElementById('stop').onclick = () => { A.disposeAudio(); say('disposed', 'ok'); };
