@@ -143,6 +143,17 @@ Three numbers, recorded with their cause:
   threat radius equals bite radius (1.07 m) so a telegraph is always a
   real threat and never a surprise.
 
+**Coordinator ruling (post-A6, recorded before round-2 review).** Under
+the A5 economy the greedy-nearest bot outscores the router on 4/7 seeds.
+Ruling: a DESIGN finding, not a bot problem — the contract's thesis is that
+line-reading pays, and a naive nearest-target policy beating the planning
+policy on a majority of seeds contradicts it regardless of the headroom
+gate. Status: DECLARED OPEN for round 2. If it survives review, round 3
+fixes it by design (cluster shapes / spacing / value distribution that make
+routing pay) — never by bot changes or window moves. The substitution
+question is closed: the original planning metric stays, its number stays
+on record (0.80× → 1.05×).
+
 ```constants
 DASH.len = 3.2
 DASH.time = 0.1
