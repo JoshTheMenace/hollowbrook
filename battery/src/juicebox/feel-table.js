@@ -17,9 +17,11 @@ export function wireJuice(feel, ui) {
     // the pitch IS the combo meter; volume, particles and shake follow value
     sfx: 'pickup-gem',
     sfxOpts: (d) => ({ vol: Math.min(1, 0.5 + d.value / 300), rate: 1 + Math.min(1.2, (d.combo - 1) * 0.09) }),
-    burst: (d) => ({ count: 8 + Math.min(30, Math.round(d.value / 8)), color: d.gold ? '#ffe36a' : '#a8e8ff', color2: '#fff', speed: 2.2 + d.value / 150, up: 2.2, ttl: 0.4 + Math.min(0.4, d.value / 300) }),
-    shake: (d) => Math.min(0.55, d.value / 220),
-    hitstop: (d) => (d.gold ? 0.07 : d.nth >= 2 ? 0.02 * d.nth : 0),
+    // gold is a moment of its own: its shake and hit-stop must outrank a
+    // double's pop + multi-pop STACK (A7 rendered ladder: double 27.5 > gold 23.4)
+    burst: (d) => ({ count: (d.gold ? 30 : 8) + Math.min(30, Math.round(d.value / 8)), color: d.gold ? '#ffe36a' : '#a8e8ff', color2: '#fff', speed: 2.2 + d.value / 150, up: d.gold ? 3 : 2.2, ttl: 0.4 + Math.min(0.4, d.value / 300) }),
+    shake: (d) => (d.gold ? 0.5 : Math.min(0.55, d.value / 220)),
+    hitstop: (d) => (d.gold ? 0.1 : d.nth >= 2 ? 0.02 * d.nth : 0),
     text: (d) => (d.gold ? `+${d.value} gold` : d.combo > 1 ? `+${d.value} ×${d.combo}` : `+${d.value}`),
     // stagger consecutive pops so the celebration never stacks on one spot
     textOffset: (d) => new THREE.Vector3(((d.nth ?? 1) % 3 - 1) * 0.9, 0, (d.combo % 2 ? 0.5 : -0.5)),
@@ -32,13 +34,15 @@ export function wireJuice(feel, ui) {
     burst: (d) => ({ count: 10 * d.count, color: '#ffd76a', color2: '#a8e8ff', speed: 2.6 + 0.4 * d.count, up: 2.6, ttl: 0.6 }),
   });
   feel.wire('combo-break', {
-    // a decay step: dampened, never louder than a pop
+    // a decay step: dampened, never louder than a pop; the label steps down visibly
     sfx: 'ui-deny', sfxOpts: (d) => ({ vol: d.reason === 'timer' ? 0.35 : 0.25, rate: d.reason === 'oni' ? 0.8 : 1 }),
-    call: (d) => { if (d.reason !== 'fade') ui.breakFlash(); },
+    call: (d) => { if (d.reason === 'fade') ui.comboStep(); else ui.breakFlash(); },
   });
   feel.wire('fade-warning', { sfx: 'ui-click', sfxOpts: { vol: 0.2, rate: 0.7 } });
   feel.wire('spirit-fade', { sfx: 'ui-deny', sfxOpts: { vol: 0.15, rate: 1.5 }, burst: { count: 6, color: '#5a5478', color2: '#3a3450', speed: 0.8, up: 0.6, ttl: 0.5, size: 0.06 } });
   feel.wire('oni-telegraph', { sfx: 'ui-click', sfxOpts: { vol: 0.45, rate: 0.55 }, call: (d) => ui.telegraph(d.index) });
+  // a whiff reads: trail fizzles grey, a short dull tick — quieter than any pop, never silent
+  feel.wire('whiff', { sfx: 'ui-click', sfxOpts: { vol: 0.2, rate: 0.5 }, call: () => ui.whiff(), burst: { count: 4, color: '#6a7a98', color2: '#3a3450', speed: 0.6, up: 0.4, ttl: 0.3, size: 0.06 } });
   // being hit: felt, but never the loudest thing in the game
   feel.wire('oni-hit', { sfx: 'hurt', sfxOpts: { vol: 0.6 }, shake: 0.3, hitstop: 0.05, burst: { count: 14, color: '#ff5a6e', color2: '#fff', speed: 2.6, up: 2, ttl: 0.5 } });
   feel.wire('final-10s', { sfx: 'impact-heavy', sfxOpts: { vol: 0.5, rate: 0.8 }, call: () => ui.final10() });
@@ -49,7 +53,7 @@ export function wireJuice(feel, ui) {
 // economy at combo 1: single 10, double line 40 (2nd pop), gold 60,
 // triple line 90 (3rd pop).
 export const LADDER_STEPS = [
-  { name: 'whiff', event: 'dash', data: {}, value: 0 },
+  { name: 'whiff', event: 'whiff', data: {}, value: 0 },
   { name: 'single-pop', event: 'pop', data: { value: 10, nth: 1, combo: 1, gold: false }, value: 10 },
   { name: 'double-line', event: 'multi-pop', data: { value: 40, count: 2 }, value: 40 },
   { name: 'gold-pop', event: 'pop', data: { value: 60, nth: 1, combo: 2, gold: true }, value: 60 },
@@ -61,3 +65,5 @@ export const LADDER_PAIRS = [
   ['oni-hit', 'triple-line'],       // being hit is not the loudest event
   ['single-pop', 'gold-pop'],       // gold is the loudest single-spirit event
 ];
+// NOTE (A7): this wired-parameter ladder is kept as a structural check; the
+// gated ladder is the RENDERED one in check-juicebox-feel.mjs (composites).

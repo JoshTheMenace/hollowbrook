@@ -6,9 +6,10 @@ designed-curve gates on a genre that is NOT survivors. The game is small on
 purpose; the seam is the deliverable.
 
 **Skill axis: EXECUTION** (aim + reaction). Headroom instrument:
-actuation-noise profiles on the same policy family — expert (120 ms, 4°)
-vs novice (340 ms, 16°). (A7: prose numbers below are reconciled to the
-constants block; the history of each number is in the amendment log.)
+actuation-noise profiles on the same policy family — expert
+(`EXPERT.delay` 0.12 s, 4°) vs novice (`NOVICE.delay` 0.34 s, 16°). (A7:
+prose numbers below are reconciled to the constants block; the history
+of each number is in the amendment log.)
 
 ## The loop
 
@@ -21,8 +22,8 @@ constants block; the history of each number is in the amendment log.)
   and fade after a TTL. Dashing through one pops it: the n-th pop of one
   dash is worth 10·n·combo. GOLD spirits (`GOLD.value` 30·combo, +1
   combo, shorter-lived, placed far from where you stand) appear every
-  ~6 s — weaving one in without dropping the chain is the commitment
-  decision.
+  5.5 s to 7.1 s (`GOLD.everyMin/Max`) — weaving one in without dropping
+  the chain is the commitment decision.
 - **Stake per failure:** a spirit that fades unpopped DECAYS the combo
   one step; a dash that hits nothing costs the recovery and your chain
   timing.
@@ -262,6 +263,19 @@ GOLD.distMax = 7
 COURT.x1 = 8.5
 COURT.z1 = 5
 SIM_DT = 0.008333333333333333
+EXPERT.delay = 0.12
+NOVICE.delay = 0.34
+GOLD.everyMin = 5.5
+GOLD.everyMax = 7.1
+FINAL_SECONDS = 10
+WINDOWS.deadAirMax = 1.5
+CLUSTER.spacingMin = 1.3
+CLUSTER.spacingMax = 1.7
+CLUSTER.tolDeg = 15
 ```
+(CLUSTER.tolDeg: designed in A7's "value only for aligned sweeps" — a 2nd+
+pop pays the line multiplier only when the dash is within 15° of the
+line's axis; the first measurement without it read router multiPops 11 vs
+greedy 11 — geometry alone did not separate reading from collecting.)
 (DASH.radius, SPIRIT.r, ONI.r, ONI.cooldown, GOLD.ttl*/dist*, COURT.*:
 recorded, not designed. SIM_DT: designed in A7.)

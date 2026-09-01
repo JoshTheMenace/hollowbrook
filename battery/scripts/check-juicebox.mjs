@@ -4,17 +4,19 @@
  * measured headlessly on the pure rules with the bots. Exit-coded.
  *   node scripts/check-juicebox.mjs [--detail]
  */
-import { JuiceRun, makeSchedule, greedyBot, routerBot, oracleBot, stillBot, makeNoisy, NOVICE, EXPERT, RUN_SECONDS, DASH, GOLD } from '../src/juicebox/rules.js';
+import { JuiceRun, makeSchedule, greedyBot, routerBot, oracleBot, stillBot, makeNoisy, NOVICE, EXPERT, RUN_SECONDS, DASH, GOLD, SIM_DT, WINDOWS } from '../src/juicebox/rules.js';
 
 const checks = [];
 const check = (id, pass, note) => checks.push({ id, pass, note });
 const info = (id, note) => checks.push({ id, pass: null, note });   // a number, never a checkmark
 const med = (arr) => { const v = [...arr].sort((a, b) => a - b); return v[Math.floor(v.length / 2)]; };
 const SEEDS = [1, 2, 3, 4, 5, 6, 7];
+// A7: this gate steps the pure Run at the shell's fixed SIM_DT — the same
+// integration the player gets; the replay gate proves it at every render rate
+console.log(`sim dt = ${SIM_DT.toFixed(6)} s (SIM_DT); referee also run at 1/60 s below for the record`);
 
-function play(bot, seed) {
+function play(bot, seed, dt = SIM_DT) {
   const run = new JuiceRun({ seed });
-  const dt = 1 / 60;
   let deadAir = 0, maxLive = 0;
   while (!run.over) {
     bot(run);
@@ -22,7 +24,7 @@ function play(bot, seed) {
     if (run.spirits.length === 0 && run.time > 1 && run.time < RUN_SECONDS - 1) deadAir += dt;
     maxLive = Math.max(maxLive, run.spirits.length);
   }
-  return { ...run.stats(), deadAir, maxLive };
+  return { ...run.stats(), deadAir, maxLive, entryDashes: run._entryDashes ?? 0 };
 }
 
 const greedy = SEEDS.map((s) => play(greedyBot, s));
@@ -35,11 +37,19 @@ const expert = SEEDS.map((s) => play(makeNoisy(routerBot, EXPERT), s));
 // the SAME noise profile — recorded whatever it says
 const planOracle = SEEDS.map((s) => play(makeNoisy(oracleBot, EXPERT), s));
 
-// 1. greedy-bot score window
-const gm = med(greedy.map((r) => r.score));
-// window re-derived under the A5 economy (A6: measured 2720 vs the old
-// 900..2600, which was derived from the old scoring, not from play)
-check('curve:greedy-score', gm >= 1500 && gm <= 4500, `median greedy score ${gm} (window 1500..4500, A6)`);
+// 1. the DECISION exists or it doesn't (A7; the greedy window is RETIRED —
+//    a window drawn from the instrument's own spread certifies nothing)
+const gm = med(greedy.map((r) => r.score)), rm = med(router.map((r) => r.score));
+const gmp = med(greedy.map((r) => r.multiPops)), rmp = med(router.map((r) => r.multiPops));
+info('curve:greedy-score (recorded, window retired by A7)', `median greedy ${gm}, router ${rm}`);
+check('decision:router-reads-lines', rmp >= gmp * 1.4, `router multiPops ${rmp} vs greedy ${gmp} (need >= 1.4x = ${(gmp * 1.4).toFixed(1)}) — lines READ, not collected`);
+check('decision:router-outscores-greedy', rm >= gm, `router median ${rm} vs greedy median ${gm}; router wins ${SEEDS.filter((s, i) => router[i].score > greedy[i].score).length}/${SEEDS.length} seeds`);
+// the same referee at a different step, for the record (the sim is deterministic per dt;
+// the shell never runs it at anything but SIM_DT)
+{
+  const alt = SEEDS.map((s) => play(routerBot, s, 1 / 60));
+  info('referee @ dt 1/60 (record)', `router median ${med(alt.map((r) => r.score))} vs ${rm} at SIM_DT`);
+}
 
 // 2. execution headroom: same policy family (router), expert vs novice reflexes
 const nm = med(novice.map((r) => r.score));
@@ -68,7 +78,7 @@ info('curve:planning-headroom', `oracle ${pm} vs router ${em} at the same noise 
 
 // 5. dead air
 const da = med(router.map((r) => r.deadAir));
-check('curve:dead-air', da <= 1.5, `median dead air ${da.toFixed(2)}s (<= 1.5s)`);
+check('curve:dead-air', da <= WINDOWS.deadAirMax, `median dead air ${da.toFixed(2)}s (<= ${WINDOWS.deadAirMax}s)`);
 
 // 6. combo ceiling
 const bc = med(router.map((r) => r.bestCombo));
@@ -103,7 +113,7 @@ check('supply:combo-uptime', cu >= 0.4, `router at combo >= 2 for ${(cu * 100).t
 }
 
 if (process.argv.includes('--detail')) {
-  console.table(SEEDS.map((s, i) => ({ seed: s, greedy: greedy[i].score, router: router[i].score, oracle: planOracle[i].score, rCombo: router[i].bestCombo, stunTax: +(router[i].stunTax * 100).toFixed(1), popped: +(router[i].poppedFraction * 100).toFixed(0), uptime: +(router[i].comboUptime * 100).toFixed(0) })));
+  console.table(SEEDS.map((s, i) => ({ seed: s, greedy: greedy[i].score, router: router[i].score, oracle: planOracle[i].score, gMulti: greedy[i].multiPops, rMulti: router[i].multiPops, rEntry: router[i].entryDashes, rCombo: router[i].bestCombo, popped: +(router[i].poppedFraction * 100).toFixed(0), uptime: +(router[i].comboUptime * 100).toFixed(0) })));
 }
 for (const c of checks) console.log(`${c.pass === null ? '·' : c.pass ? '✓' : '✗'} ${c.id}: ${c.note}`);
 const failed = checks.filter((c) => c.pass === false);

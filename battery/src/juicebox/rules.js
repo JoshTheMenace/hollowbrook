@@ -15,7 +15,16 @@ export const RUN_SECONDS = 60;
 export const DASH = { len: 3.2, time: 0.1, recover: 0.45, radius: 0.5 };
 export const CHAIN_WINDOW = 1.6;   // seconds between pops that keep the combo
 export const SPIRIT = { r: 0.35, ttlMin: 2.9, ttlMax: 3.9, driftMin: 0.35, driftMax: 0.75 };
-export const GOLD = { value: 30, comboGain: 1, ttlMin: 2.3, ttlMax: 2.8, distMin: 5, distMax: 7 };
+export const GOLD = { value: 30, comboGain: 1, ttlMin: 2.3, ttlMax: 2.8, distMin: 5, distMax: 7, everyMin: 5.5, everyMax: 7.1 };
+export const FINAL_SECONDS = 10;     // the final-10s escalation
+export const WINDOWS = { deadAirMax: 1.5 };   // gate windows with units live in the block too (A7)
+// A7: a cluster is a line; members this far apart along its orientation.
+// The n-th pop multiplier pays only for a sweep ALIGNED with the line
+// (within tolDeg of its axis): an off-axis dash that happens to clip two
+// members banks two singles and grows nothing. Lines are READ or nothing.
+export const CLUSTER = { spacingMin: 1.3, spacingMax: 1.7, tolDeg: 15 };
+// A7: the simulation's fixed step (the shell drives Run on this, never on the render dt)
+export const SIM_DT = 1 / 120;
 // the oni: FREEZES to telegraph, then bites its threat radius; a dash is an
 // i-frame through the bite (threat == bite radius, so a telegraph is always
 // a real threat to a stationary player and never a surprise)
@@ -23,7 +32,7 @@ export const ONI = { r: 0.62, stun: 0.5, telegraph: 0.5, threat: 1.07, cooldown:
 
 export const JUICE_EVENTS = [
   'dash', 'pop', 'multi-pop', 'combo-break', 'fade-warning', 'spirit-fade',
-  'oni-telegraph', 'oni-hit', 'final-10s', 'timeup',
+  'oni-telegraph', 'oni-hit', 'whiff', 'final-10s', 'timeup',
 ];
 
 const mulberry32 = (a) => () => {
@@ -59,15 +68,26 @@ export function makeSchedule(seed) {
   };
   while (t < RUN_SECONDS - 1.2) {
     if (t >= nextCluster) {
-      // a cluster: 3 spirits near one edge point, tight in time
+      // a cluster is a LINE (A7): 3 spirits spaced CLUSTER.spacing apart
+      // along one orientation. A 3.2 m dash aligned with the line takes
+      // 2-3; from any other angle the 0.85 m sweep takes 1. r2 measured
+      // clusters of 3 inside 1.6 m — "lines are not read, they are
+      // collected" — so the per-run decision did not exist.
       const base = edgeSpawn();
+      const ang = r() * Math.PI * 2;
+      const spacing = CLUSTER.spacingMin + r() * (CLUSTER.spacingMax - CLUSTER.spacingMin);
+      // keep the whole line on the court: slide the centre inward if needed
+      const half = spacing;
+      const cx = Math.max(COURT.x0 + 0.3 + Math.abs(Math.cos(ang)) * half, Math.min(COURT.x1 - 0.3 - Math.abs(Math.cos(ang)) * half, base.x));
+      const cz = Math.max(COURT.z0 + 0.3 + Math.abs(Math.sin(ang)) * half, Math.min(COURT.z1 - 0.3 - Math.abs(Math.sin(ang)) * half, base.z));
       for (let i = 0; i < 3; i++) {
         events.push({
-          t: t + i * 0.18,
-          x: clampCourt(base.x + (r() - 0.5) * 1.6, COURT.x0, COURT.x1),
-          z: clampCourt(base.z + (r() - 0.5) * 1.6, COURT.z0, COURT.z1),
-          vx: base.vx * 0.55, vz: base.vz * 0.55,   // clusters drift together, slowly — the line stays buildable
+          t: t + i * 0.12,
+          x: cx + Math.cos(ang) * (i - 1) * spacing,
+          z: cz + Math.sin(ang) * (i - 1) * spacing,
+          vx: base.vx * 0.4, vz: base.vz * 0.4,   // the line drifts as one, slowly — it stays readable
           ttl: SPIRIT.ttlMin + r() * (SPIRIT.ttlMax - SPIRIT.ttlMin),
+          line: ang,                               // the axis a sweep must align with
         });
       }
       nextCluster = t + 4.5 + r() * 2;
@@ -82,7 +102,7 @@ export function makeSchedule(seed) {
   }
   // gold: the commitment decision. Position resolves at spawn time relative
   // to the PLAYER (far side, distance band) — see JuiceRun.update.
-  for (let gt = 4 + r() * 2; gt < RUN_SECONDS - 3; gt += 5.5 + r() * 1.6) {
+  for (let gt = 4 + r() * 2; gt < RUN_SECONDS - 3; gt += GOLD.everyMin + r() * (GOLD.everyMax - GOLD.everyMin)) {
     events.push({ t: gt, x: 0, z: 0, vx: 0, vz: 0, ttl: GOLD.ttlMin + r() * (GOLD.ttlMax - GOLD.ttlMin), gold: true, angle: (r() - 0.5) * 1.2, dist: GOLD.distMin + r() * (GOLD.distMax - GOLD.distMin) });
   }
   events.sort((a, b) => a.t - b.t);
@@ -143,6 +163,7 @@ export class JuiceRun {
     this.dashReadyAt = this.time + DASH.recover;
     this.dashes++;
     this._dashPops = 0;
+    this._lineRun = 1;
     this.fx.dash?.({ pos: { ...this.pos }, dir: { ...this.dashDir } });
     return true;
   }
@@ -176,7 +197,7 @@ export class JuiceRun {
       this.fx.timeup?.({ score: this.score, bestCombo: this.bestCombo, pops: this.pops });
       return;
     }
-    if (!this._final10 && this.time >= RUN_SECONDS - 10) {
+    if (!this._final10 && this.time >= RUN_SECONDS - FINAL_SECONDS) {
       this._final10 = true;
       this.fx['final-10s']?.({});
     }
@@ -186,7 +207,7 @@ export class JuiceRun {
     while (this.nextSpawn < this.schedule.length && this.schedule[this.nextSpawn].t <= this.time) {
       const s = this.schedule[this.nextSpawn++];
       const at = s.gold ? this._placeGold(s) : s;
-      this.spirits.push({ x: at.x, z: at.z, vx: at.vx, vz: at.vz, dieAt: this.time + s.ttl, warned: false, gold: !!s.gold });
+      this.spirits.push({ x: at.x, z: at.z, vx: at.vx, vz: at.vz, dieAt: this.time + s.ttl, warned: false, gold: !!s.gold, line: s.line });
     }
     // dash movement (swept hits)
     if (this.dashing()) {
@@ -198,26 +219,38 @@ export class JuiceRun {
         if (segCircle(this.pos.x, this.pos.z, nx, nz, sp.x, sp.z, DASH.radius + SPIRIT.r)) {
           sp.popped = true;
           this.pops++;
+          // a 2nd+ pop counts as a LINE only when the dash is aligned with
+          // the spirit's line axis (A7): reading pays, clipping does not
+          let aligned = false;
+          if (this._dashPops >= 1 && sp.line !== undefined) {
+            const dashAng = Math.atan2(this.dashDir.z, this.dashDir.x);
+            // axis-symmetric angular distance to the line (0 when parallel either way)
+            const delta = Math.abs((((dashAng - sp.line + Math.PI / 2) % Math.PI) + Math.PI) % Math.PI - Math.PI / 2);
+            aligned = delta <= CLUSTER.tolDeg * Math.PI / 180;
+          }
+          if (this._dashPops >= 1 && aligned) this._lineRun = (this._lineRun ?? 1) + 1;
           this._dashPops++;
+          const nth = aligned ? this._lineRun : 1;
           if (this.time - this.lastPopAt > CHAIN_WINDOW) this.combo = 1;
-          if (this._dashPops >= 2) this.combo += 1;     // lines build the combo
+          if (nth >= 2) this.combo += 1;                // READ lines build the combo
           if (sp.gold) this.combo += GOLD.comboGain;    // commitment builds it
           this.bestCombo = Math.max(this.bestCombo, this.combo);
           this.lastPopAt = this.time;
-          // A5 repricing: the n-th pop of one dash is worth 10·n·combo; gold
+          // A5 repricing: the n-th pop of one ALIGNED sweep is worth 10·n·combo; gold
           // is worth 30·combo — a triple line outpays a solo gold
-          const value = sp.gold ? GOLD.value * this.combo : 10 * this._dashPops * this.combo;
+          const value = sp.gold ? GOLD.value * this.combo : 10 * nth * this.combo;
           this.score += value;
-          this.fx.pop?.({ pos: { x: sp.x, z: sp.z }, combo: this.combo, score: this.score, gold: sp.gold, value, nth: this._dashPops });
-          if (this._dashPops >= 2) this.fx['multi-pop']?.({ pos: { x: sp.x, z: sp.z }, count: this._dashPops, value });
+          this.fx.pop?.({ pos: { x: sp.x, z: sp.z }, combo: this.combo, score: this.score, gold: sp.gold, value, nth });
+          if (nth >= 2) { this.multiPops = (this.multiPops ?? 0) + 1; this.fx['multi-pop']?.({ pos: { x: sp.x, z: sp.z }, count: nth, value }); }
         }
       }
       this.pos.x = Math.max(COURT.x0, Math.min(COURT.x1, nx));
       this.pos.z = Math.max(COURT.z0, Math.min(COURT.z1, nz));
     } else if (this.dashUntil > 0 && this.time - DASH.time < this.dashUntil && this.time >= this.dashUntil && this._dashPops === 0 && !this._whiffCounted) {
-      // a dash just ended with no pop
+      // a dash just ended with no pop — it gets a READ (r2: 53-62% of inputs landed in silence)
       this._whiffCounted = true;
       this.whiffs++;
+      this.fx.whiff?.({ pos: { ...this.pos } });
     }
     if (this.dashing()) this._whiffCounted = false;
     // chain decay: too long since a pop drops the combo (bank behavior)
@@ -275,6 +308,7 @@ export class JuiceRun {
     const scheduled = this.schedule.length;
     return {
       score: this.score, bestCombo: this.bestCombo, pops: this.pops, fades: this.fades, dashes: this.dashes, whiffs: this.whiffs,
+      multiPops: this.multiPops ?? 0,   // the decisive column (r2): lines READ, not collected
       stuns: this.stuns, stunTax: this.stunnedTime / RUN_SECONDS,
       poppedFraction: this.pops / scheduled, comboUptime: this.comboUptime / RUN_SECONDS,
     };
@@ -342,6 +376,33 @@ export function routerBot(run) {
       }
     }
     if (bestPair && bestVal > 0) { run.dash(bestPair.dx, bestPair.dz); return; }
+    // no pair sweepable from HERE: read the board for a line and dash to
+    // its entry point (behind the near member, on the line's axis) so the
+    // next dash sweeps it — the alignment move that makes a line a decision
+    // (A7: with lines spaced 1.3-1.7 m, a nearest-target policy collects
+    // nothing; the referee must be able to read one)
+    let bestEntry = null, bestEntryVal = -Infinity;
+    for (let i = 0; i < sp.length; i++) {
+      for (let j = i + 1; j < sp.length; j++) {
+        const a2 = sp[i], b2 = sp[j];
+        const lx = b2.x - a2.x, lz = b2.z - a2.z;
+        const L = Math.hypot(lx, lz);
+        if (L < 0.8 || L > DASH.len - 0.4) continue;             // not a line, or too long to sweep
+        const ux = lx / L, uz = lz / L;
+        for (const [near, sgn] of [[a2, -1], [b2, 1]]) {
+          const ex = near.x + ux * sgn * 0.9, ez = near.z + uz * sgn * 0.9;   // entry behind the near member
+          const d = Math.hypot(ex - run.pos.x, ez - run.pos.z);
+          if (d > DASH.len * 1.05 || d < 0.3) continue;
+          const dieSoon = Math.min(a2.dieAt, b2.dieAt) - run.time;
+          if (dieSoon < DASH.recover + 0.4) continue;             // no time for the two-dash plan
+          let oniRisk = 0;
+          for (const o of run.onis) if (Math.hypot(o.x - ex, o.z - ez) < ONI.r + 0.9) oniRisk++;
+          const val = 20 + (a2.gold || b2.gold ? 30 : 0) - d * 0.5 - oniRisk * 200;
+          if (val > bestEntryVal) { bestEntryVal = val; bestEntry = { dx: ex - run.pos.x, dz: ez - run.pos.z }; }
+        }
+      }
+    }
+    if (bestEntry && bestEntryVal > 0) { run._entryDashes = (run._entryDashes ?? 0) + 1; run.dash(bestEntry.dx, bestEntry.dz); return; }
   }
   const near = run.spirits.filter((sp) => Math.hypot(sp.x - run.pos.x, sp.z - run.pos.z) <= DASH.len * 1.6);
   const pool = near.length ? near : run.spirits;
