@@ -1,0 +1,968 @@
+#!/usr/bin/env node
+/**
+ * Plan-level gate for city-plan.json (see references/city-scale.md).
+ * Runs BEFORE any district is built: a bad plan is revised, never patched
+ * around.  Pure JSON checks, no three.js:
+ *
+ *   - schema shape (city, districts, envelopes, sockets, anchors,
+ *     waypoints, budgets, vista cameras);
+ *   - placeholder rejection on name / promise / brief / subjects — the
+ *     template's own prompt text must not survive into a real plan;
+ *   - envelope overlap: any pair intersecting with positive area fails
+ *     (adjacent edges are fine — that is what a boundary is);
+ *   - socket pairing: every mate exists, is reciprocal, agrees on kind /
+ *     width / y within tolerance, and both ends sit on the shared boundary
+ *     segment between the two envelopes;
+ *   - `after` references exist and contain no cycle;
+ *   - every district has at least one waypoint and one anchor;
+ *   - vista cameras have positions, targets and non-placeholder subjects;
+ *   - `surrounds.owner` names a real district — the negative space inside
+ *     the footprint but outside every envelope has to belong to somebody;
+ *   - `boundary_features[]` name a real, distinct owner and mate, and the
+ *     declared line actually lies on the boundary those two share, with no
+ *     two features overlapping on the same line;
+ *   - `city.compass.north_xz` is a non-zero 2-vector and `city.sun` is a
+ *     compass point (or degrees) at a plausible elevation — the light rig
+ *     is derived from these (src/core/sunrig.js), never hand-placed;
+ *   - `terrain`: REQUIRED, owned by the coordinator and never by a
+ *     district, with a level for EVERY district and exactly one crossing
+ *     per socket pair.  Ground left to districts is the defect this whole
+ *     stage exists to remove, so a plan with no terrain block is not a
+ *     valid plan.  Plus the three landform fields, all optional, which
+ *     exist because one flat level per district means a district with real
+ *     landform must either be flat or break the terrain-first rule:
+ *     `shelves[]` (a flat sub-region inside ONE district's envelope),
+ *     `mounds[]` (a smooth elliptical dome added on top, positive radii,
+ *     sane height, centre inside the footprint) and socket-less
+ *     `crossings[]` — an INTERNAL climb whose `in` names a real district,
+ *     whose `from`/`to` differ, and whose run and width fit that envelope;
+ *   - `sight_corridors[]`: endpoints, width, clear height, and the real
+ *     districts each one crosses — every one of which gets the `why`
+ *     verbatim in its brief, because a cross-district requirement written
+ *     into one agent's brief is a requirement that agent cannot honour;
+ *   - `landmarks_citywide[]`: the object plus at least one reader (a vista
+ *     or a district).  Before check-city could raycast these, the field
+ *     had no reader at all and was decoration;
+ *   - `interactions[]`: at least one per district, inside its envelope.
+ *     The first city built this way shipped ZERO interactables and the
+ *     runtime's whole KeyE system was dead code, because no brief asked;
+ *   - `massing[]`: optional rough blocks a coordinator sketches so an
+ *     isolated district agent (`composeCity({ only })`) composes its edges
+ *     against something.  Warned when absent, because it is only
+ *     detectably missing at the moment somebody builds alone.
+ *
+ *   node scripts/validate-city-plan.mjs [path/to/city-plan.json]
+ *     exit 0 valid · 1 invalid · 2 unreadable/crashed
+ *
+ * Returns { ok, failures, warnings }.  Only `failures` change exit status.
+ */
+
+import fs from 'node:fs';
+
+// The template's unedited prompt text ("Replace with…", "Describe…",
+// "Name the…", plus the waypoint stub "Name a place…").
+const PLACEHOLDER = /^\s*(replace|describe|name (the|a))\b/i;
+const EPS = 0.05;       // geometric tolerance for "on the boundary"
+const AGREE_EPS = 0.01; // numeric agreement between paired sockets
+const AT_EPS = 0.75;    // the two ends of a pair describe ONE crossing
+
+// Mirrors BEARINGS in src/core/sunrig.js, which is the consumer.  Inlined
+// rather than imported on purpose: this gate runs at PLAN time, before a
+// line of the city's source exists, and must not depend on src/.
+const BEARINGS = new Set(['n', 'north', 'ne', 'northeast', 'e', 'east', 'se', 'southeast',
+  's', 'south', 'sw', 'southwest', 'w', 'west', 'nw', 'northwest']);
+const SUN_EL_MIN = 5;   // below this the shadows run off the footprint entirely
+const SUN_EL_MAX = 80;  // above it there is no rake left to art-direct to
+
+const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+const isStr = (v) => typeof v === 'string' && v.trim().length > 0;
+const isVec = (v, n) => Array.isArray(v) && v.length === n && v.every(isNum);
+const r2 = (v) => Math.round(v * 100) / 100;
+const inRect = (x, z, r) => x >= r.x0 - EPS && x <= r.x1 + EPS && z >= r.z0 - EPS && z <= r.z1 + EPS;
+
+const CROSSING_KINDS = new Set(['ramp', 'road', 'path', 'stairs']);
+const SURROUNDS_KINDS = new Set(['water', 'moor', 'flat', 'sand', 'scrub']);
+
+// Mirrors src/core/terrain.js.  Inlined for the same reason BEARINGS is:
+// this gate runs at PLAN time, before a line of the city's source exists.
+const MIN_GOING_M = 0.36;
+const STEP_RISE_M = 0.18;
+const RAMP_GRADE = 1 / 8;
+const MOUND_H_MAX = 40;      // taller than this is a mountain, not landform
+const DOME_PEAK_SLOPE = 1.49; // see the constant of the same name in terrain.js
+
+/** The run a crossing needs to climb `drop`, by terrain.js's own arithmetic. */
+function crossingRun(c, drop) {
+  if (Math.abs(drop) <= 1e-6) return 0;
+  if (c.kind === 'stairs') {
+    const going = Math.max(MIN_GOING_M, isNum(c.going) ? c.going : 0.42);
+    return Math.max(1, Math.ceil(Math.abs(drop) / (isNum(c.rise) ? c.rise : STEP_RISE_M))) * going;
+  }
+  const grade = Math.abs(isNum(c.grade) ? c.grade : RAMP_GRADE);
+  return Math.max(1, Math.abs(drop) / Math.max(0.01, grade));
+}
+
+export function validatePlan(plan) {
+  const failures = [];
+  const warnings = [];
+  const fail = (msg) => failures.push(msg);
+  const warn = (msg) => warnings.push(msg);
+
+  if (!plan || typeof plan !== 'object') return { ok: false, failures: ['plan is not an object'], warnings };
+
+  /* ---- city block ---- */
+  const city = plan.city;
+  if (!city || typeof city !== 'object') fail('city: missing');
+  else {
+    if (!isStr(city.name)) fail('city.name: missing');
+    else if (PLACEHOLDER.test(city.name)) fail(`city.name is template placeholder text: "${city.name}"`);
+    if (!isStr(city.promise)) fail('city.promise: missing');
+    else if (PLACEHOLDER.test(city.promise)) fail(`city.promise is template placeholder text: "${city.promise}"`);
+    if (!isVec(city.footprint_m, 2)) fail('city.footprint_m: must be [width, depth] numbers');
+
+    /* compass + sun: the light rig is DERIVED from these (src/core/sunrig.js).
+     * A palette note promising "low sun from the south-east" against a rig
+     * aimed south-west is a bug that belongs to nobody — every district art
+     * directs to the light it can see and the contradiction never surfaces. */
+    const compass = city.compass;
+    if (!compass || typeof compass !== 'object') {
+      fail('city.compass: missing — every compass word in this plan ("the east faces", "the north quay") ' +
+        'is meaningless without north_xz, and the sun rig is derived from it');
+    } else if (!isVec(compass.north_xz, 2)) {
+      fail(`city.compass.north_xz: must be a 2-vector [x, z], got ${JSON.stringify(compass.north_xz)}`);
+    } else if (Math.hypot(compass.north_xz[0], compass.north_xz[1]) < 1e-6) {
+      fail(`city.compass.north_xz is ${JSON.stringify(compass.north_xz)} — zero length has no direction, ` +
+        'so sunPosition() cannot resolve a bearing and every compass word in the plan is unanchored');
+    }
+    const sun = city.sun;
+    if (!sun || typeof sun !== 'object') {
+      fail('city.sun: missing — the directional light is derived from { bearing, elevation_deg }, never hand-placed');
+    } else {
+      if (isNum(sun.bearing)) {
+        if (sun.bearing < -360 || sun.bearing > 360) fail(`city.sun.bearing: ${sun.bearing} is not a bearing in degrees (-360..360)`);
+      } else if (!isStr(sun.bearing)) {
+        fail('city.sun.bearing: missing — name a compass point (north … north-west) or give degrees clockwise from north');
+      } else if (!BEARINGS.has(sun.bearing.toLowerCase().replace(/[^a-z]/g, ''))) {
+        fail(`city.sun.bearing "${sun.bearing}" is not one of the eight compass points ` +
+          '(north, north-east, east, south-east, south, south-west, west, north-west) nor a number of degrees');
+      }
+      if (!isNum(sun.elevation_deg)) fail('city.sun.elevation_deg: missing — the rake is the whole light design');
+      else if (sun.elevation_deg < SUN_EL_MIN || sun.elevation_deg > SUN_EL_MAX) {
+        fail(`city.sun.elevation_deg ${sun.elevation_deg} is outside ${SUN_EL_MIN}..${SUN_EL_MAX} — ` +
+          'below that the shadows leave the footprint altogether, above it there is no rake to art-direct to');
+      }
+    }
+  }
+
+  /* ---- districts ---- */
+  if (!Array.isArray(plan.districts) || plan.districts.length === 0) {
+    fail('districts: missing or empty');
+    return { ok: false, failures, warnings };
+  }
+  const ids = new Set();
+  const socketIndex = new Map(); // socket id -> { socket, district }
+  for (const d of plan.districts) {
+    const where = `district "${d?.id ?? '?'}"`;
+    if (!isStr(d.id) || !/^[a-z0-9][a-z0-9-]*$/.test(d.id)) { fail(`${where}: id must be kebab-case`); continue; }
+    if (ids.has(d.id)) fail(`${where}: duplicate id`);
+    ids.add(d.id);
+    if (!isStr(d.name)) fail(`${where}: name missing`);
+    else if (PLACEHOLDER.test(d.name)) fail(`${where}: name is template placeholder text: "${d.name}"`);
+    if (!isStr(d.brief)) fail(`${where}: brief missing`);
+    else if (PLACEHOLDER.test(d.brief)) fail(`${where}: brief is template placeholder text: "${d.brief.slice(0, 60)}…"`);
+    const e = d.envelope;
+    if (!e || !isNum(e.x0) || !isNum(e.z0) || !isNum(e.x1) || !isNum(e.z1) || e.x0 >= e.x1 || e.z0 >= e.z1) {
+      fail(`${where}: envelope must be { x0, z0, x1, z1 } with x0 < x1, z0 < z1`);
+    }
+    if (d.after !== undefined && (!Array.isArray(d.after) || d.after.some((a) => !isStr(a)))) fail(`${where}: after must be an array of ids`);
+    if (!Array.isArray(d.waypoints) || d.waypoints.length === 0) fail(`${where}: needs at least one waypoint`);
+    else {
+      for (const w of d.waypoints) {
+        if (!isStr(w.name) || !isNum(w.x) || !isNum(w.z)) fail(`${where}: waypoint must be { name, x, z }: ${JSON.stringify(w)}`);
+        else if (PLACEHOLDER.test(w.name)) fail(`${where}: waypoint name is template placeholder text: "${w.name}"`);
+      }
+    }
+    if (!Array.isArray(d.anchors) || d.anchors.length === 0) fail(`${where}: needs at least one anchor`);
+    else {
+      for (const a of d.anchors) {
+        if (!isNum(a.x) || !isNum(a.z) || !isNum(a.expect_top)) fail(`${where}: anchor must be { x, z, expect_top, tol? }: ${JSON.stringify(a)}`);
+      }
+    }
+    if (!d.budgets || !isNum(d.budgets.max_meshes) || !isNum(d.budgets.max_triangles)) {
+      fail(`${where}: budgets must carry numeric max_meshes and max_triangles`);
+    }
+
+    /* interactions — every district contributes at least one.  The first
+     * city built this way shipped ZERO interactables and the runtime's
+     * whole KeyE system was dead code in a finished town, because no brief
+     * asked for any.  check-city then fails a district that declares one
+     * here and registers none, which is the other half of the contract. */
+    if (!Array.isArray(d.interactions) || d.interactions.length === 0) {
+      fail(`${where}: needs at least one entry in interactions[] — "what is the one thing a player can do here". ` +
+        'A district with none contributes nothing to the runtime interaction system, and a city of them leaves it dead code.');
+    } else {
+      for (const it of d.interactions) {
+        const iw = `${where} interaction "${it?.name ?? '?'}"`;
+        if (!isStr(it?.name)) { fail(`${iw}: name missing`); continue; }
+        if (PLACEHOLDER.test(it.name)) { fail(`${iw}: name is template placeholder text: "${it.name}"`); continue; }
+        if (!isVec(it.at, 2)) { fail(`${iw}: at must be [x, z]`); continue; }
+        if (e && isNum(e.x0) && (it.at[0] < e.x0 - EPS || it.at[0] > e.x1 + EPS || it.at[1] < e.z0 - EPS || it.at[1] > e.z1 + EPS)) {
+          fail(`${iw}: at ${JSON.stringify(it.at)} is outside "${d.id}"'s envelope — an interaction belongs to the district that owns the ground under it`);
+        }
+      }
+    }
+
+    /* massing — the neighbour stubs an isolated district agent composes
+     * against.  Absent, `composeCity({ only })` renders this district as
+     * empty space for whoever is building next door. */
+    if (d.massing !== undefined && !Array.isArray(d.massing)) {
+      fail(`${where}: massing must be an array of { x, z, w, d, h } blocks`);
+    } else if (Array.isArray(d.massing)) {
+      for (const m of d.massing) {
+        const mw = `${where} massing block`;
+        if (!isNum(m?.x) || !isNum(m?.z) || !isNum(m?.w) || !isNum(m?.d) || !isNum(m?.h)) {
+          fail(`${mw}: must be { x, z, w, d, h } numbers, got ${JSON.stringify(m)}`); continue;
+        }
+        if (m.w <= 0 || m.d <= 0 || m.h <= 0) { fail(`${mw} at (${m.x}, ${m.z}): w, d and h must be positive`); continue; }
+        if (e && isNum(e.x0) && (m.x < e.x0 - 2 || m.x > e.x1 + 2 || m.z < e.z0 - 2 || m.z > e.z1 + 2)) {
+          fail(`${mw} centred (${m.x}, ${m.z}) is outside "${d.id}"'s envelope — a stub in the wrong place ` +
+            'is worse than none: the neighbour composes against a mass that will never be there');
+        }
+      }
+    } else if (plan.districts.length > 1) {
+      warn(`district "${d.id}": no massing[] — an agent building any OTHER district alone ` +
+        '(composeCity({ only })) will compose its edges against empty space where this one stands. ' +
+        'Rough it out: massing: [{ x, z, w, d, h }, …].');
+    }
+
+    /* enterable[] — the few buildings a player can walk INTO (optional).
+     * The plan decides which; a district agent does not get to make one
+     * enterable on its own, because an interior costs 30-60 meshes, needs
+     * a route through a doorway the flood fill can find, and owes a camera
+     * that shows the room.  All three are contracts, so all three live
+     * here.  check-city then fails a declared interior that is unreachable,
+     * whose camera does not pass the standard gate, or that turns out to be
+     * a bare box — see references/city-scale.md, "Enterable buildings". */
+    if (d.enterable !== undefined && !Array.isArray(d.enterable)) {
+      fail(`${where}: enterable must be an array of { building, door, interior_waypoint, interior_camera }`);
+    } else {
+      for (const en of d.enterable ?? []) {
+        const ew = `${where} enterable "${en?.building ?? '?'}"`;
+        if (!isStr(en?.building)) { fail(`${ew}: building missing — name the scene object the shell is added as`); continue; }
+        if (PLACEHOLDER.test(en.building)) { fail(`${ew}: building is template placeholder text`); continue; }
+        if (!en.door || !isVec(en.door.at, 2)) fail(`${ew}: door.at must be [x, z] — the doorway centre in plan`);
+        else if (e && isNum(e.x0) && (en.door.at[0] < e.x0 - EPS || en.door.at[0] > e.x1 + EPS ||
+                 en.door.at[1] < e.z0 - EPS || en.door.at[1] > e.z1 + EPS)) {
+          fail(`${ew}: door.at ${JSON.stringify(en.door.at)} is outside "${d.id}"'s envelope`);
+        }
+        if (!en.door || !['x+', 'x-', 'z+', 'z-'].includes(en.door.face)) {
+          fail(`${ew}: door.face must be one of x+, x-, z+, z- (the outward normal of the wall it is cut into)`);
+        }
+        const wp = en.interior_waypoint;
+        if (!wp || !isStr(wp.name) || !isNum(wp.x) || !isNum(wp.z)) {
+          fail(`${ew}: interior_waypoint must be { name, x, z } — a point INSIDE the room that the flood fill has ` +
+            'to reach through the doorway. Without it nothing checks that the door is a route rather than a picture.');
+        } else {
+          if (PLACEHOLDER.test(wp.name)) fail(`${ew}: interior_waypoint name is template placeholder text`);
+          if (e && isNum(e.x0) && (wp.x < e.x0 - EPS || wp.x > e.x1 + EPS || wp.z < e.z0 - EPS || wp.z > e.z1 + EPS)) {
+            fail(`${ew}: interior_waypoint (${wp.x}, ${wp.z}) is outside "${d.id}"'s envelope — an interior is ` +
+              'geometry in the same world, inside its own district, not a separate space');
+          }
+        }
+        const cam = en.interior_camera;
+        if (!cam || !isStr(cam.name)) fail(`${ew}: interior_camera must be { name, position, target, subject }`);
+        else {
+          if (!isVec(cam.position, 3)) fail(`${ew} interior_camera "${cam.name}": position must be [x, y, z]`);
+          if (!isVec(cam.target, 3)) fail(`${ew} interior_camera "${cam.name}": target must be [x, y, z]`);
+          if (!isStr(cam.subject) || PLACEHOLDER.test(cam.subject)) {
+            fail(`${ew} interior_camera "${cam.name}": needs a real \`subject\` — the Object3D in the room the ` +
+              'frame exists to show. A camera with no subject cannot be gated, and an ungated interior camera is ' +
+              'how a room ships as a lit grey box.');
+          }
+        }
+        if (en.min_props !== undefined && (!isNum(en.min_props) || en.min_props < 1)) {
+          fail(`${ew}: min_props must be a positive number (default 6)`);
+        }
+      }
+    }
+
+    for (const s of d.sockets ?? []) {
+      const sw = `${where} socket "${s?.id ?? '?'}"`;
+      if (!isStr(s.id)) { fail(`${sw}: id missing`); continue; }
+      if (socketIndex.has(s.id)) fail(`${sw}: duplicate socket id "${s.id}"`);
+      socketIndex.set(s.id, { socket: s, district: d });
+      if (!isStr(s.kind)) fail(`${sw}: kind missing`);
+      if (!isVec(s.at, 2)) fail(`${sw}: at must be [x, z]`);
+      if (s.axis !== 'x' && s.axis !== 'z') fail(`${sw}: axis must be 'x' or 'z'`);
+      if (!isNum(s.width) || s.width <= 1) fail(`${sw}: width must be a number > 1 (the clear-passage rule subtracts 1 m)`);
+      if (!isNum(s.y)) fail(`${sw}: y (ground elevation at the crossing) missing`);
+      if (!isStr(s.mate)) fail(`${sw}: mate missing — sockets are declared in pairs`);
+    }
+  }
+
+  /* ---- envelope overlap: positive shared area between any pair fails ---- */
+  const withEnvelope = plan.districts.filter((d) => d.envelope && isNum(d.envelope.x0));
+  for (let i = 0; i < withEnvelope.length; i += 1) {
+    for (let j = i + 1; j < withEnvelope.length; j += 1) {
+      const a = withEnvelope[i].envelope;
+      const b = withEnvelope[j].envelope;
+      const ox = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+      const oz = Math.min(a.z1, b.z1) - Math.max(a.z0, b.z0);
+      if (ox > EPS && oz > EPS) {
+        fail(`envelopes of "${withEnvelope[i].id}" and "${withEnvelope[j].id}" overlap by ` +
+          `${(ox * oz).toFixed(1)} m² over x ${Math.max(a.x0, b.x0)}..${Math.min(a.x1, b.x1)}, ` +
+          `z ${Math.max(a.z0, b.z0)}..${Math.min(a.z1, b.z1)} — envelopes may not overlap`);
+      }
+    }
+  }
+
+  /* ---- socket pairing ---- */
+  const onSegment = (v, lo, hi) => v >= lo - EPS && v <= hi + EPS;
+  for (const [id, { socket: s, district: d }] of socketIndex) {
+    const sw = `district "${d.id}" socket "${id}"`;
+    if (!isStr(s.mate)) continue;
+    const mate = socketIndex.get(s.mate);
+    if (!mate) { fail(`${sw}: mate "${s.mate}" does not exist — a socket may not be unpaired`); continue; }
+    if (mate.district.id === d.id) fail(`${sw}: mate "${s.mate}" is in the same district`);
+    if (mate.socket.mate !== id) fail(`${sw}: pairing is not reciprocal — mate "${s.mate}" points at "${mate.socket.mate}"`);
+    if (mate.socket.kind !== s.kind) fail(`${sw}: kind "${s.kind}" disagrees with mate's "${mate.socket.kind}"`);
+    if (isNum(mate.socket.width) && Math.abs(mate.socket.width - s.width) > AGREE_EPS) {
+      fail(`${sw}: width ${s.width} disagrees with mate's ${mate.socket.width}`);
+    }
+    if (isNum(mate.socket.y) && Math.abs(mate.socket.y - s.y) > AGREE_EPS) {
+      fail(`${sw}: y ${s.y} disagrees with mate's ${mate.socket.y}`);
+    }
+    if (isVec(s.at, 2) && isVec(mate.socket.at, 2)) {
+      const dist = Math.hypot(s.at[0] - mate.socket.at[0], s.at[1] - mate.socket.at[1]);
+      if (dist > AT_EPS) fail(`${sw}: at ${JSON.stringify(s.at)} is ${dist.toFixed(2)} m from mate's ${JSON.stringify(mate.socket.at)} — a pair describes one crossing`);
+    }
+    // both ends on the shared boundary segment between the two envelopes
+    const a = d.envelope;
+    const b = mate.district.envelope;
+    if (a && b && isVec(s.at, 2) && (s.axis === 'x' || s.axis === 'z')) {
+      const [sx, sz] = s.at;
+      if (s.axis === 'x') {
+        // route crosses along x: boundary is an x = const edge shared by both
+        const edge = Math.abs(a.x1 - b.x0) <= EPS ? a.x1 : Math.abs(a.x0 - b.x1) <= EPS ? a.x0 : null;
+        if (edge === null) fail(`${sw}: axis 'x' but envelopes of "${d.id}" and "${mate.district.id}" share no x-edge`);
+        else {
+          if (Math.abs(sx - edge) > EPS) fail(`${sw}: at x = ${sx} is not on the shared boundary x = ${edge}`);
+          const lo = Math.max(a.z0, b.z0);
+          const hi = Math.min(a.z1, b.z1);
+          if (!onSegment(sz - s.width / 2, lo, hi) || !onSegment(sz + s.width / 2, lo, hi)) {
+            fail(`${sw}: width ${s.width} at z = ${sz} does not fit the shared boundary segment z ${lo}..${hi}`);
+          }
+        }
+      } else {
+        const edge = Math.abs(a.z1 - b.z0) <= EPS ? a.z1 : Math.abs(a.z0 - b.z1) <= EPS ? a.z0 : null;
+        if (edge === null) fail(`${sw}: axis 'z' but envelopes of "${d.id}" and "${mate.district.id}" share no z-edge`);
+        else {
+          if (Math.abs(sz - edge) > EPS) fail(`${sw}: at z = ${sz} is not on the shared boundary z = ${edge}`);
+          const lo = Math.max(a.x0, b.x0);
+          const hi = Math.min(a.x1, b.x1);
+          if (!onSegment(sx - s.width / 2, lo, hi) || !onSegment(sx + s.width / 2, lo, hi)) {
+            fail(`${sw}: width ${s.width} at x = ${sx} does not fit the shared boundary segment x ${lo}..${hi}`);
+          }
+        }
+      }
+    }
+  }
+
+  /* ---- after: refs exist, no cycles ---- */
+  for (const d of plan.districts) {
+    for (const a of d.after ?? []) {
+      if (!ids.has(a)) fail(`district "${d.id}": after references unknown district "${a}"`);
+    }
+  }
+  const state = new Map();
+  const path = [];
+  const visit = (id) => {
+    if (state.get(id) === 2) return;
+    if (state.get(id) === 1) {
+      fail(`\`after\` dependency cycle: ${path.slice(path.indexOf(id)).concat(id).join(' -> ')}`);
+      return;
+    }
+    state.set(id, 1);
+    path.push(id);
+    const d = plan.districts.find((x) => x.id === id);
+    for (const dep of d?.after ?? []) if (ids.has(dep)) visit(dep);
+    path.pop();
+    state.set(id, 2);
+  };
+  for (const id of ids) visit(id);
+
+  /* ---- vista cameras ---- */
+  for (const v of plan.vista_cameras ?? []) {
+    const vw = `vista camera "${v?.name ?? '?'}"`;
+    if (!isStr(v.name)) fail('vista camera: name missing');
+    if (!isVec(v.position, 3)) fail(`${vw}: position must be [x, y, z]`);
+    if (!isVec(v.target, 3)) fail(`${vw}: target must be [x, y, z]`);
+    if (!isStr(v.subject)) fail(`${vw}: subject missing — a vista exists to show something`);
+    else if (PLACEHOLDER.test(v.subject)) fail(`${vw}: subject is template placeholder text: "${v.subject}"`);
+    /* OWNERSHIP.  Measured across three cities: skyline_vista is the only
+     * axis that gets WORSE as districts are added, and the mechanism is
+     * ownership rather than craft — a vista camera composed against four
+     * parcels is looking across six, so every screening element belongs to
+     * a district that never knew the sight line existed.  Nobody owns a
+     * vista, so nobody composes one.  Exactly one district must. */
+    if (!isStr(v.owner)) {
+      fail(`${vw}: owner missing — name the ONE district whose agent composes this picture and must pass ` +
+        'core/legibility.js on it. Everything else in the frame belongs to districts that do not know the ' +
+        'sight line exists; without an owner the vista is the only contract in the plan with nobody to honour it.');
+    } else if (PLACEHOLDER.test(v.owner)) {
+      fail(`${vw}: owner is template placeholder text: "${v.owner}"`);
+    } else if (!ids.has(v.owner)) {
+      fail(`${vw}: owner "${v.owner}" is not a district in this plan — have: ${[...ids].join(', ')}`);
+    }
+  }
+
+  /* ---- surrounds: somebody owns the negative space ---- */
+  const surrounds = plan.surrounds;
+  if (!surrounds || typeof surrounds !== 'object' || !isStr(surrounds.owner)) {
+    fail('surrounds: missing — everything inside city.footprint_m but outside every envelope (sea, moor, ' +
+      'backdrop, sky edge) belongs to no district, and unowned negative space renders as a hard edge: ' +
+      'the district nearest it builds to the limit of its 2 m envelope tolerance trying to hide the cut. ' +
+      'Add { "owner": "<district-id>" } naming the district that builds it.');
+  } else if (PLACEHOLDER.test(surrounds.owner)) {
+    fail(`surrounds.owner is template placeholder text: "${surrounds.owner}"`);
+  } else if (!ids.has(surrounds.owner)) {
+    fail(`surrounds.owner "${surrounds.owner}" is not a district in this plan — have: ${[...ids].join(', ')}`);
+  }
+
+  /* ---- boundary features: exactly one owner, on a real shared edge ----
+   * `along` is the axis the feature RUNS ALONG (not a socket's crossing
+   * axis): along 'z' is a line at x = at spanning z from..to; along 'x' is
+   * a line at z = at spanning x from..to. */
+  const featureIds = new Set();
+  const features = [];
+  if (plan.boundary_features !== undefined && !Array.isArray(plan.boundary_features)) {
+    fail('boundary_features: must be an array (omit it entirely if this city has none)');
+  }
+  for (const f of Array.isArray(plan.boundary_features) ? plan.boundary_features : []) {
+    const fw = `boundary feature "${f?.id ?? '?'}"`;
+    if (!isStr(f?.id)) { fail(`${fw}: id missing`); continue; }
+    if (featureIds.has(f.id)) fail(`${fw}: duplicate id`);
+    featureIds.add(f.id);
+    if (!isStr(f.kind)) fail(`${fw}: kind missing — say what it is (retaining-wall, kerb, railing, revetment)`);
+    let shapeOk = true;
+    if (!isStr(f.owner) || !ids.has(f.owner)) { fail(`${fw}: owner "${f.owner}" is not a district in this plan — exactly one district builds a boundary feature`); shapeOk = false; }
+    if (!isStr(f.mate) || !ids.has(f.mate)) { fail(`${fw}: mate "${f.mate}" is not a district in this plan — the mate is the district that must NOT build here`); shapeOk = false; }
+    if (isStr(f.owner) && f.owner === f.mate) { fail(`${fw}: owner and mate are both "${f.owner}" — a boundary is between two districts`); shapeOk = false; }
+    if (f.along !== 'x' && f.along !== 'z') { fail(`${fw}: along must be 'x' or 'z' (the axis the feature runs along)`); shapeOk = false; }
+    if (!isNum(f.at)) { fail(`${fw}: at (the constant coordinate of the line) must be a number`); shapeOk = false; }
+    if (!isNum(f.from) || !isNum(f.to) || f.from >= f.to) { fail(`${fw}: from/to must be numbers with from < to`); shapeOk = false; }
+    if (!shapeOk) continue;
+
+    const a = plan.districts.find((d) => d.id === f.owner)?.envelope;
+    const b = plan.districts.find((d) => d.id === f.mate)?.envelope;
+    if (!a || !b || !isNum(a.x0) || !isNum(b.x0)) continue; // envelope already failed above
+
+    // the line's constant axis: along 'z' => a shared x-edge, along 'x' => a shared z-edge
+    const [aLo, aHi, bLo, bHi] = f.along === 'z' ? [a.x0, a.x1, b.x0, b.x1] : [a.z0, a.z1, b.z0, b.z1];
+    const axis = f.along === 'z' ? 'x' : 'z';
+    const edge = Math.abs(aHi - bLo) <= EPS ? aHi : Math.abs(aLo - bHi) <= EPS ? aLo : null;
+    if (edge === null) {
+      fail(`${fw}: "${f.owner}" and "${f.mate}" share no ${axis}-edge — their envelopes are ` +
+        `${axis} ${aLo}..${aHi} and ${axis} ${bLo}..${bHi}, so there is no boundary here to build a ${f.kind} on`);
+      continue;
+    }
+    if (Math.abs(f.at - edge) > EPS) {
+      fail(`${fw}: at ${axis} = ${f.at} is not on the boundary "${f.owner}"/"${f.mate}" share, which is ${axis} = ${edge} ` +
+        `— a feature off the shared line is inside one district and is not a boundary feature at all`);
+      continue;
+    }
+    // and the run has to lie within the stretch the two actually share
+    const [pLo, pHi] = f.along === 'z'
+      ? [Math.max(a.z0, b.z0), Math.min(a.z1, b.z1)]
+      : [Math.max(a.x0, b.x0), Math.min(a.x1, b.x1)];
+    if (pHi - pLo <= EPS) {
+      fail(`${fw}: "${f.owner}" and "${f.mate}" touch at ${axis} = ${edge} but overlap over no length of ${f.along} — they meet at a corner, not along an edge`);
+      continue;
+    }
+    if (f.from < pLo - EPS || f.to > pHi + EPS) {
+      fail(`${fw}: runs ${f.along} ${f.from}..${f.to} but "${f.owner}" and "${f.mate}" only share ` +
+        `${f.along} ${pLo}..${pHi} — the overhang is on a boundary with somebody else, or with nobody`);
+      continue;
+    }
+    features.push(f);
+  }
+  // two features on the same line overlapping is the double-wall the whole
+  // declaration exists to prevent
+  for (let i = 0; i < features.length; i += 1) {
+    for (let j = i + 1; j < features.length; j += 1) {
+      const p = features[i];
+      const q = features[j];
+      if (p.along !== q.along || Math.abs(p.at - q.at) > EPS) continue;
+      const lo = Math.max(p.from, q.from);
+      const hi = Math.min(p.to, q.to);
+      if (hi - lo > EPS) {
+        fail(`boundary features "${p.id}" (${p.owner}) and "${q.id}" (${q.owner}) both stand on ` +
+          `${p.along === 'z' ? 'x' : 'z'} = ${p.at} over ${p.along} ${lo}..${hi} — exactly one district builds a boundary feature; two is a double wall`);
+      }
+    }
+  }
+
+  /* ---- terrain: stage 2, and it is not optional ----------------------
+   * "Ground is a per-district responsibility. Disjoint envelopes, each
+   * district platforming its own rectangle, nothing owning what lies
+   * between or beyond." — the independent review of the first city built
+   * this way, naming its single highest-impact defect.  A plan with no
+   * terrain block hands every district that decision back. */
+  const terrain = plan.terrain;
+  if (!terrain || typeof terrain !== 'object') {
+    fail('terrain: missing — ONE continuous ground surface over the whole footprint INCLUDING the surrounds is ' +
+      'built before any district and never by a district. Without it each district platforms its own rectangle, ' +
+      'nothing owns what lies between or beyond them, and the result is floating slabs in every overhead frame, ' +
+      'severed ground at the outer edges and voids behind boundary walls — none of which a district agent can fix ' +
+      'from inside its parcel. Add { "terrain": { "owner": "coordinator", "levels": [{ "id", "y" }…], "crossings": [{ "socket", "kind" }…] } }.');
+  } else {
+    if (isStr(terrain.owner) && ids.has(terrain.owner)) {
+      fail(`terrain.owner is "${terrain.owner}", which is a district. The terrain is the coordinator's: a district ` +
+        'that owns the ground builds it to its own envelope and stops, which is the defect terrain-first removes.');
+    } else if (!isStr(terrain.owner)) {
+      fail('terrain.owner: missing — say "coordinator"');
+    }
+
+    /* levels: every district, exactly once.  A district with no level has
+     * undefined ground and will lay its own. */
+    if (!Array.isArray(terrain.levels) || terrain.levels.length === 0) {
+      fail('terrain.levels: missing — each district id gets a flat level y over its envelope');
+    } else {
+      const seenLevel = new Set();
+      for (const L of terrain.levels) {
+        if (!isStr(L?.id) || !isNum(L?.y)) { fail(`terrain.levels entry must be { id, y }: ${JSON.stringify(L)}`); continue; }
+        if (!ids.has(L.id)) { fail(`terrain.levels names "${L.id}", which is not a district in this plan`); continue; }
+        if (seenLevel.has(L.id)) fail(`terrain.levels has two entries for "${L.id}" — a district has one level`);
+        seenLevel.add(L.id);
+      }
+      for (const id of ids) {
+        if (!seenLevel.has(id)) {
+          fail(`terrain.levels has no entry for district "${id}", so its ground is undefined and it will lay its own`);
+        }
+      }
+    }
+
+    /* shelves: flat sub-regions INSIDE one district, layered over its level.
+     * A district with real landform — a rock, a crag, a terraced hillside —
+     * cannot get it from one flat level, and terrain-first forbids it laying
+     * its own; without shelves it has to be flat or break the rule. */
+    const shelfList = [];
+    if (terrain.shelves !== undefined && !Array.isArray(terrain.shelves)) {
+      fail('terrain.shelves: must be an array (omit it entirely if no district here has landform)');
+    }
+    for (const S of Array.isArray(terrain.shelves) ? terrain.shelves : []) {
+      const sw = `terrain.shelf in "${S?.in ?? '?'}"`;
+      if (!isStr(S?.in) || !ids.has(S.in)) { fail(`${sw}: "in" must name a district in this plan — a shelf is one district's own landform`); continue; }
+      if (!isNum(S.x0) || !isNum(S.z0) || !isNum(S.x1) || !isNum(S.z1) || S.x0 >= S.x1 || S.z0 >= S.z1) {
+        fail(`${sw}: must be { in, x0, z0, x1, z1, y } with x0 < x1 and z0 < z1, got ${JSON.stringify(S)}`); continue;
+      }
+      if (!isNum(S.y)) { fail(`${sw}: y (the flat height this shelf holds) must be a number`); continue; }
+      if (S.tone !== undefined && !isStr(S.tone)) { fail(`${sw}: tone must be a string naming a terrain tone`); continue; }
+      const e = plan.districts.find((d) => d.id === S.in)?.envelope;
+      if (!e || !isNum(e.x0)) continue; // the envelope already failed above
+      if (S.x0 < e.x0 - EPS || S.x1 > e.x1 + EPS || S.z0 < e.z0 - EPS || S.z1 > e.z1 + EPS) {
+        fail(`${sw}: the shelf is x ${S.x0}..${S.x1}, z ${S.z0}..${S.z1}, which is not inside "${S.in}"'s envelope ` +
+          `x ${e.x0}..${e.x1}, z ${e.z0}..${e.z1}. A shelf is that district's own landform; one that overhangs is ` +
+          'ground it does not own, and the district next door already has a level there.');
+        continue;
+      }
+      shelfList.push(S);
+    }
+
+    /* mounds: smooth elliptical domes ON TOP of the level/shelf field, for
+     * landform that is not terraced.  They are the only thing in the terrain
+     * that is added to the field rather than declared as a height, so they
+     * are the only thing that can silently move a height somebody was
+     * promised — hence the anchor warning below. */
+    const moundList = [];
+    if (terrain.mounds !== undefined && !Array.isArray(terrain.mounds)) {
+      fail('terrain.mounds: must be an array (omit it entirely if no district here has landform)');
+    }
+    // the terrain's own footprint: city.footprint_m centred on the envelopes'
+    // centre, UNIONED with them (src/core/terrain.js does exactly this)
+    const fp = (() => {
+      const withEnv = plan.districts.filter((d) => d.envelope && isNum(d.envelope.x0));
+      if (!withEnv.length || !isVec(city?.footprint_m, 2)) return null;
+      const u = withEnv.reduce((a, d) => ({
+        x0: Math.min(a.x0, d.envelope.x0), z0: Math.min(a.z0, d.envelope.z0),
+        x1: Math.max(a.x1, d.envelope.x1), z1: Math.max(a.z1, d.envelope.z1),
+      }), { x0: Infinity, z0: Infinity, x1: -Infinity, z1: -Infinity });
+      const [fw, fd] = city.footprint_m;
+      const mx = (u.x0 + u.x1) / 2;
+      const mz = (u.z0 + u.z1) / 2;
+      return {
+        x0: Math.min(u.x0, mx - fw / 2), x1: Math.max(u.x1, mx + fw / 2),
+        z0: Math.min(u.z0, mz - fd / 2), z1: Math.max(u.z1, mz + fd / 2),
+      };
+    })();
+    for (const m of Array.isArray(terrain.mounds) ? terrain.mounds : []) {
+      const mw = `terrain.mound at (${m?.x ?? '?'}, ${m?.z ?? '?'})`;
+      if (!isNum(m?.x) || !isNum(m?.z) || !isNum(m?.rx) || !isNum(m?.rz) || !isNum(m?.h)) {
+        fail(`terrain.mounds entry must be { x, z, rx, rz, h } numbers, got ${JSON.stringify(m)}`); continue;
+      }
+      if (m.rx <= 0 || m.rz <= 0) { fail(`${mw}: rx ${m.rx} and rz ${m.rz} must both be positive — a mound is an ellipse, not a point`); continue; }
+      if (m.h === 0 || Math.abs(m.h) > MOUND_H_MAX) {
+        fail(`${mw}: h ${m.h} — a mound of zero height is nothing and one over ${MOUND_H_MAX} m is a mountain, not landform on a city's ground`);
+        continue;
+      }
+      if (m.tone !== undefined && !isStr(m.tone)) { fail(`${mw}: tone must be a string naming a terrain tone`); continue; }
+      if (fp && (m.x < fp.x0 || m.x > fp.x1 || m.z < fp.z0 || m.z > fp.z1)) {
+        fail(`${mw}: is outside the terrain footprint x ${r2(fp.x0)}..${r2(fp.x1)}, z ${r2(fp.z0)}..${r2(fp.z1)} — ` +
+          'the ground out there is the apron falling away to the skirt, so a mound there is a dome nobody can see or stand on');
+        continue;
+      }
+      /* the mound's peak gradient, from terrain.js's own dome exponent.  A
+       * dome that is steeper than about 1-in-1 is a cliff the walker cannot
+       * climb and the ink pass draws as a black wedge; say so on paper. */
+      const g = (DOME_PEAK_SLOPE * Math.abs(m.h)) / Math.min(m.rx, m.rz);
+      if (g > 1.6) {
+        warn(`${mw}: h ${m.h} over a radius of ${Math.min(m.rx, m.rz)} m peaks at a gradient of ${r2(g)} — ` +
+          'that is a cliff, not a knoll. Nothing can walk it, so every route onto it has to be a crossing, and ' +
+          'the grid pays for it: the cuts that keep a cell falling under 0.30 m run the full width of the city.');
+      }
+      moundList.push(m);
+    }
+
+    /* crossings: exactly one per socket PAIR.  Two entries for one pair is
+     * the double-wall mistake in another costume; zero leaves the two
+     * levels meeting at a cliff with no way across. */
+    if (terrain.crossings !== undefined && !Array.isArray(terrain.crossings)) {
+      fail('terrain.crossings: must be an array (omit it entirely if this city has no sockets)');
+    } else {
+      const byPair = new Map();
+      const internalIds = new Set();
+      for (const c of Array.isArray(terrain.crossings) ? terrain.crossings : []) {
+        /* ---- an INTERNAL climb: no socket, so it joins two heights inside
+         * ONE district instead of two districts across a boundary.  This is
+         * how a district climbs its own rock without laying ground — the
+         * shelf is terrain, the flight up to it is terrain, and the district
+         * dresses both.  Same code path in terrain.js, same going clamp. */
+        if (c?.socket === undefined) {
+          const iw = `terrain.crossing "${c?.id ?? '?'}" (internal, no socket)`;
+          if (!isStr(c?.id) || !/^[a-z0-9][a-z0-9-]*$/.test(c.id)) {
+            fail(`${iw}: a crossing with no "socket" is an internal climb and needs a kebab-case "id" — it is the only name a failure can use`);
+            continue;
+          }
+          if (internalIds.has(c.id) || socketIndex.has(c.id)) fail(`${iw}: id "${c.id}" is already used by another crossing or a socket`);
+          internalIds.add(c.id);
+          if (!isStr(c.in) || !ids.has(c.in)) {
+            fail(`${iw}: "in" must name a district in this plan (have: ${[...ids].join(', ')}) — an internal climb is inside exactly one district`);
+            continue;
+          }
+          if (!isStr(c.kind) || !CROSSING_KINDS.has(c.kind)) fail(`${iw}: kind must be one of ${[...CROSSING_KINDS].join(', ')}, got ${JSON.stringify(c.kind)}`);
+          if (!isVec(c.at, 2)) { fail(`${iw}: at must be [x, z] — the FOOT of the climb, on its centreline`); continue; }
+          if (c.axis !== 'x' && c.axis !== 'z') { fail(`${iw}: axis must be 'x' or 'z' — the direction the climb runs`); continue; }
+          if (!isNum(c.width) || c.width <= 1) { fail(`${iw}: width must be a number > 1 (the clear-passage rule subtracts 1 m)`); continue; }
+          if (!isNum(c.from) || !isNum(c.to)) { fail(`${iw}: from and to must be numbers — the heights at the foot and the head`); continue; }
+          if (Math.abs(c.to - c.from) < AGREE_EPS) {
+            fail(`${iw}: from ${c.from} and to ${c.to} are the same height. A crossing joins two heights; ` +
+              'ground that is already flat needs a shelf or nothing at all, not a flight of no steps.');
+            continue;
+          }
+          if (c.dir !== undefined && c.dir !== 1 && c.dir !== -1) fail(`${iw}: dir must be 1 or -1 (which way along ${c.axis} the climb runs from its foot); default is 1`);
+          if (c.going !== undefined && (!isNum(c.going) || c.going < MIN_GOING_M)) {
+            fail(`${iw}: going ${c.going} is under ${MIN_GOING_M} m. The route gate strides 0.35 m, so one stride crosses ` +
+              'two treads and measures twice the rise — a perfectly good flight is then reported unclimbable.');
+          }
+          if (c.rise !== undefined && (!isNum(c.rise) || c.rise <= 0 || c.rise > 0.35)) fail(`${iw}: rise must be a number in (0, 0.35]`);
+          if (c.grade !== undefined && (!isNum(c.grade) || c.grade <= 0 || c.grade > 0.5)) fail(`${iw}: grade must be a number in (0, 0.5]`);
+
+          /* the rect has to fit the district it is inside: the run along the
+           * axis, and the width across it.  Terrain.js throws on this; on
+           * paper is cheaper, and it names both rectangles. */
+          const e = plan.districts.find((d) => d.id === c.in)?.envelope;
+          if (!e || !isNum(e.x0)) continue;
+          const alongX = c.axis === 'x';
+          const dir = c.dir === -1 ? -1 : 1;
+          const line = alongX ? c.at[0] : c.at[1];
+          const centre = alongX ? c.at[1] : c.at[0];
+          const [lo, hi] = alongX ? [e.x0, e.x1] : [e.z0, e.z1];
+          const [clo, chi] = alongX ? [e.z0, e.z1] : [e.x0, e.x1];
+          if (line < lo - EPS || line > hi + EPS || centre < clo - EPS || centre > chi + EPS) {
+            fail(`${iw}: its foot ${JSON.stringify(c.at)} is not inside "${c.in}"'s envelope x ${e.x0}..${e.x1}, z ${e.z0}..${e.z1}`);
+            continue;
+          }
+          const run = crossingRun(c, c.to - c.from);
+          const end = line + dir * run;
+          if (end < lo - EPS || end > hi + EPS) {
+            fail(`${iw}: climbing ${r2(c.to - c.from)} m needs ${r2(run)} m of run, so it reaches ${c.axis} = ${r2(end)} ` +
+              `from its foot at ${r2(line)} — outside "${c.in}"'s envelope ${c.axis} ${lo}..${hi}. ` +
+              'Move the foot, flip `dir`, or steepen it (rise / grade).');
+            continue;
+          }
+          if (centre - c.width / 2 < clo - EPS || centre + c.width / 2 > chi + EPS) {
+            const cross = alongX ? 'z' : 'x';
+            fail(`${iw}: width ${c.width} centred ${cross} = ${centre} runs ${cross} ` +
+              `${r2(centre - c.width / 2)}..${r2(centre + c.width / 2)}, outside "${c.in}"'s envelope ${cross} ${clo}..${chi}`);
+          }
+          continue;
+        }
+
+        const cw = `terrain.crossing "${c?.socket ?? '?'}"`;
+        if (!isStr(c?.socket)) { fail(`${cw}: socket missing`); continue; }
+        const ref = socketIndex.get(c.socket);
+        if (!ref) { fail(`${cw}: names a socket that is not in this plan`); continue; }
+        if (!isStr(c.kind) || !CROSSING_KINDS.has(c.kind)) {
+          fail(`${cw}: kind must be one of ${[...CROSSING_KINDS].join(', ')}, got ${JSON.stringify(c.kind)}`);
+        }
+        if (c.grade !== undefined && (!isNum(c.grade) || c.grade <= 0 || c.grade > 0.5)) {
+          fail(`${cw}: grade must be a number in (0, 0.5] — 1/8 is the default and 1/6 is the steepest a vehicle takes`);
+        }
+        if (c.going !== undefined && (!isNum(c.going) || c.going < 0.36)) {
+          fail(`${cw}: going ${c.going} is under 0.36 m. The route gate strides 0.35 m, so one stride crosses two ` +
+            'treads and measures twice the rise — a perfectly good flight is then reported unclimbable.');
+        }
+        if (c.rise !== undefined && (!isNum(c.rise) || c.rise <= 0 || c.rise > 0.35)) {
+          fail(`${cw}: rise must be a number in (0, 0.35]`);
+        }
+        const key = [c.socket, ref.socket.mate].sort().join('|');
+        if (byPair.has(key)) {
+          fail(`${cw}: the pair ${key.replace('|', ' <> ')} already has a crossing ("${byPair.get(key)}") — ` +
+            'the terrain builds BOTH halves of one crossing, so declaring it from each end builds it twice');
+        }
+        byPair.set(key, c.socket);
+      }
+      for (const [id, { socket: s }] of socketIndex) {
+        if (!isStr(s.mate)) continue;
+        const key = [id, s.mate].sort().join('|');
+        if (!byPair.has(key)) {
+          fail(`socket "${id}" <> "${s.mate}" has no entry in terrain.crossings — the ground either side of a ` +
+            'socket is at two different levels and nothing joins them. Add { "socket": "' + id + '", "kind": "…" }.');
+        }
+      }
+    }
+
+    /* an anchor is a promise about GROUND, and the terrain is what answers
+     * it: catch the contradiction on paper rather than as a throw halfway
+     * through a build.  The candidates are every height the terrain can
+     * legitimately put under that point — the district's level, any shelf
+     * covering it, any socket here, and either end of an internal climb. */
+    for (const d of plan.districts) {
+      const L = Array.isArray(terrain.levels) ? terrain.levels.find((x) => x?.id === d.id) : null;
+      if (!L || !isNum(L.y)) continue;
+      const anchors = Array.isArray(d.anchors) ? d.anchors : [];
+      if (!anchors.length) continue;
+      const socketY = (d.sockets ?? []).filter((s) => isNum(s.y)).map((s) => s.y);
+      const climbY = (Array.isArray(terrain.crossings) ? terrain.crossings : [])
+        .filter((c) => c?.socket === undefined && c?.in === d.id)
+        .flatMap((c) => [c.from, c.to]).filter(isNum);
+      for (const a of anchors) {
+        if (!isNum(a?.expect_top) || !isNum(a?.x) || !isNum(a?.z)) continue;
+        const tol = isNum(a.tol) ? a.tol : 0.05;
+        const here = shelfList.filter((S) => S.in === d.id && inRect(a.x, a.z, S));
+        const exact = [L.y, ...here.map((S) => S.y)];
+        /* a MOUND is the only thing that can move a promised height without
+         * being declared as one, so it gets its own line: this is the
+         * number, at this point, that the anchor is now off by. */
+        let lift = 0;
+        for (const m of moundList) {
+          const t = 1 - ((a.x - m.x) / m.rx) ** 2 - ((a.z - m.z) / m.rz) ** 2;
+          if (t > 0) lift += m.h * t ** 1.55;
+        }
+        if (lift !== 0 && !here.length) {
+          const reached = exact.some((y) => Math.abs(a.expect_top - (y + lift)) <= tol);
+          if (Math.abs(lift) > tol && !reached) {
+            warn(`district "${d.id}" anchor (${a.x}, ${a.z}) expects ${a.expect_top}, but a mound lifts the ground ` +
+              `there by ${r2(lift)} m over the level of ${L.y} — mounds are added to the field and are only faded to ` +
+              'zero on a shelf or a crossing, so put the anchor on a shelf, move it clear of the mound, or expect the ' +
+              `lifted height (${r2(L.y + lift)}).`);
+            continue;
+          }
+        }
+        if (exact.some((y) => Math.abs(a.expect_top - y) <= tol)) continue;
+        if ([...socketY, ...climbY].some((y) => Math.abs(a.expect_top - y) <= Math.max(tol, 0.3))) continue;
+        warn(`district "${d.id}" anchor (${a.x}, ${a.z}) expects ${a.expect_top} but terrain.levels puts "${d.id}" ` +
+          `at ${L.y}, no shelf covers that point, and no socket or internal climb here promises that height either — ` +
+          'the terrain answers anchors now, so this one will fail at composition unless the district\'s own dressing reaches it.');
+      }
+    }
+
+    if (terrain.surrounds !== undefined) {
+      const s = terrain.surrounds;
+      if (typeof s !== 'object' || s === null) fail('terrain.surrounds: must be an object { kind, y?, water_y?, blend_m? }');
+      else {
+        if (s.kind !== undefined && (!isStr(s.kind) || !SURROUNDS_KINDS.has(s.kind))) {
+          fail(`terrain.surrounds.kind must be one of ${[...SURROUNDS_KINDS].join(', ')}, got ${JSON.stringify(s.kind)}`);
+        }
+        for (const k of ['y', 'water_y', 'blend_m', 'roughness_m']) {
+          if (s[k] !== undefined && !isNum(s[k])) fail(`terrain.surrounds.${k} must be a number`);
+        }
+      }
+    }
+    if (terrain.cell_m !== undefined && (!isNum(terrain.cell_m) || terrain.cell_m < 0.5 || terrain.cell_m > 8)) {
+      fail('terrain.cell_m must be a number in 0.5..8 — the target lattice size on open ground');
+    }
+  }
+
+  /* ---- sight corridors ----------------------------------------------
+   * A cross-district requirement written into ONE district's brief is a
+   * requirement that agent cannot honour: the first city told the headland
+   * that its lighthouse "must read from the row", which is a fact about
+   * the row's massing. */
+  if (plan.sight_corridors !== undefined && !Array.isArray(plan.sight_corridors)) {
+    fail('sight_corridors: must be an array (omit it entirely if this city has none)');
+  }
+  const corridorIds = new Set();
+  for (const c of Array.isArray(plan.sight_corridors) ? plan.sight_corridors : []) {
+    const cw = `sight corridor "${c?.id ?? '?'}"`;
+    if (!isStr(c?.id) || !/^[a-z0-9][a-z0-9-]*$/.test(c.id)) { fail(`${cw}: id must be kebab-case`); continue; }
+    if (corridorIds.has(c.id)) fail(`${cw}: duplicate id`);
+    corridorIds.add(c.id);
+    if (!isVec(c.from, 2)) fail(`${cw}: from must be [x, z]`);
+    if (!isVec(c.to, 2)) fail(`${cw}: to must be [x, z]`);
+    if (isVec(c.from, 2) && isVec(c.to, 2) && Math.hypot(c.to[0] - c.from[0], c.to[1] - c.from[1]) < 1) {
+      fail(`${cw}: from and to are the same point — a corridor is a line of sight between two places`);
+    }
+    if (!isNum(c.half_width) || c.half_width <= 0) fail(`${cw}: half_width must be a positive number`);
+    if (!isNum(c.min_clear_h) || c.min_clear_h <= 0) fail(`${cw}: min_clear_h must be a positive number (the world y the corridor is kept clear at)`);
+    if (!Array.isArray(c.districts) || c.districts.length === 0) {
+      fail(`${cw}: districts[] must name every district this corridor crosses — each one gets the \`why\` verbatim in its brief`);
+    } else {
+      for (const id of c.districts) if (!ids.has(id)) fail(`${cw}: districts names "${id}", which is not a district in this plan`);
+      if (c.districts.length === 1) {
+        warn(`${cw} crosses only "${c.districts[0]}" — a corridor inside one district is that district's own composition, not a contract`);
+      }
+    }
+    if (!isStr(c.why)) fail(`${cw}: why missing — say what this corridor exists to let the player see`);
+    else if (PLACEHOLDER.test(c.why) || /^\s*say what\b/i.test(c.why)) fail(`${cw}: why is template placeholder text: "${c.why.slice(0, 60)}…"`);
+  }
+
+  /* ---- landmark contracts -------------------------------------------
+   * check-city raycasts these now.  An entry with no reader is exactly
+   * what the field was before: decoration. */
+  const vistaNames = new Set((plan.vista_cameras ?? []).map((v) => v?.name).filter(isStr));
+  for (const d of plan.districts) {
+    if (d.landmarks_citywide === undefined) continue;
+    if (!Array.isArray(d.landmarks_citywide)) { fail(`district "${d.id}": landmarks_citywide must be an array`); continue; }
+    for (const l of d.landmarks_citywide) {
+      const lw = `district "${d.id}" landmark`;
+      if (typeof l === 'string') {
+        fail(`${lw} "${l}" is a bare string. A landmark names the vistas and districts it must READ FROM: ` +
+          '{ "object": "…", "must_read_from_vistas": [], "must_read_from_districts": [] }. Written as a string ' +
+          'nothing can check it, which is how the field came to be decoration.');
+        continue;
+      }
+      if (!l || typeof l !== 'object' || !isStr(l.object)) { fail(`${lw}: object missing — name the Object3D check-city should raycast to`); continue; }
+      const vistas = l.must_read_from_vistas ?? [];
+      const from = l.must_read_from_districts ?? [];
+      if (!Array.isArray(vistas) || !Array.isArray(from)) { fail(`${lw} "${l.object}": must_read_from_vistas and must_read_from_districts must be arrays`); continue; }
+      if (vistas.length === 0 && from.length === 0) {
+        fail(`${lw} "${l.object}": names no vista and no district to read from, so nothing checks it. ` +
+          'A landmark contract with no reader is decoration.');
+      }
+      for (const v of vistas) if (!vistaNames.has(v)) fail(`${lw} "${l.object}": must_read_from_vistas names "${v}", which is not a vista camera in this plan`);
+      for (const id of from) {
+        if (!ids.has(id)) fail(`${lw} "${l.object}": must_read_from_districts names "${id}", which is not a district in this plan`);
+        else if (id === d.id) warn(`${lw} "${l.object}" must read from its own district "${d.id}" — that is composition, not a city contract`);
+      }
+    }
+  }
+
+  /* ---- game block (Hollowbrook) ---------------------------------------
+   * The siege vocabulary, on paper: check-game.mjs measures it against the
+   * built scene; this catches the contradictions that need no scene —
+   * an arena outside its district, a spawn ring inside the town, a post
+   * whose shelter is not enterable, an objective naming nothing real. */
+  const game = plan.game;
+  if (game !== undefined) {
+    const gw = 'game';
+    if (!game || typeof game !== 'object') fail(`${gw}: must be an object`);
+    else {
+      const envOf = (id) => plan.districts.find((d) => d.id === id)?.envelope;
+      const inEnv = (e, x, z) => e && isNum(e.x0) && x >= e.x0 - EPS && x <= e.x1 + EPS && z >= e.z0 - EPS && z <= e.z1 + EPS;
+      const inAnyEnv = (x, z) => plan.districts.some((d) => inEnv(d.envelope, x, z));
+      if (!game.player || !isVec(game.player.spawn, 2)) fail(`${gw}.player.spawn must be [x, z]`);
+      else if (!inAnyEnv(...game.player.spawn)) fail(`${gw}.player.spawn ${JSON.stringify(game.player.spawn)} is outside every district`);
+      const gateIds = new Set();
+      for (const g of Array.isArray(game.gates) ? game.gates : []) {
+        const w = `${gw}.gates "${g?.id ?? '?'}"`;
+        if (!isStr(g?.id)) { fail(`${w}: id missing`); continue; }
+        gateIds.add(g.id);
+        if (!ids.has(g.district)) fail(`${w}: district "${g.district}" is not in the plan`);
+        if (!isVec(g.at, 2) || !inEnv(envOf(g.district), ...g.at)) fail(`${w}: at must be [x, z] inside "${g.district}"`);
+        const sr = g.spawn_ring;
+        if (!sr || !isVec(sr.centre, 2) || !isNum(sr.r_min) || !isNum(sr.r_max) || sr.r_min <= 0 || sr.r_max <= sr.r_min) fail(`${w}: spawn_ring must be { centre:[x,z], r_min > 0, r_max > r_min }`);
+        else if (inAnyEnv(...sr.centre)) fail(`${w}: spawn ring centre ${JSON.stringify(sr.centre)} is inside a district — rings stand in the surrounds`);
+        if (!Array.isArray(g.approach) || g.approach.length < 2 || !g.approach.every((p) => isVec(p, 2))) fail(`${w}: approach must be >= 2 points [x, z] from the ring in through the gate`);
+      }
+      if (!gateIds.size) fail(`${gw}.gates: a siege needs at least one gate`);
+      const arenaIds = new Set();
+      for (const a of Array.isArray(game.arenas) ? game.arenas : []) {
+        const w = `${gw}.arenas "${a?.id ?? '?'}"`;
+        if (!isStr(a?.id)) { fail(`${w}: id missing`); continue; }
+        arenaIds.add(a.id);
+        const e = envOf(a.district);
+        if (!e) { fail(`${w}: district "${a.district}" is not in the plan`); continue; }
+        const r = a.rect;
+        if (!r || !isNum(r.x0) || !isNum(r.z0) || !isNum(r.x1) || !isNum(r.z1) || r.x0 >= r.x1 || r.z0 >= r.z1) fail(`${w}: rect must be { x0, z0, x1, z1 }`);
+        else if (r.x0 < e.x0 - EPS || r.x1 > e.x1 + EPS || r.z0 < e.z0 - EPS || r.z1 > e.z1 + EPS) fail(`${w}: rect is not inside "${a.district}"'s envelope`);
+        for (const k of ['min_cover', 'min_elevation', 'min_landmarks']) if (!isNum(a[k]) || a[k] < 0) fail(`${w}: ${k} must be a non-negative number`);
+        if (!gateIds.has(a.approach)) fail(`${w}: approach "${a.approach}" is not a gate`);
+      }
+      const districtsWithArena = new Set([...(game.arenas ?? [])].map((a) => a.district));
+      for (const id of ids) if (!districtsWithArena.has(id)) warn(`${gw}: district "${id}" has no arena — every district is a level in a siege`);
+      const enterables = new Set(plan.districts.flatMap((d) => (d.enterable ?? []).map((en) => en.building)));
+      const postIds = new Set();
+      for (const p of Array.isArray(game.npc_posts) ? game.npc_posts : []) {
+        const w = `${gw}.npc_posts "${p?.id ?? '?'}"`;
+        if (!isStr(p?.id)) { fail(`${w}: id missing`); continue; }
+        postIds.add(p.id);
+        if (!isStr(p.character)) fail(`${w}: character missing (a charforge roster name)`);
+        if (!isVec(p.at, 2) || !inEnv(envOf(p.district), ...p.at)) fail(`${w}: at must be [x, z] inside "${p.district}"`);
+        if (!isVec(p.facing, 2) || Math.abs(Math.hypot(...p.facing) - 1) > 1e-6) fail(`${w}: facing must be a unit [x, z]`);
+        if (p.shelter && !enterables.has(p.shelter)) fail(`${w}: shelter "${p.shelter}" is not a declared enterable building`);
+      }
+      for (const o of Array.isArray(game.objectives) ? game.objectives : []) {
+        const w = `${gw}.objectives "${o?.id ?? '?'}"`;
+        if (!isStr(o?.id)) { fail(`${w}: id missing`); continue; }
+        if (o.kind === 'escort') {
+          if (!postIds.has(o.npc)) fail(`${w}: npc "${o.npc}" is not a post`);
+          if (!isVec(o.from, 2) || !isVec(o.to, 2)) fail(`${w}: from/to must be [x, z]`);
+          if (o.shelter && !enterables.has(o.shelter)) fail(`${w}: shelter "${o.shelter}" is not enterable`);
+        } else if (o.kind === 'activate') {
+          if (!Array.isArray(o.points) || !o.points.every((pt) => isVec(pt, 2))) fail(`${w}: points must be [[x, z]...]`);
+          else if (!isNum(o.count) || o.count > o.points.length) fail(`${w}: count must be <= points.length`);
+          if (o.district && !ids.has(o.district)) fail(`${w}: district "${o.district}" is not in the plan`);
+        } else if (o.kind === 'hold') {
+          if (!arenaIds.has(o.arena)) fail(`${w}: arena "${o.arena}" is not an arena`);
+          if (!isNum(o.seconds) || o.seconds <= 0) fail(`${w}: seconds must be > 0`);
+        } else if (o.kind === 'interact') {
+          const d = plan.districts.find((x) => x.id === o.district);
+          if (!d || !(d.interactions ?? []).some((i) => i.name === o.interaction)) fail(`${w}: interaction "${o.interaction}" is not declared in "${o.district}"`);
+        } else fail(`${w}: unknown kind "${o.kind}" (escort | activate | hold | interact)`);
+      }
+    }
+  }
+
+  return { ok: failures.length === 0, failures, warnings };
+}
+
+/* ---- CLI ---- */
+const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].split(/[\\/]/).pop());
+if (isMain) {
+  const file = process.argv[2] ?? new URL('../city-plan.json', import.meta.url).pathname;
+  let plan;
+  try {
+    plan = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (error) {
+    console.error(`[validate-city-plan] cannot read ${file}: ${error.message}`);
+    process.exit(2);
+  }
+  const { ok, failures, warnings } = validatePlan(plan);
+  const count = plan.districts?.length ?? 0;
+  const sockets = (plan.districts ?? []).reduce((n, d) => n + (d.sockets?.length ?? 0), 0);
+  const features = (plan.boundary_features ?? []).length;
+  const cross = plan.terrain?.crossings ?? [];
+  const internal = cross.filter((c) => c?.socket === undefined).length;
+  console.log(`city plan: ${count} districts, ${sockets} sockets, ${features} boundary features, ` +
+    `${(plan.terrain?.levels ?? []).length} terrain levels, ${(plan.terrain?.shelves ?? []).length} shelves, ` +
+    `${(plan.terrain?.mounds ?? []).length} mounds, ${cross.length} crossings (${internal} internal), ` +
+    `${(plan.sight_corridors ?? []).length} sight corridors, ` +
+    `${(plan.vista_cameras ?? []).length} vistas, surrounds owned by "${plan.surrounds?.owner ?? '—'}", game: ${(plan.game?.arenas ?? []).length} arenas / ${(plan.game?.gates ?? []).length} gates / ${(plan.game?.npc_posts ?? []).length} posts / ${(plan.game?.objectives ?? []).length} objectives — ${file}`);
+  for (const f of failures) console.log(`FAIL ${f}`);
+  for (const w of warnings ?? []) console.log(`WARN ${w}`);
+  if (ok) console.log('PASS — plan is well-formed: envelopes disjoint, sockets paired, terrain levels every district and ' +
+    'crosses every socket, boundary features on real shared edges and singly owned, surrounds owned, sight corridors and ' +
+    'landmark contracts readable, every district interacts, compass and sun resolvable, no cycles, no placeholder prose');
+  process.exit(ok ? 0 : 1);
+}

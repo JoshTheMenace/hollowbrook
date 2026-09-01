@@ -1,0 +1,27 @@
+{
+  "name": "hollowbrook",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Hollowbrook — a first-person siege in a walled fantasy town (scene pipeline + CharForge + SoundForge)",
+  "engines": { "node": ">=20.10" },
+  "scripts": {
+    "dev": "vite --port 5220",
+    "build": "vite build",
+    "preview": "vite preview --port 5221",
+    "validate": "node scripts/validate-city-plan.mjs",
+    "check:terrain": "node scripts/check-terrain.mjs",
+    "check:nav": "node scripts/check-nav.mjs",
+    "check:city": "node scripts/check-city.mjs",
+    "check:game": "node scripts/check-game.mjs",
+    "check": "node scripts/validate-city-plan.mjs && node scripts/check-terrain.mjs && node scripts/check-nav.mjs && node scripts/check-city.mjs",
+    "gates": "for s in validate-city-plan check-terrain check-nav check-city check-cameras check-spatial check-game check-interactions check-arena-visibility check-feel check-feel-ladder check-contract-drift simulate-siege check-music check-npc-soak check-shell-persistence; do echo \"== $s\"; node scripts/$s.mjs > /dev/null 2>&1 && echo PASS || echo FAIL; done"
+  },
+  "dependencies": {
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.9.0",
+    "vite": "^6.0.0"
+  }
+}

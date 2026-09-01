@@ -76,7 +76,7 @@
       { "in": "wardrow", "x0": 48.8, "z0": -18.0, "x1": 51.2, "z1": 18.5, "y": 5.0, "tone": "paving", "$comment": "east wall-walk, north of the east gate" },
       { "in": "wardrow", "x0": 48.8, "z0": 25.5,  "x1": 51.2, "z1": 51.2, "y": 5.0, "tone": "paving", "$comment": "east wall-walk, south of the east gate" },
       { "in": "wardrow", "x0": 18.0, "z0": 48.8,  "x1": 51.2, "z1": 51.2, "y": 5.0, "tone": "paving", "$comment": "south wall-walk, east run" },
-      { "in": "wardrow", "x0": 45.8, "z0": 4.0,   "x1": 48.8, "z1": 7.0,   "y": 5.0, "tone": "paving", "$comment": "stair-head landing" }
+      { "in": "wardrow", "x0": 45.8, "z0": 40.0,  "x1": 48.8, "z1": 43.0,  "y": 5.0, "tone": "paving", "$comment": "stair-head landing — SOUTH of the east gate: the walk segment south of that gap (east walk S + south walk E + southgate's east half) has no other stair until the gatehouses bridge the gaps, while the segment north of it reaches keephill's stair through the keep-walk-e socket" }
     ],
     "mounds": [
       { "x": 2.0, "z": -34.0, "rx": 19.0, "rz": 17.0, "h": 3.0, "tone": "bank", "$comment": "the keep mound; fades to zero at the ward's and the keep's shelf edges, so each has a revetment cliff the district dresses" }
@@ -107,7 +107,7 @@
       { "id": "keep-wall-stair",  "in": "keephill",  "kind": "stairs", "at": [30.6, -47.3], "axis": "x", "dir": 1, "width": 1.6, "from": 0.0, "to": 5.0, "rise": 0.2, "going": 0.4 },
       { "id": "mill-wall-stair",  "in": "millreach", "kind": "stairs", "at": [-47.3, 20.6], "axis": "z", "dir": 1, "width": 1.6, "from": 0.0, "to": 5.0, "rise": 0.2, "going": 0.4 },
       { "id": "close-wall-stair", "in": "chapelclose", "kind": "stairs", "at": [-42.5, -47.3], "axis": "x", "dir": 1, "width": 1.6, "from": 0.0, "to": 5.0, "rise": 0.2, "going": 0.4 },
-      { "id": "row-wall-stair",   "in": "wardrow",   "kind": "stairs", "at": [47.3, -5.4], "axis": "z", "dir": 1, "width": 1.6, "from": 0.0, "to": 5.0, "rise": 0.2, "going": 0.4 }
+      { "id": "row-wall-stair",   "in": "wardrow",   "kind": "stairs", "at": [47.3, 30.6], "axis": "z", "dir": 1, "width": 1.6, "from": 0.0, "to": 5.0, "rise": 0.2, "going": 0.4 }
     ],
     "surrounds": { "kind": "moor", "y": -0.4, "blend_m": 8.0, "roughness_m": 0.3 }
   },
@@ -251,7 +251,7 @@
       ],
       "anchors": [
         { "x": 0, "z": 0, "expect_top": -1.4, "tol": 0.05 },
-        { "x": 0, "z": -15, "expect_top": 0.0, "tol": 0.05 },
+        { "x": 6, "z": -15, "expect_top": 0.0, "tol": 0.05 },
         { "x": -14.2, "z": 6, "expect_top": 0.0, "tol": 0.05 },
         { "x": 15, "z": -8, "expect_top": 0.0, "tol": 0.05 }
       ],
@@ -299,17 +299,17 @@
       ],
       "anchors": [
         { "x": 30, "z": -26, "expect_top": 0.0, "tol": 0.05 },
-        { "x": 0, "z": -30, "expect_top": 2.6, "tol": 0.05 },
+        { "x": -10, "z": -30, "expect_top": 2.6, "tol": 0.05 },
         { "x": 4, "z": -36, "expect_top": 5.2, "tol": 0.05 },
         { "x": 30, "z": -50, "expect_top": 5.0, "tol": 0.05 },
         { "x": 41.5, "z": -47.3, "expect_top": 5.0, "tol": 0.05 },
         { "x": 50, "z": -30, "expect_top": 5.0, "tol": 0.05 }
       ],
       "waypoints": [
-        { "name": "the keep stair foot", "x": 0, "z": -20.5 },
-        { "name": "the lower ward", "x": 0, "z": -30 },
+        { "name": "the keep stair foot", "x": 0, "z": -19.2 },
+        { "name": "the lower ward", "x": -10, "z": -34 },
         { "name": "the keep platform", "x": 4, "z": -38 },
-        { "name": "the bell tower foot", "x": 8.5, "z": -41 },
+        { "name": "the bell tower foot", "x": 8.5, "z": -36.5 },
         { "name": "the north wall-walk", "x": 30, "z": -50 },
         { "name": "the yew close", "x": 36, "z": -30 },
         { "name": "the east wall-walk, north end", "x": 50, "z": -30 }
@@ -433,7 +433,7 @@
     {
       "id": "wardrow",
       "name": "The Ward Row",
-      "brief": "The east of the town: a close-set row of crooked cottages along the row lane from the market's east stair to the EAST GATE — the second gate, and wave 3's breach. A. STANHOPE'S SMITHY (ENTERABLE — the smith's post and shelter, the barricade beat's start, the forge banked) stands at the north end by the lane from Keep Hill; THE PLOUGH & LANTERN inn at the south end; kitchen gardens, washing lines, the bake-oven, and three BARRICADE points on the lane that the smith and the player raise in breather 2 (the kit's barricade: two states, collider toggle). The east and south-east wall-walks with the SE tower and the stair turret at z 4 are this district's high ground. The east gate spans the terrain gap at z 18.5..25.5 the same way the south gatehouse does. COVER: the lane needs at least six obstacles once the barricades are up and four before; the smithy yard three. SIGHT LINES: the down-the-row vista from the market stair to the gate; keep-sees-eastgate from the keep. CHOKEPOINTS: the barricades and the gate passage. Accent: the painted doors, one bottle-green family. Ten minutes ago: doors slammed, a ladder left against an eave, the forge fire fed one last time.",
+      "brief": "The east of the town: a close-set row of crooked cottages along the row lane from the market's east stair to the EAST GATE — the second gate, and wave 3's breach. A. STANHOPE'S SMITHY (ENTERABLE — the smith's post and shelter, the barricade beat's start, the forge banked) stands at the north end by the lane from Keep Hill; THE PLOUGH & LANTERN inn at the south end; kitchen gardens, washing lines, the bake-oven, and three BARRICADE points on the lane that the smith and the player raise in breather 2 (the kit's barricade: two states, collider toggle). The east and south-east wall-walks with the SE tower and the stair turret at z 40 (south of the gate, so the south-east run has its own way up) are this district's high ground. The east gate spans the terrain gap at z 18.5..25.5 the same way the south gatehouse does. COVER: the lane needs at least six obstacles once the barricades are up and four before; the smithy yard three. SIGHT LINES: the down-the-row vista from the market stair to the gate; keep-sees-eastgate from the keep. CHOKEPOINTS: the barricades and the gate passage. Accent: the painted doors, one bottle-green family. Ten minutes ago: doors slammed, a ladder left against an eave, the forge fire fed one last time.",
       "envelope": { "x0": 18, "z0": -18, "x1": 54, "z1": 54 },
       "after": ["southgate", "marketlow", "keephill"],
       "sockets": [
@@ -446,7 +446,7 @@
       "anchors": [
         { "x": 36, "z": 20, "expect_top": 0.0, "tol": 0.05 },
         { "x": 50, "z": 0, "expect_top": 5.0, "tol": 0.05 },
-        { "x": 47.3, "z": 5.5, "expect_top": 5.0, "tol": 0.05 },
+        { "x": 47.3, "z": 41.5, "expect_top": 5.0, "tol": 0.05 },
         { "x": 36, "z": 50, "expect_top": 5.0, "tol": 0.05 },
         { "x": 50, "z": 22, "expect_top": 0.0, "tol": 0.05 }
       ],

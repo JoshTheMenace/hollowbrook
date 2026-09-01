@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Hollowbrook — the town viewer (no game layer): walk the terrain and the districts as they land." />
+    <title>Hollowbrook — town</title>
+  </head>
+  <body>
+    <canvas id="view" tabindex="0" aria-label="Walk Hollowbrook" aria-describedby="prompt" aria-keyshortcuts="Enter Space W A S D ArrowUp ArrowDown ArrowLeft ArrowRight E R Escape"></canvas>
+    <div id="hud" aria-live="polite">
+      <p id="prompt">Click to walk · WASD to move · Shift to sprint · E to interact · R to reset</p>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

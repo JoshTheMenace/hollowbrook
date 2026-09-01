@@ -1,0 +1,113 @@
+/**
+ * The sun, derived from the plan's own compass.
+ *
+ * A city plan says things like "low sun from the south-east rakes the east
+ * faces".  That sentence is meaningless until the plan also says which way
+ * north is, and it is worse than meaningless if the light rig disagrees with
+ * it: every district art-directs to the light it can see, nobody owns the
+ * contradiction, and it only surfaces when someone reads the plan and the rig
+ * side by side.  So the rig is computed here from `city.compass` and
+ * `city.sun` and is never hand-placed.
+ */
+
+const BEARINGS = {
+  n: 0, north: 0, ne: 45, northeast: 45, e: 90, east: 90, se: 135, southeast: 135,
+  s: 180, south: 180, sw: 225, southwest: 225, w: 270, west: 270, nw: 315, northwest: 315,
+};
+
+/** Bearing in degrees clockwise from north, from a name or a number. */
+export function bearingOf(spec) {
+  if (typeof spec === 'number') return spec;
+  const key = String(spec).toLowerCase().replace(/[^a-z]/g, '');
+  if (!(key in BEARINGS)) throw new Error(`sunrig: unknown bearing "${spec}"`);
+  return BEARINGS[key];
+}
+
+/**
+ * Where to stand the directional light so it shines FROM the plan's bearing.
+ * With north = n in the xz plane, east is n turned a quarter clockwise seen
+ * from above -- (-nz, nx) -- and a bearing is measured clockwise from north,
+ * so the horizontal direction is n·cos(b) + e·sin(b).
+ */
+export function sunPosition({ compass, sun }, distance = 60) {
+  const [nx, nz] = compass?.north_xz ?? [0, -1];
+  const len = Math.hypot(nx, nz);
+  if (!len) throw new Error('sunrig: compass.north_xz has zero length');
+  const n = [nx / len, nz / len];
+  const e = [-n[1], n[0]];
+  const b = (bearingOf(sun?.bearing ?? 'south-east') * Math.PI) / 180;
+  const el = ((sun?.elevation_deg ?? 22) * Math.PI) / 180;
+  const flat = distance * Math.cos(el);
+  return [
+    (n[0] * Math.cos(b) + e[0] * Math.sin(b)) * flat,
+    distance * Math.sin(el),
+    (n[1] * Math.cos(b) + e[1] * Math.sin(b)) * flat,
+  ];
+}
+
+/** The fill sits in the opposite quarter, lower and cooler. */
+export function fillPosition(plan, distance = 40) {
+  const p = sunPosition(plan, distance);
+  return [-p[0], Math.abs(p[1]) * 0.55, -p[2]];
+}
+
+/** A shadow cascade that covers the whole footprint rather than a vignette. */
+export function shadowRadius(footprint_m = [40, 40]) {
+  return Math.max(4, (Math.max(footprint_m[0], footprint_m[1]) / 2) * 1.15);
+}
+
+/**
+ * The far plane a CITY needs, derived from the plan rather than left at the
+ * vignette's constant.
+ *
+ * This is the same failure as a hand-placed sun contradicting the compass,
+ * and it is worse because it is silent.  Measured on a 96 m town whose
+ * arrival vista stands 62 m outside the footprint: the camera's far plane
+ * was 110 m and the vista's own declared subject stood at 110.2 m — the
+ * landmark the whole route points at was being clipped by the far plane,
+ * and `fogRange`'s clamp (which reads that same far) then put 58 % of
+ * aerial perspective on it.  Every gate was green; the subject was a
+ * ghost.  A vista camera must be able to see the far side of the town
+ * from where it stands, so derive the plane from where the cameras
+ * actually are.
+ *
+ * @param {{footprint_m?: number[]}} city
+ * @param {{position:number[], target:number[]}[]} [vistas] the plan's vista_cameras
+ * @param {number} [margin] fraction of headroom past the furthest reach
+ */
+export function cameraFar({ footprint_m = [40, 40] } = {}, vistas = [], margin = 0.15) {
+  const diag = Math.hypot(footprint_m[0], footprint_m[1]);
+  let reach = diag;
+  for (const v of vistas ?? []) {
+    if (!v?.position || !v?.target) continue;
+    const standoff = Math.hypot(v.position[0] - v.target[0], v.position[1] - v.target[1], v.position[2] - v.target[2]);
+    // the target is somewhere in the town; the town runs on past it
+    reach = Math.max(reach, standoff + diag * 0.5);
+  }
+  return Math.ceil((reach * (1 + margin)) / 10) * 10;
+}
+
+/**
+ * Aerial perspective scaled to the world, not to a vignette.
+ *
+ * The starter's default fog (26..100 m) is tuned for a ~40 m room.  Left alone
+ * on a 68 m city it fogs the town out before a vista camera reaches it -- the
+ * same class of bug as a hand-placed sun contradicting the plan's compass: an
+ * atmosphere constant that quietly stops being true when the world grows.
+ * The ratio below reproduces the vignette default at vignette size, so this
+ * only ever changes anything for a world bigger than one.
+ */
+export function fogRange(footprint_m = [40, 40], cameraFar = null) {
+  const diag = Math.hypot(footprint_m[0], footprint_m[1]);
+  let near = diag * 0.50;
+  let far = diag * 1.90;
+  /* Clamp against the camera: on a 96 m town the unclamped range is
+   * 68..258 against a 110 m far plane, i.e. ~3% fog density at the distance
+   * a vista's own subject stands -- the atmosphere scaled itself out of the
+   * frame.  Aerial perspective only exists if the far value is reachable. */
+  if (cameraFar && far > cameraFar * 1.5) {
+    far = cameraFar * 1.5;
+    near = Math.min(near, far * 0.28);
+  }
+  return { near, far };
+}
