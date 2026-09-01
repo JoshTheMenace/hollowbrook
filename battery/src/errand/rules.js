@@ -102,8 +102,10 @@ export class ErrandRun {
         this.fx.emit('string-glow', { pos: { ...LAYOUT.string } });
         return { ok: true, type: 'string', lit: true };
       }
+      // a look, not an action: truthful event, but NOT an ok press (r2:
+      // ok:true on a refused press is the observability gate's blind spot)
       this.fx.emit('string-dark', { missing: 3 - this.candles.size, pos: { ...LAYOUT.string } });
-      return { ok: true, type: 'string', lit: false };
+      return { ok: false, type: 'string', lit: false, looked: true };
     }
   }
 
@@ -140,6 +142,13 @@ export class ErrandRun {
     if (!snap || snap.v !== 1 || !STAGES.includes(snap.stage) || !Array.isArray(snap.candles)) return run;
     const known = new Set(LAYOUT.candles.map((c) => c.id));
     if (!snap.candles.every((id) => known.has(id))) return run;
+    // semantic consistency: return/done imply the string is lit, relight
+    // implies all three candles — an inconsistent snapshot restores fresh
+    // (r2: `done + lit:false` restored verbatim and the untruthful string
+    // came back through the restore path)
+    if ((snap.stage === 'return' || snap.stage === 'done') && !snap.lit) return run;
+    if ((snap.stage === 'relight' || snap.stage === 'return' || snap.stage === 'done') && snap.candles.length !== 3) return run;
+    if ((snap.stage === 'meet' || snap.stage === 'find') && snap.lit) return run;
     run.stage = snap.stage;
     run.candles = new Set(snap.candles);
     run.lit = !!snap.lit;
