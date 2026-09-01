@@ -175,7 +175,7 @@ export class Hero {
     // and up so the horde is ON SCREEN — the audit measured 41 enemies alive
     // with 1 in the frustum through the exploration camera, and the play
     // camera is the only camera whose evidence counts.
-    const wantDist = this.battleCam ? 13 : 4.4;
+    const wantDist = this.battleCam ? (this.battleDist ?? 13) : 4.4;
     const wantPitch = this.battleCam ? -1.08 : this.camPitch;  // near-overhead: back-spawns must be seen
     this._dist = (this._dist ?? this.dist) + (wantDist - (this._dist ?? this.dist)) * (1 - Math.exp(-3.5 * dt));
     this._pitch = (this._pitch ?? this.camPitch) + (wantPitch - (this._pitch ?? this.camPitch)) * (1 - Math.exp(-3.5 * dt));

@@ -12,11 +12,17 @@ import { WEAPONS, PASSIVES, ENEMIES, WAVES, EVENTS, HP_SCALE, XP_CURVE, RUN_LENG
 const BOUND = 11;              // default square arena half-size (the sim gate's arena)
 
 export class Run {
-  constructor({ character = 'ronin', fx = {}, rng = Math.random, bounds = null } = {}) {
+  // timeline (optional): { length, events, waves } or { length, events, at(t) -> {spawnEvery, mix} }
+  // — a game can supply its own choreography (battery B4); default is the
+  // data.js 8-minute run, unchanged for nightbloom and the balance sim.
+  constructor({ character = 'ronin', fx = {}, rng = Math.random, bounds = null, timeline = null } = {}) {
     const c = PLAYABLES[character];
     this.character = character;
     this.fx = fx;
     this.rng = rng;
+    this.timeline = timeline ?? { length: RUN_LENGTH, events: EVENTS, waves: WAVES };
+    this.recentHurt = [];        // [t, dmg] for pressure()
+    this.recentKills = [];       // [t]
     this.time = 0;
     this.kills = 0;
     this.gold = 0;
@@ -85,7 +91,25 @@ export class Run {
   }
 
   // --- spawning ------------------------------------------------------------
-  wave() { return WAVES.find((w) => this.time < w.until) || WAVES[WAVES.length - 1]; }
+  wave() {
+    const tl = this.timeline;
+    if (tl.at) return tl.at(this.time);
+    return tl.waves.find((w) => this.time < w.until) || tl.waves[tl.waves.length - 1];
+  }
+
+  // measured-threat inputs over a trailing window (battery B4's intensity
+  // instrument): live enemies near the player, damage taken, kills
+  pressure(radius = 8, window = 3) {
+    const t0 = this.time - window;
+    while (this.recentHurt.length && this.recentHurt[0][0] < t0) this.recentHurt.shift();
+    while (this.recentKills.length && this.recentKills[0] < t0) this.recentKills.shift();
+    let near = 0, elite = false;
+    for (const e of this.enemies) {
+      if (e.dead) continue;
+      if (e.pos.distanceTo(this.playerPos) < radius) { near++; if (e.def.elite) elite = true; }
+    }
+    return { near, elite, hurt: this.recentHurt.reduce((s, h) => s + h[1], 0), kills: this.recentKills.length };
+  }
 
   pickEnemy(mix) {
     let total = 0;
@@ -97,10 +121,11 @@ export class Run {
 
   spawnEnemy(id, pos) {
     const def = ENEMIES[id];
+    const scale = this.timeline.hpScale ? this.timeline.hpScale(this.time) : HP_SCALE(this.time);
     const e = {
       id, def,
-      hp: def.hp * HP_SCALE(this.time),
-      maxHp: def.hp * HP_SCALE(this.time),
+      hp: def.hp * scale,
+      maxHp: def.hp * scale,
       pos: pos.clone(),
       vel: new THREE.Vector3(),
       knock: new THREE.Vector3(),
@@ -139,6 +164,7 @@ export class Run {
     if (e.hp <= 0) {
       e.dead = true;
       this.kills++;
+      this.recentKills.push(this.time);
       const gem = { pos: e.pos.clone(), xp: e.def.xp, gold: e.def.gold, t: 0, magnet: false };
       this.gems.push(gem);
       this.fx.gemSpawn?.(gem);
@@ -150,6 +176,7 @@ export class Run {
     if (this.invuln > 0 || this.over) return;
     this.stats.hp -= dmg;
     this.invuln = 0.6;
+    this.recentHurt.push([this.time, dmg]);
     this.fx.playerHurt?.(dmg);
     if (this.stats.hp <= 0) {
       this.stats.hp = 0;
@@ -162,7 +189,7 @@ export class Run {
   update(dt, moveDir) {
     if (this.over) return;
     this.time += dt;
-    if (this.time >= RUN_LENGTH) {
+    if (this.time >= this.timeline.length) {
       this.over = 'victory';
       this.fx.victory?.();
       return;
@@ -186,15 +213,15 @@ export class Run {
       this.spawnTimer = wave.spawnEvery;
       this.spawnEnemy(this.pickEnemy(wave.mix), this.edgeSpawnPos());
     }
-    for (const ev of EVENTS) {
+    for (const ev of this.timeline.events) {
       if (this.time >= ev.at && !this.eventsFired.has(ev.at)) {
         this.eventsFired.add(ev.at);
-        if (ev.type === 'elite') this.spawnEnemy('brute_elite', this.edgeSpawnPos());
+        if (ev.type === 'elite') this.spawnEnemy(ev.enemy ?? 'brute_elite', this.edgeSpawnPos());
         if (ev.type === 'ring') {
           for (let i = 0; i < ev.count; i++) {
             const a = (i / ev.count) * Math.PI * 2;
             this.spawnEnemy(ev.enemy, new THREE.Vector3(
-              this.playerPos.x + Math.cos(a) * 7, 0, this.playerPos.z + Math.sin(a) * 7));
+              this.playerPos.x + Math.cos(a) * (ev.radius ?? 7), 0, this.playerPos.z + Math.sin(a) * (ev.radius ?? 7)));
           }
         }
       }
