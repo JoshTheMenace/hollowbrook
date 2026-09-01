@@ -102,12 +102,43 @@ CURVE.length = 10
 TRACK.minR = 0.75
 TRACK.maxMAE = 0.18
 TRACK.breatherDrop = 0.15
-SPAWN.everyMax = 1.6
-SPAWN.everyMin = 0.28
+SPAWN.everyMax = 1.8
+SPAWN.everyMin = 0.5
+SPAWN.hpScaleMax = 1.5
 CLIMAX.at = 150
 CLIMAX.minMusic = 0.82
 ```
 
 ## Amendments
 
-(none yet)
+**A1 (first headless measurement, before any code change to the ride).**
+`check-ride.mjs` at the contract's original constants (SPAWN.everyMin
+0.28, everyMax 1.6, 8-minute HP scaling inherited from data.js):
+
+- Winnability: novice 0/6 (survived 133, 134, 88, 122, 89, 153 s), expert
+  0/6 (113, 151, 62, 83, 59, 86 s). Nobody reaches the climax.
+- Elite alive during the 150–172 s hold on 1/6 expert seeds.
+- Breather drop: median 0.000 — the measured curve never comes down
+  because the board never clears; tracking r 0.750 / MAE 0.114 only
+  because the first 60 s track before the backlog swamps everything.
+- Headroom: expert 70 vs novice 145 kills — the faster-reacting bot
+  jitters (re-decides every 120 ms) and dies sooner; an instrument
+  artifact, not a design signal.
+
+Cause, by design: the intent→cadence map put 8-minute late-game density
+(0.28 s spawns ≈ the 400 s+ wave) at 150 s on a character with two
+minutes of upgrades, and the elite inherited `HP_SCALE(150)` ≈ 1.95×
+(≈ 819 HP). The ride must own its own scaling.
+
+Design changes (numbers moved, failed numbers kept above):
+- `SPAWN.everyMin` 0.28 → **0.5**, `SPAWN.everyMax` 1.6 → **1.8**.
+- The timeline owns enemy HP scaling: `hpScale = 1 + intent ×
+  (SPAWN.hpScaleMax − 1)`, max **1.5** (substrate: `Run` reads
+  `timeline.hpScale?.(t)` before falling back to `HP_SCALE`).
+- Instrument, not design: the ride's referee bot becomes the campaign's
+  standard survivors kiting policy (circle-strafe + hard dodge + gem sweep
+  + wall bias, from nightbloom's `__playCheck` / `simulate-run`) with the
+  same actuation-noise profiles. The weak first bot is retired.
+
+The tracking, breather, climax, winnability and headroom windows are
+unchanged. Whatever the second measurement says is recorded as-is.
