@@ -94,3 +94,21 @@ must match the player's" (nightbloom-play-review-r1).
 | Writing captures into `.shots/` mid-run triggered a Vite HMR full reload and destroyed the run | Exclude `.shots/` from the watcher in every entry (`server.watch.ignored`). |
 | A backgrounded Browser-pane tab throttles rAF: typewriter/gestures froze and the "mid-gesture" capture was the rest pose | Evidence hooks advance the sim explicitly (`sim(dt)` ×N) — capture cadence never depends on rAF. |
 | Kit glows bake their offset into merged geometry; `getWorldPosition` returned the group origin for every lantern (six practicals stacked underground) | Locate a mesh by its geometry bounding-sphere center in world space, not its transform. |
+
+## Battery reviews, second wave (B2 r3, B3 r2, B4 r0) — evidence and attribution
+
+| Trap | The rule |
+|---|---|
+| B3 r2: `check-errand-shell` PASSED "relight: string lit" by reading a state flag while its OWN captured frame (er2-relit) contained no lantern — the six lanterns project 35–48% above the top of the frame from the interaction spot | **A gate that captures a frame must assert on that frame. A state flag proves the code ran; only the pixels prove the player saw it. Payoffs are gated on legibility from the interaction spot through the play camera.** (verbatim, errand-play-review-r2) |
+| B3 r2: three existing Performer gates would pass a Performer playing every verb backwards (bow's head sign inverted: chin UP) | Gesture gates carry a SIGNED-direction table per verb (nod: head down; bow: torso forward + head down; wave: arm up); bounded-and-back-at-rest is necessary, not sufficient. |
+| B3 r2: `reloadAndCompare` held by construction — nothing moved between the save and the reload | A persistence gate must WALK between the save and the reload; equality that cannot fail proves nothing. |
+| B2 r3 / B3 r2: 72–100 % of the colour deltas the B2 bundle claimed shipped inside a commit titled "B3 round 2…"; the B3 contract's constants block landed under "B1 Amendment A6" | **A commit contains only what its message describes; cross-entry changes get their own commit.** Contract edits for entry X are X's amendments, never a rider on another entry's commit. |
+| B2 r3: a bundle block labelled "verbatim" did not reproduce at the cited commit (retyped from an earlier run) | A block labelled verbatim is PASTED from the run at the cited commit, never retyped or carried forward. |
+| B3 r2: the evidence set changed (er-candle dropped, er2-open added) with no amendment | Evidence-set changes are amendments. |
+| B3 r2: the drift gate's baseline was transcribed FROM the code after implementation — it could not fail on the day it was written | **A drift gate's baseline must predate the code it guards, or be labelled as recorded.** Constants copied from code are marked "recorded, not designed" in the contract, and any later change to them needs a design justification. |
+| B2 r3: the rendered-gate mask counted the cast shadow as character (13–31 % of the mask was ground); body-only, the portrait check flips to FAIL | Judging-space masks come from object ID / stencil, never from a with/without pixel diff — a shadow is a difference too. |
+| B2 r3: a wholly-indigo character at exactly the owned satCap passes every gate (defeat J) | An owned accent carries a share × saturation BUDGET, and day value is gated, not only night. |
+| B4 r0: the camera occluder set included the player's own body — the pullback probe hit his hair and parked the camera inside his head (p10 0, legibility 0.02) | Occluders are world geometry only; never pass the whole scene. |
+| B4 r0: a burst fired AT a curve keyframe registers 3–4 s late (spawn, walk-in, smoothing) — the measured shape was the intent shape shifted late | Choreography LEADS the beat by the instrument's declared lag; the gate does not forgive the lag. |
+| B4 r0: kills as a headroom axis saturated by construction (the script guarantees every spawn dies) — 1.06× at any skill | Pick a headroom axis that the design leaves free to vary; substitution requires coordinator sign-off with the failed number kept (granted here: damage per minute survived, floored denominator). |
+| B4 r0: an autoplay instrument tripped the player's upgrade cards and froze the sim | Instruments bypass player-facing choices explicitly; the bypass is a flag on the instrument, never on the game. |
