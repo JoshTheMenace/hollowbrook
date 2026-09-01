@@ -8,8 +8,9 @@ a flat drip, and prove it with a gate that measures the shape the player
 actually experiences against the shape the designer wrote.
 
 **Skill axis: HYBRID (execution + reaction), declared.** Headroom
-instrument: actuation-noise profiles on the same policy — expert (120 ms /
-4°) vs novice (340 ms / 16°) — the B1 taxonomy. The winnability referee is
+instrument: actuation-noise profiles on the same policy — expert
+(`EXPERT.delay` 0.12 s / 4°) vs novice (`NOVICE.delay` 0.34 s / 16°) — the
+B1 taxonomy. The winnability referee is
 the NOVICE bot (nightbloom lesson: a clean-information bot certifies
 nothing about humans).
 
@@ -32,7 +33,8 @@ reads it every frame (linear interpolation). Three minutes:
 | 180 | 0.10 | release — silence but the practicals, the last kill echoes |
 
 What the intent curve DRIVES (each a pure function of intent):
-- **spawn cadence**: `spawnEvery = lerp(1.6 s, 0.28 s, intent)`; **mix**
+- **spawn cadence**: `spawnEvery = lerp(SPAWN.everyMax, SPAWN.everyMin, intent)`
+  (1.8 s → 0.6 s after A1/A4; the original 1.6/0.28 are in the log); **mix**
   widens with intent (slime → bat → bonehead → imp → wisp; the elite is a
   scripted event at 150 s, never a mix roll).
 - **music**: `AdaptiveMusic.setIntensity(intent)` — the loop's tier
@@ -48,11 +50,12 @@ What the intent curve DRIVES (each a pure function of intent):
 ## What must hold (gated)
 
 1. **Tracking** — the MEASURED intensity (a normalized blend of threat
-   pressure: live enemies within 8 m, incoming-damage rate, kill rate,
-   smoothed over 3 s) tracks the intent curve: Pearson r ≥ 0.75 over the
-   run and mean absolute error ≤ 0.18, for the router bot at EXPERT noise.
-   Breathers are real: measured intensity at 45 s and 95 s is at least 0.15
-   below its value at the preceding peak.
+   pressure: live enemies within `TRACK.radius` (8 m), incoming-damage
+   rate, kill rate, smoothed over `TRACK.smooth` (3 s)) tracks the intent
+   curve: Pearson r ≥ 0.75 over the run and mean absolute error ≤ 0.18,
+   for the router bot at EXPERT noise. Breathers are real: measured
+   intensity at `TRACK.breather1` (45 s) and `TRACK.breather2` (95 s) is
+   at least 0.15 below its value at the preceding peak.
 2. **Climax** — at 150–172 s the elite is alive and the drive-drums tier
    is audible (music intensity ≥ 0.82 → the `drumsDrive` window is open).
 3. **Winnability, refereed honestly** — NOVICE bot survives the full 180 s
@@ -63,7 +66,7 @@ What the intent curve DRIVES (each a pure function of intent):
    at 0.55 > at 0.15; player-hurt never outranks the climax kill; coverage
    of every `RIDE_EVENTS` type.
 6. **Play camera** — the follow camera keeps ≥ 90 % of live threats within
-   12 m inside the frustum (p10 over the run ≥ 0.8); measured with the
+   `CAMERA.combatRange` (12 m) inside the frustum (p10 over the run ≥ 0.8); measured with the
    nightbloom legibility terms (ID-pass pixel share) at the climax.
 7. **Determinism** — a seeded run twice is identical (instrument rule:
    measurement bots may seed; players fight `Math.random`).
@@ -111,6 +114,14 @@ CLIMAX.minMusic = 0.82
 CLIMAX.holdUntil = 172
 HEADROOM.min = 1.3
 HEADROOM.floorPerMin = 10
+TRACK.smooth = 3
+TRACK.radius = 8
+TRACK.breather1 = 45
+TRACK.breather2 = 95
+CAMERA.combatRange = 12
+EXPERT.delay = 0.12
+NOVICE.delay = 0.34
+SIM_DT = 0.008333333333333333
 ```
 
 ## Amendments
@@ -297,3 +308,23 @@ further tuning before review, per A4).**
 - Climax: elite alive through the hold 6/6; drive tier open. Camera gate:
   p10 **0.80**, climax legibility **0.703**, elite legibility **1.0**
   (green). Determinism green. Drift: 28 constants match.
+
+**A6 (campaign rule from juicebox review r2, applied to this entry before
+its round-2 code; written while the round-1 review is in flight).** The
+ride's shell integrates `RideRun.update(dt)` per render frame — the same
+defect class B1 r2 measured (realised values and outcomes vary with frame
+rate; "seeded" is not "reproducible"). Round 2:
+- The shell drives the sim on `SIM_DT` (1/120) through the shared
+  `FixedStep`; render interpolates the player and every critter; the bot
+  and the player's movement input are sampled per sim tick and recorded to
+  a tick-indexed tape.
+- Gate `check-ride-replay.mjs`: a recorded tape replayed at 30 / 60 / 90 /
+  144 fps and with jittered dt produces byte-identical state (time, kills,
+  hp, level, enemy positions) at every 5-s checkpoint; the headless curve
+  gate states its dt and steps at `SIM_DT`.
+- Recorded from the round-1 frames, to be judged: the elite outlives the
+  hold on every seed (567 HP vs a level-7 blade) so the release still has
+  it standing; at night away from the café the arena reads as a flat wash
+  disc. Neither is changed by A6; the review decides whether they are
+  defects.
+- `SIM_DT` joins the constants block (designed in A6).
