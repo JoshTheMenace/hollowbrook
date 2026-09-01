@@ -103,8 +103,9 @@ TRACK.minR = 0.75
 TRACK.maxMAE = 0.18
 TRACK.breatherDrop = 0.15
 SPAWN.everyMax = 1.8
-SPAWN.everyMin = 0.5
-SPAWN.hpScaleMax = 1.5
+SPAWN.everyMin = 0.6
+SPAWN.hpScaleMax = 1.35
+SPAWN.lead = 4
 CLIMAX.at = 150
 CLIMAX.minMusic = 0.82
 CLIMAX.holdUntil = 172
@@ -249,3 +250,31 @@ Design changes (choreography and presentation; windows untouched):
   unchanged for nightbloom).
 
 Fourth measurement to be recorded whatever it says.
+
+**A4 (fourth measurement, after A3's bursts; before any further code
+change).**
+- Now green: MAE **0.176**, breather drop **0.337**, expert **6/6**,
+  headroom **1.58×**; camera gate ALL PASS (p10 **0.80**, climax
+  legibility **0.723**, elite 1.0) — the bloom light and the 15 m boom
+  did what A3 said.
+- Still red: r **0.670** (≥ 0.75); novice **1/6** (165, 80, 180, 167,
+  163, 165 s) — worse than A3's 2/6. Seed 2 died at 80 s to the 70 s
+  bonehead ring at level 3; the rest died in the hold.
+- Why r stays low, read off the keyframes: a burst fired AT a keyframe
+  registers 3–4 s later (spawn at 6–7 m, walk-in, the declared 3 s
+  smoothing) — 70 s reads 0.09 and 150 s reads 0.17 while 140 s reads
+  0.24 and 172 s reads 0.79. The measured shape is the intent shape
+  shifted late. The instrument's lag is declared (`TRACK.smooth`); the
+  design should LEAD the beat rather than the gate forgiving the lag.
+
+Design changes (choreography; windows untouched, instrument untouched):
+- Every burst fires 4 s BEFORE its keyframe: 21 s, 66 s, 116 s, and the
+  climax company at 146 s with the elite still at 150 s.
+- Ring sizes for the novice: boneheads 8 → **5**, climax slimes 10 →
+  **6**, bats stay 24 (9 HP each — volume, not lethality).
+- The hold is a swarm, not a wall: `SPAWN.everyMin` 0.5 → **0.6**,
+  `SPAWN.hpScaleMax` 1.5 → **1.35**. (Both were set in A1 from the first
+  measurement; this is the second and last cadence move — if the novice
+  referee is still red after A4, it ships red as a recorded finding.)
+
+Fifth measurement to be recorded whatever it says.
