@@ -158,8 +158,12 @@ const eliteMarkMat = new THREE.MeshBasicMaterial({ color: '#ffd76a' });
 const barBackGeo = new THREE.PlaneGeometry(1.2, 0.13);
 const barFillGeo = new THREE.PlaneGeometry(1.2, 0.13);
 barFillGeo.translate(0.6, 0, 0);
+// plate AND fill in the SAME render list (both transparent): three.js draws
+// the whole opaque list before the whole transparent list, so renderOrder
+// cannot order an opaque fill under a transparent plate — the plate painted
+// over the fill every frame and the bar drew nothing (review r1)
 const barBackMat = new THREE.MeshBasicMaterial({ color: '#1c1626', transparent: true, opacity: 0.85, depthTest: false });
-const barFillMat = new THREE.MeshBasicMaterial({ color: '#ff5a6e', depthTest: false });
+const barFillMat = new THREE.MeshBasicMaterial({ color: '#ff5a6e', transparent: true, opacity: 1, depthTest: false });
 const _camQ = new THREE.Quaternion(), _rootQ = new THREE.Quaternion();
 const up = (p) => new THREE.Vector3(p.x, 0.55, p.z);
 
@@ -386,6 +390,7 @@ requestAnimationFrame(function loop() { tick(Math.min(clock.getDelta(), 0.05)); 
 
 // ---- gates + evidence --------------------------------------------------------------
 window.__ride = { get ride() { return ride; }, get step() { return step; }, get tape() { return tape; }, startRun, feel, hero, camera, get music() { return music; }, stateHash };
+window.__tick = tick;
 window.__autoplay = (on, seed = 1, opts = {}) => {
   if (on) { startRun(mulberry32(seed), true, opts); autoplay = makeNoisyMove(kiteBot, { ...EXPERT, seed: seed * 3 + 1 }); }
   else autoplay = null;
@@ -486,6 +491,34 @@ function measureLegibility() {
   return out;
 }
 window.__legibility = () => { const m = measureLegibility(); return [...m.values()]; };
+// the elite bar's PIXELS (A7 §1): red fill pixels vs dark plate pixels inside
+// the bar's projected screen box — the frame-assertion rule extended to UI
+window.__eliteBar = () => {
+  const entry = [...critters.entries()].find(([e]) => e.def.elite && !e.dead);
+  if (!entry) return null;
+  const [e, c] = entry;
+  const W = renderer.domElement.width, H = renderer.domElement.height;
+  const corners = [-0.6, 0.6].map((dx) => { const v = new THREE.Vector3(); c._marker.mk.localToWorld(v.set(dx, 0, 0)); return v.project(camera); });
+  const xs = corners.map((p) => (p.x * 0.5 + 0.5) * W), ys = corners.map((p) => (-p.y * 0.5 + 0.5) * H);
+  const x0 = Math.max(0, Math.floor(Math.min(...xs)) - 2), x1 = Math.min(W - 1, Math.ceil(Math.max(...xs)) + 2);
+  const yc = (ys[0] + ys[1]) / 2, y0 = Math.max(0, Math.floor(yc - 6)), y1 = Math.min(H - 1, Math.ceil(yc + 6));
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d'); ctx.drawImage(renderer.domElement, 0, 0);
+  const d = ctx.getImageData(x0, y0, x1 - x0 + 1, y1 - y0 + 1).data;
+  // classify by REDNESS, not absolute brightness: under the night grade the
+  // fill reads ~(163,69,99) and the plate ~(68,61,72)
+  // the fill's horizontal EXTENT against the bar's projected width (the
+  // plate's edge rows are not "unfilled"; a full bar must read 1.0)
+  const bw = x1 - x0 + 1;
+  let red = 0, dark = 0, minX = Infinity, maxX = -Infinity;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    if (r > 110 && r > g + 50 && r > b + 35) { red++; const px = (i / 4) % bw; minX = Math.min(minX, px); maxX = Math.max(maxX, px); }
+    else if (r < 95 && g < 85 && b < 105 && Math.abs(r - g) < 30) dark++;
+  }
+  const barWidth = Math.max(1, Math.abs(xs[1] - xs[0]));
+  return { hpFrac: e.hp / e.maxHp, fillFrac: red ? Math.min(1, (maxX - minX + 1) / barWidth) : 0, red, dark, box: [x0, y0, x1, y1] };
+};
 
 // play-camera gate: canonical seeded start, the standard bot, frustum
 // fraction of live threats within combat range (p10), plus ID-pass
