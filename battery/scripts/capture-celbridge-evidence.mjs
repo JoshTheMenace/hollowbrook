@@ -5,11 +5,12 @@ import { withPage } from './lib/browser-harness.mjs';
 import fs from 'node:fs';
 fs.mkdirSync(new URL('../.shots', import.meta.url), { recursive: true });
 const out = (n) => new URL(`../.shots/${n}.png`, import.meta.url).pathname;
+// A3 declared set
 const SET = [
-  ['cb3-meet', 'meet', 'day', true], ['cb3-portrait', 'portrait', 'day', true], ['cb3-far', 'far', 'day', true],
-  ['cb3-ab-raw', 'meet', 'day', false], ['cb3-portrait-raw', 'portrait', 'day', false],
-  ['cb3-night-meet', 'meet', 'night', true], ['cb3-night-portrait', 'portrait', 'night', true],
-  ['cb3-night-meet-raw', 'meet', 'night', false],
+  ['cb4-meet', 'meet', 'day', true], ['cb4-portrait', 'portrait', 'day', true], ['cb4-far', 'far', 'day', true],
+  ['cb4-side-day', 'side', 'day', true], ['cb4-face', 'face', 'day', true],
+  ['cb4-night-meet', 'meet', 'night', true], ['cb4-night-portrait', 'portrait', 'night', true],
+  ['cb4-side-day-raw', 'side', 'day', false],
 ];
 await withPage('/celbridge.html', async (page) => {
   for (const [name, cam, phase, on] of SET) {

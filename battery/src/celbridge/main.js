@@ -4,7 +4,7 @@ import { cel, shadowTintActive } from '@town/core/toon.js';
 import { PAL } from '@town/palette.js';
 import { Hero } from '@town/game/hero.js';
 import { buildCorner, cornerLights } from '../shared/corner.js';
-import { BRIDGE } from '../shared/bridge.js';
+import { BRIDGE, CELIFY_OPTS } from '../shared/bridge.js';
 import { DayNight } from '@town/game/daynight.js';
 import { Actor } from '@forge/game/actor.js';
 import { celify, celCensus } from '@forge/lib/celify.js';
@@ -52,11 +52,7 @@ function setBridge(on) {
     if (!rawMaterials) {
       rawMaterials = new Map();
       actor.root.traverse((o) => { if (o.isMesh) rawMaterials.set(o, o.material); });
-      const report = celify(actor.root, cel, {
-        accentGuard: BRIDGE.accentGuard,
-        worldSatCap: BRIDGE.worldSatCap,
-        ownedAccent: BRIDGE.ownedAccent,
-      });
+      const report = celify(actor.root, cel, CELIFY_OPTS);
       console.log(`[celbridge] celified ${report.converted}/${report.meshes} meshes,`, [...report.colors.keys()].length, 'source colors');
     } else {
       actor.root.traverse((o) => { if (o.isMesh && o.userData._celMat) o.material = o.userData._celMat; });
@@ -146,10 +142,14 @@ const CAMS = {
   meet: [[3.6, 1.7, 0.6], [0.4, 1, -3.6]],
   portrait: [[0.4, 1.35, -0.7], [1.2, 1.0, -2.8]],
   far: [[10, 2.2, 6], [0, 1, -4]],
+  side: [[3.9, 1.2, -2.6], [1.2, 0.9, -2.8]],     // the r3 thesis frame: kimono beside the stone lantern
+  face: [[1.3, 1.45, -1.6], [1.2, 1.35, -2.8]],   // the skull beside the hair spikes
 };
-window.__renderedBand = (cam = 'meet', phase = 'day') => {
+window.__renderedBand = (cam = 'meet', phase = 'day', { keepPhase = false } = {}) => {
   const was = daynight.current;
-  daynight.set(phase); lastSeat = -1; nightSeat();
+  // keepPhase: diagnostics that tweak lights must not have the phase table
+  // re-applied over them (daynight.set rewrites sun/fill/hemi intensities)
+  if (!keepPhase) { daynight.set(phase); lastSeat = -1; nightSeat(); }
   const [pos, look] = CAMS[cam];
   camera.position.fromArray(pos);
   camera.lookAt(new THREE.Vector3().fromArray(look));
@@ -161,37 +161,102 @@ window.__renderedBand = (cam = 'meet', phase = 'day') => {
     x.drawImage(renderer.domElement, 0, 0);
     return x.getImageData(0, 0, c.width, c.height).data;
   };
-  const withChar = grab();
-  actor.root.visible = false;
-  const without = grab();
-  actor.root.visible = true;
+  const shown = grab();
+  // A3: the mask is an OBJECT-ID pass (the character's own meshes flat
+  // white, everything else black, no sky/fog) — a with/without diff
+  // counted the cast shadow as character (13-31% of the mask was ground)
+  const W = renderer.domElement.width, H = renderer.domElement.height;
+  const mask = (() => {
+    const white = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
+    const black = new THREE.MeshBasicMaterial({ color: 0x000000, fog: false });
+    const own = new Set();
+    actor.root.traverse((o) => { if (o.isMesh) own.add(o); });
+    const restore = [];
+    scene.traverse((o) => {
+      if (o.isMesh) { restore.push([o, o.material]); o.material = own.has(o) ? white : black; }
+      else if ((o.isPoints || o.isLine) && o.visible) { restore.push([o, null]); o.visible = false; }
+    });
+    const keepBg = scene.background, keepFog = scene.fog;
+    scene.background = null; scene.fog = null;
+    const rt = new THREE.WebGLRenderTarget(W, H);
+    renderer.setRenderTarget(rt);
+    renderer.render(scene, camera);
+    const buf = new Uint8Array(W * H * 4);
+    renderer.readRenderTargetPixels(rt, 0, 0, W, H, buf);
+    renderer.setRenderTarget(null);
+    rt.dispose();
+    scene.background = keepBg; scene.fog = keepFog;
+    for (const [o, m] of restore) { if (m === null) o.visible = true; else o.material = m; }
+    // render targets are y-flipped vs the canvas
+    const m = new Uint8Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) m[y * W + x] = buf[((H - 1 - y) * W + x) * 4] > 128 ? 1 : 0;
+    return m;
+  })();
   const charSat = [], worldSat = [], charLum = [], worldLum = [];
   const hotHues = {};   // hue histogram of char pixels above sat 0.5 (debug/tuning)
-  for (let i = 0; i < withChar.length; i += 8) {
-    const r = withChar[i], g = withChar[i + 1], b = withChar[i + 2];
-    const diff = Math.abs(r - without[i]) + Math.abs(g - without[i + 1]) + Math.abs(b - without[i + 2]);
+  let ownedHot = 0;
+  const lumaOf = (i) => (0.2126 * shown[i] + 0.7152 * shown[i + 1] + 0.0722 * shown[i + 2]) / 255;
+  for (let p = 0; p < W * H; p += 2) {
+    const i = p * 4;
+    const r = shown[i], g = shown[i + 1], b = shown[i + 2];
     const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = (mx - mn) / 255;
     const sat = mx === 0 ? 0 : (mx - mn) / mx;
-    const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-    if (diff > 24) {
+    const lum = lumaOf(i);
+    if (mask[p]) {
       charSat.push(sat); charLum.push(lum);
-      if (sat > 0.5 && d > 0) {
+      if (d > 0 && sat > BRIDGE.worldSatCap) {
         const rr = r / 255, gg = g / 255, bb = b / 255, dd = mx / 255 - mn / 255;
         let h = mx === r ? ((gg - bb) / dd) % 6 : mx === g ? (bb - rr) / dd + 2 : (rr - gg) / dd + 4;
         h = ((h / 6) + 1) % 1;
-        const key = (Math.round(h * 12) * 30) % 360;
-        hotHues[key] = (hotHues[key] ?? 0) + 1;
+        if (Math.abs((((h - BRIDGE.ownedAccent.hue) + 1.5) % 1) - 0.5) < BRIDGE.ownedAccent.tol) ownedHot++;
+        if (sat > 0.5) { const key = (Math.round(h * 12) * 30) % 360; hotHues[key] = (hotHues[key] ?? 0) + 1; }
       }
     } else { worldSat.push(sat); worldLum.push(lum); }
   }
+  // TONE STEPS (A3): does the character step through tones the way the
+  // world does? Per class, over horizontally adjacent same-class pixels:
+  // identical-luma-bin pairs, soft pairs (1-2 bins of 128 apart), and the
+  // share of pixels in the 8 most-populated of 128 luma bins.
+  // Measured TWICE: on the composite (what the reviewer measured) and on
+  // the beauty pass with ink + FXAA off — anti-aliased facet/crease edges
+  // are soft pairs too, and a faceted character has thousands of them; the
+  // tone question is albedo × ramp, so the pre-AA number is the one gated.
+  const toneOn = (buf, isChar) => {
+    const L = (i) => (0.2126 * buf[i] + 0.7152 * buf[i + 1] + 0.0722 * buf[i + 2]) / 255;
+    let pairs = 0, same = 0, soft = 0;
+    const hist = new Uint32Array(128);
+    let n = 0;
+    for (let y = 0; y < H; y += 2) for (let x = 0; x < W - 1; x += 1) {
+      const p = y * W + x;
+      if ((mask[p] === 1) !== isChar) continue;
+      const bin = Math.min(127, Math.floor(L(p * 4) * 128));
+      hist[bin]++; n++;
+      if ((mask[p + 1] === 1) !== isChar) continue;
+      const bin2 = Math.min(127, Math.floor(L((p + 1) * 4) * 128));
+      pairs++;
+      const dd = Math.abs(bin - bin2);
+      if (dd === 0) same++; else if (dd <= 2) soft++;
+    }
+    const top8 = [...hist].sort((a, b) => b - a).slice(0, 8).reduce((s, v) => s + v, 0);
+    return { samePairShare: pairs ? same / pairs : 0, softShare: pairs ? soft / pairs : 0, top8Share: n ? top8 / n : 0, pixels: n };
+  };
+  const tone = (isChar) => toneOn(shown, isChar);
+  const keepEnabled = { ...pipeline.enabled };
+  pipeline.enabled.ink = false; pipeline.enabled.fxaa = false;
+  const beauty = grab();
+  Object.assign(pipeline.enabled, keepEnabled);
+  const toneBeauty = (isChar) => toneOn(beauty, isChar);
   for (const a of [charSat, worldSat, charLum, worldLum]) a.sort((x1, x2) => x1 - x2);
   const q = (a, f) => a[Math.min(a.length - 1, Math.floor(f * a.length))] ?? 0;
-  daynight.set(was); lastSeat = -1; nightSeat();
+  if (!keepPhase) { daynight.set(was); lastSeat = -1; nightSeat(); }
   return {
-    cam, phase, charPixels: charSat.length, hotHues,
+    cam, phase, charPixels: charSat.length, hotHues, maskKind: 'object-id',
     char: { satP50: q(charSat, 0.5), satP90: q(charSat, 0.9), satP99: q(charSat, 0.99), lumP50: q(charLum, 0.5) },
     world: { satP50: q(worldSat, 0.5), satP90: q(worldSat, 0.9), satP99: q(worldSat, 0.99), lumP50: q(worldLum, 0.5) },
     lumRatio: q(charLum, 0.5) / (q(worldLum, 0.5) || 1),
+    ownedHotShare: charSat.length ? ownedHot / charSat.length : 0,
+    tone: { char: tone(true), world: tone(false) },                       // composite (reviewer's instrument)
+    toneBeauty: { char: toneBeauty(true), world: toneBeauty(false) },     // ink + FXAA off (gated)
   };
 };
 // park a contract camera + phase + bridge state for a REAL compositor
