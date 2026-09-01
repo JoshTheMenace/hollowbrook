@@ -1,7 +1,7 @@
-# REVIEW-BUNDLE — ONE NPC, ONE ERRAND (battery B3)
+# REVIEW-BUNDLE — ONE NPC, ONE ERRAND (battery B3, round 2)
 
-Factual launch + instrumentation only. Loop contract: LOOP-CONTRACT.md in
-this directory (committed before the build, its own commit: 0a0de5c). No
+Factual launch + instrumentation only. Loop contract: LOOP-CONTRACT.md
+(0a0de5c). Round-2 implementation: 5a18ded (+ TRAPS rows in d32b313). No
 evaluation here.
 
 ## Launch
@@ -12,65 +12,68 @@ npm run dev        # port 5183
 # open http://127.0.0.1:5183/errand.html
 ```
 
-WASD walk + mouse look (click) + **E** to interact. The errand: talk to the
-caretaker by the café, find three candles, relight the lantern string,
-return. Progress autosaves; reload the page anywhere to test resume.
-`__errand.reset()` clears the save.
+WASD walk + mouse look (click) + **E**. Spawn faces the caretaker. Progress
+(quest + player position) autosaves; reload anywhere. `__errand.reset()`.
 
 ## Gates (exit-coded, in-tree)
 
 ```
-node scripts/check-errand.mjs        # 13 checks
-node scripts/check-errand-feel.mjs   # feel table coverage
+node scripts/check-errand.mjs           # pure rules: vocabulary, walkthrough, 18 forks, observability
+node scripts/check-errand-shell.mjs     # SHELL save path in headless Chrome (real keys, real reloads, real localStorage)
+node scripts/check-performer-soak.mjs   # 60s every verb/posture/gaze: bounded + back at rest vs control actor
+node scripts/check-errand-feel.mjs      # feel coverage
+node scripts/check-contract-drift.mjs   # constants block vs code
 ```
 
-Recorded run (commit 69d58fc): ALL PASS. Highlights, verbatim:
+Recorded run at 5a18ded, verbatim highlights:
 
 ```
-PASS  script gestures ⊆ Performer.IMPLEMENTED — 7 gestures used
-PASS  unimplemented gesture ("dance") throws
-PASS  stage order exact  (meet → find → relight → return → done)
-PASS  save/reload at every step (18 forks) — all forks completed
-PASS  every ok action is observable (event or state delta) — no silent successes
-PASS  every scripted gesture moves rig joints — wave,small_shrug,open_hand,point,tilt_left,nod,bow
-feel lint: 8 declared, 8 wired
+PASS  every joint bounded through 60s (max < π rad) — max |rot| 2.24 rad (upperArmR)
+PASS  back at rest after the performance (±0.02 rad vs control actor) — worst residue 0.0004 rad (head)
+
+PASS  at accept: stage find, tracker live, 3 candles visible, save says find (the r1 ordering bug)
+PASS  after pickup: tracker 1/3 immediately, candle gone, save has it
+PASS  continuous == post-reload @ mid-errand (1/3 candles)
+PASS  relight: string lit in-world and in-save
+PASS  continuous == post-reload @ after relight
+PASS  errand done and saved done
+PASS  continuous == post-reload @ after completion
+PASS  burning string reports glow, never dark
+PASS  corrupt save -> fresh run, shell alive
 ```
 
-## Instrumentation
+## The r1 blockers, mechanically
 
-- `__errand` — { run, feel, performer, hero, save, sim, reset }.
-- `__feelCheck()` — runtime feel-table check against ERRAND_EVENTS.
-- `__shot(name, {steps, pos, lookAt})` — advances the sim explicitly
-  (capture cadence never depends on rAF), composites the DOM HUD onto the
-  frame, saves to .shots/.
+| r1 finding | measured then | now |
+|---|---|---|
+| Performer spine integrator (`rotation.x +=` on an undriven joint) | −7.2 rad/s; headless caretaker by line 3 | stateless per frame: undriven joints reset to rest, every envelope zero at both ends (ramp-and-hold verbs replaced with rise-hold-fall); soak residue 0.0004 rad vs a control actor over 62 s |
+| Save ordering (handlers ran before `advance()` mutated stage) | tracker stale, candles invisible, save said "meet" at accept | rules mutate THEN emit; shell gate asserts tracker/candles/save AT the moment of accept during continuous play, then reload-equivalence at three checkpoints |
+| Persistence gate serialized the pure layer | shell bug invisible by construction | `check-errand-shell.mjs` drives the shell with `page.keyboard`, reloads the page, reads `localStorage` |
 
-## Evidence set (in .shots/, captured through the hooks)
+## Ranked fixes (r1 list)
 
-- `er-meet` — dialogue open, caretaker mid-wave, gaze on the player.
-- `er-candle` — after first pickup, tracker 1/3.
-- `er-reload` — the beat after a HARD page reload mid-errand; tracker shows
-  the preserved 1/3 (the persistence proof). Restored snapshot verbatim:
-  `{"v":1,"stage":"find","candles":["rack"],"lit":false}`.
-- `er-relit` — the lantern string relit (observable world change).
-- `er-done` — the bow, mid-thanks.
+spawn faces the caretaker (yaw 0.15; forward = (−sin, −cos)); relight
+payoff: rising spark column from eye level + warm practical flash + bursts
+at each lantern's geometry center; truthful string (`string-glow` event; a
+burning string never reports dark; `{ok, lit:true}`); dead `setState('talk')`
+removed; `tenantOf` throws on unknown ids and the corner is now actually
+`kissaten` (喫茶 月見); corrupt saves yield a fresh run; player position +
+yaw persisted; `occluderRoot` passed (camera pullback armed) here and in
+celbridge.
 
-## Performance seam facts
+## Evidence (REAL compositor frames, play camera only, .shots/er2-*.png)
 
-- Dialogue lines carry Mira acting plans normalized through
-  `src/contract.js` at module load; the caretaker performs each line via
-  `charforge/src/game/performer.js` (additive overlays over the Actor
-  mixer; head gaze tracks the player within 5m).
-- Both renderers throw on in-vocabulary-but-unimplemented gestures: the VRM
-  renderer (commit \"Mira renderer: 20/20\") and the Performer (probe in
-  check-errand.mjs). Performer implements 12/20; the 8 locomotion verbs
-  (walk/strafe/turn/jump/dance) belong to the Actor's clip layer, declared
-  in `Performer.IMPLEMENTED`.
+er2-open (opening frame), er2-meet (dialogue open), er2-reload (the beat
+after a hard page reload; tracker 1/3), er2-relit (from the interaction
+spot; spark column + flash), er2-done (bow). Captured by
+`check-errand-shell.mjs` itself — the gate and the evidence are one run.
+The hand-drawn HUD composite is gone; `__shot` is canvas-only and labeled
+debug.
 
-## Known notes for the reviewer
+## Known notes
 
-- The NPC body is the B2 ronin celified through the same bridge spec
-  (`src/shared/bridge.js`) in the same kit corner — art questions belong to
-  the B2 thread; B3 is the loop.
-- Saves land only at stable states (never mid-dialogue-line) by design.
-- Skill axis: NONE (declared in the contract) — correctness/integrity
-  gates only.
+- The NPC body is the B2 ronin through the shared bridge spec — art
+  questions belong to the B2 thread.
+- Feel lint still counts wire calls (coverage); the effect-verification
+  form is a TRAPS rule, not yet a gate here.
+- Skill axis: NONE (declared).
