@@ -32,10 +32,10 @@ export function build() {
   const vc = toonMaterial('#ffffff', { vertexColors: true });
   const grad = (mesh, bottom, top) => { paintGradient(mesh.geometry, bottom, top); return mesh; };
   const skin = toonMaterial('#f0c29a');
-  const skinShade = toonMaterial('#d8ac88');       // cheek/vertex-shaded face uses vc instead
+  const skinShade = toonMaterial('#d8b293');       // cheek/vertex-shaded face uses vc instead
   const hakamaFlat = toonMaterial('#43424c');
   const obiM = toonMaterial('#4a3f4d');
-  const scarfM = toonMaterial('#a56b68', { rim: 0.45 });
+  const scarfM = toonMaterial('#a5716f', { rim: 0.45 });
   const sayaM = toonMaterial('#232028', { rim: 0.4 });
   const hiltWrap = toonMaterial('#35313d', { rim: 0.3 });
   const bladeM = toonMaterial('#d7dde4', { rim: 0.65 });
@@ -44,7 +44,7 @@ export function build() {
   const dark = toonMaterial('#2a2622', { rim: 0 });
   const white = toonMaterial('#f7f4ee', { rim: 0.2 });
   const amber = toonMaterial('#a78d68', { rim: 0.25 });
-  const hairFlat = toonMaterial('#3d476e', { rim: 0.35 });
+  const hairFlat = toonMaterial('#414a6e', { rim: 0.35 });
   const sandalM = toonMaterial('#a08863');
 
   // --- Torso: off-white kimono over charcoal hakama ------------------------
@@ -93,7 +93,7 @@ export function build() {
   // --- Head + the ANIME face -----------------------------------------------
   // Face ball with a vertical vertex gradient: warm shade low on the cheeks,
   // light on the brow — the "cheek shading" read.
-  const face = grad(ball(0.185, vc, [1, 1.02, 0.95]), '#d8ac88', '#f6d0ab');
+  const face = grad(ball(0.185, vc, [1, 1.02, 0.95]), '#d8b293', '#f6d0ab');
   face.position.y = 0.12;
   joints.head.add(face);
   // Layered anime eyes, ~1.5x the archer's: sclera / amber iris / pupil /
@@ -135,7 +135,7 @@ export function build() {
   }
 
   // --- Signature spiky hair: indigo cones sweeping back-right --------------
-  const hairGrad = (mesh) => grad(mesh, '#2d3552', '#7a8bc4');
+  const hairGrad = (mesh) => grad(mesh, '#303852', '#7f8fc4');
   const cap = hairGrad(facetBall(0.196, vc, [1.0, 0.94, 0.98], [9, 6]));
   cap.position.set(0, 0.165, -0.025);
   joints.head.add(cap);
@@ -186,7 +186,7 @@ export function build() {
   // --- Crimson scarf: neck ring + lagging two-link tail chain --------------
   const ringGeo = new THREE.TorusGeometry(0.105, 0.040, 6, 14);
   ringGeo.rotateX(Math.PI / 2); ringGeo.scale(1, 1, 0.92);
-  const ring = grad(facet(ringGeo, vc), '#8f5c5a', '#e0948d');
+  const ring = grad(facet(ringGeo, vc), '#8f6260', '#e09c96');
   ring.position.set(0, 0.125, 0.01);
   joints.chest.add(ring);
   // Tail: two chained named groups; segments OVERLAP so the tail reads as
@@ -194,21 +194,21 @@ export function build() {
   const scarfA = new THREE.Group();
   scarfA.name = 'scarfA';
   scarfA.position.set(0.035, 0.115, -0.115);
-  const knotBall = grad(facetBall(0.052, vc, [1.1, 1.0, 0.9], [6, 5]), '#8f5c5a', '#e0948d');
+  const knotBall = grad(facetBall(0.052, vc, [1.1, 1.0, 0.9], [6, 5]), '#8f6260', '#e09c96');
   knotBall.position.set(0.005, -0.005, -0.005);
   scarfA.add(knotBall);
-  const segA = grad(facetBall(0.058, vc, [0.95, 1.85, 0.55], [7, 5]), '#8f5c5a', '#e0948d');
+  const segA = grad(facetBall(0.058, vc, [0.95, 1.85, 0.55], [7, 5]), '#8f6260', '#e09c96');
   segA.position.set(0.012, -0.075, -0.030);
   segA.rotation.x = D(-16);
   scarfA.add(segA);
   const scarfB = new THREE.Group();
   scarfB.name = 'scarfB';
   scarfB.position.set(0.018, -0.150, -0.055);
-  const segB = grad(facetBall(0.050, vc, [0.9, 1.85, 0.5], [7, 5]), '#7e514f', '#d18a84');
+  const segB = grad(facetBall(0.050, vc, [0.9, 1.85, 0.5], [7, 5]), '#7e5654', '#d1918c');
   segB.position.set(0.008, -0.055, -0.012);
   segB.rotation.x = D(-10);
   scarfB.add(segB);
-  const tipSeg = grad(facetBall(0.038, vc, [0.8, 1.6, 0.5], [6, 4]), '#7e514f', '#d18a84');
+  const tipSeg = grad(facetBall(0.038, vc, [0.8, 1.6, 0.5], [6, 4]), '#7e5654', '#d1918c');
   tipSeg.position.set(0.020, -0.135, -0.022);
   tipSeg.rotation.x = D(-6);
   scarfB.add(tipSeg);

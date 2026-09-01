@@ -80,7 +80,7 @@ setBridge(true);
 
 // night value seat (review r1: char val p50 0.486 vs world 0.298 at night —
 // he floats). At night his albedo sits down toward the world's; day untouched.
-const SEAT_AMOUNT = 0.45;   // tuned by __nightSeat: char/world luma p50 → ~1.15
+const SEAT_AMOUNT = 0.58;   // tuned by __renderedBand at all 3 contract cameras (A2)
 const seatBase = new Map();
 actor.root.traverse((o) => {
   const m = o.isMesh && o.material;
@@ -118,8 +118,9 @@ addEventListener('keydown', (e) => {
 
 // ---- loop -----------------------------------------------------------------
 const clock = new THREE.Clock();
+let frozen = false;   // __frame parks the camera for a real page.screenshot
 function tick(dt) {
-  hero.update(dt);
+  if (!frozen) hero.update(dt);
   actor.update(dt);
   daynight.update(dt, hero.position);
   nightSeat();
@@ -138,8 +139,76 @@ requestAnimationFrame(function loop() { tick(Math.min(clock.getDelta(), 0.05)); 
 // ---- gates + evidence -----------------------------------------------------
 window.__tick = tick;
 window.__bridge = { setBridge, get bridged() { return bridged; }, actor, daynight, hero, scene };
+// rendered-band census: char vs world statistics measured in the JUDGING
+// space — the composited frame — at the contract cameras (A2: thresholds
+// must never come from the mechanism's own output)
+const CAMS = {
+  meet: [[3.6, 1.7, 0.6], [0.4, 1, -3.6]],
+  portrait: [[0.4, 1.35, -0.7], [1.2, 1.0, -2.8]],
+  far: [[10, 2.2, 6], [0, 1, -4]],
+};
+window.__renderedBand = (cam = 'meet', phase = 'day') => {
+  const was = daynight.current;
+  daynight.set(phase); lastSeat = -1; nightSeat();
+  const [pos, look] = CAMS[cam];
+  camera.position.fromArray(pos);
+  camera.lookAt(new THREE.Vector3().fromArray(look));
+  const grab = () => {
+    pipeline.render();
+    const c = document.createElement('canvas');
+    c.width = renderer.domElement.width; c.height = renderer.domElement.height;
+    const x = c.getContext('2d');
+    x.drawImage(renderer.domElement, 0, 0);
+    return x.getImageData(0, 0, c.width, c.height).data;
+  };
+  const withChar = grab();
+  actor.root.visible = false;
+  const without = grab();
+  actor.root.visible = true;
+  const charSat = [], worldSat = [], charLum = [], worldLum = [];
+  const hotHues = {};   // hue histogram of char pixels above sat 0.5 (debug/tuning)
+  for (let i = 0; i < withChar.length; i += 8) {
+    const r = withChar[i], g = withChar[i + 1], b = withChar[i + 2];
+    const diff = Math.abs(r - without[i]) + Math.abs(g - without[i + 1]) + Math.abs(b - without[i + 2]);
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = (mx - mn) / 255;
+    const sat = mx === 0 ? 0 : (mx - mn) / mx;
+    const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    if (diff > 24) {
+      charSat.push(sat); charLum.push(lum);
+      if (sat > 0.5 && d > 0) {
+        const rr = r / 255, gg = g / 255, bb = b / 255, dd = mx / 255 - mn / 255;
+        let h = mx === r ? ((gg - bb) / dd) % 6 : mx === g ? (bb - rr) / dd + 2 : (rr - gg) / dd + 4;
+        h = ((h / 6) + 1) % 1;
+        const key = (Math.round(h * 12) * 30) % 360;
+        hotHues[key] = (hotHues[key] ?? 0) + 1;
+      }
+    } else { worldSat.push(sat); worldLum.push(lum); }
+  }
+  for (const a of [charSat, worldSat, charLum, worldLum]) a.sort((x1, x2) => x1 - x2);
+  const q = (a, f) => a[Math.min(a.length - 1, Math.floor(f * a.length))] ?? 0;
+  daynight.set(was); lastSeat = -1; nightSeat();
+  return {
+    cam, phase, charPixels: charSat.length, hotHues,
+    char: { satP50: q(charSat, 0.5), satP90: q(charSat, 0.9), satP99: q(charSat, 0.99), lumP50: q(charLum, 0.5) },
+    world: { satP50: q(worldSat, 0.5), satP90: q(worldSat, 0.9), satP99: q(worldSat, 0.99), lumP50: q(worldLum, 0.5) },
+    lumRatio: q(charLum, 0.5) / (q(worldLum, 0.5) || 1),
+  };
+};
+// park a contract camera + phase + bridge state for a REAL compositor
+// capture (page.screenshot through the harness); free cameras are allowed
+// by the look contract
+window.__frame = (cam = 'meet', phase = 'day', on = true) => {
+  setBridge(on);
+  daynight.set(phase); lastSeat = -1; nightSeat();
+  const [pos, look] = CAMS[cam];
+  camera.position.fromArray(pos);
+  camera.lookAt(new THREE.Vector3().fromArray(look));
+  frozen = true;
+  pipeline.render();
+};
 // measured night seat: luma p50 of character pixels vs world pixels in the
-// night meet framing (char mask = pixels that change when he is hidden)
+// night meet framing (char mask = pixels that change when he is hidden) —
+// kept unchanged for same-instrument comparability with r2
 window.__nightSeat = () => {
   const wasNight = daynight.current === 'night';
   daynight.set('night');
