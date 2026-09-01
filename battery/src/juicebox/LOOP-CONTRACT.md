@@ -6,24 +6,30 @@ designed-curve gates on a genre that is NOT survivors. The game is small on
 purpose; the seam is the deliverable.
 
 **Skill axis: EXECUTION** (aim + reaction). Headroom instrument:
-actuation-noise profiles on the same policy family — expert (120ms, 4°)
-vs novice (340ms, 16°); measured 1.78×.
+actuation-noise profiles on the same policy family — expert (120 ms, 4°)
+vs novice (340 ms, 16°). (A7: prose numbers below are reconciled to the
+constants block; the history of each number is in the amendment log.)
 
 ## The loop
 
 - **Core verb: DASH.** Tap a direction (WASD/arrows, or click toward the
-  cursor) → the box dashes 3.6 m with a 0.16 s recovery. There is no other
-  input. Held keys do nothing — the verb is discrete, so every input is a
+  cursor) → the box dashes `DASH.len` (3.2 m) with a `DASH.recover`
+  (0.45 s) recovery shown by the recovery ring. There is no other input.
+  Held keys do nothing — the verb is discrete, so every input is a
   decision and latency is nakedly felt.
 - **Objects:** lantern spirits drift in from the edges on a SEEDED schedule
-  and fade after a TTL. Dashing through one pops it: +score × combo. GOLD
-  spirits (worth 5×, shorter-lived, far from centre) appear every ~6 s —
-  weaving one in without dropping the chain is the commitment decision.
-- **Stake per failure:** a spirit that fades unpopped resets the combo; a
-  dash that hits nothing costs 0.16 s of the clock and your chain timing.
-- **Per-run decision (every ~5 s):** route — commit to a risky multi-pop
-  line through a cluster, or bank the safe lone spirit before the chain
-  timer (1.9 s since last pop) drops the combo.
+  and fade after a TTL. Dashing through one pops it: the n-th pop of one
+  dash is worth 10·n·combo. GOLD spirits (`GOLD.value` 30·combo, +1
+  combo, shorter-lived, placed far from where you stand) appear every
+  ~6 s — weaving one in without dropping the chain is the commitment
+  decision.
+- **Stake per failure:** a spirit that fades unpopped DECAYS the combo
+  one step; a dash that hits nothing costs the recovery and your chain
+  timing.
+- **Per-run decision (every ~5 s):** route — read a line through a
+  cluster (members spaced along an orientation so only an aligned sweep
+  takes 2–3), or bank the safe lone spirit before the chain window
+  (`CHAIN_WINDOW` 1.6 s since last pop) drops the combo.
 - **HARD RULE holds:** no player-facing choice resolved by RNG. The spawn
   schedule is a pure function of the run seed — every attempt at seed N is
   the identical puzzle (score-attack fairness IS determinism). Daily seed by
@@ -34,8 +40,8 @@ vs novice (340ms, 16°); measured 1.78×.
 
 | Property | Window |
 |---|---|
-| Greedy bot final score (median across seeds) | 900..2600 |
-| Execution-skill headroom: expert-reflex bot (120ms/4°) over novice-reflex (340ms/16°), same policy family | ≥ 1.3× (the design must reward the skill it asks for; planning bots measured ~1.0× — this is an execution-skill design, recorded as a B1 finding) |
+| Greedy bot final score (median across seeds) | RETIRED by A7: a window drawn from the instrument's own spread certifies nothing. Replaced by the decision rows (router multiPops ≥ 1.4× greedy; router median ≥ greedy median) and reproducibility. |
+| Execution-skill headroom: expert-reflex bot (120ms/4°) over novice-reflex (340ms/16°), same policy family | ≥ 1.3× (the design must reward the skill it asks for; planning headroom on the original metric measured 0.80× → 1.05× and is recorded, not gated) |
 | Spirit reachability | 100% of scheduled spirits reachable by SOME dash sequence (TTL × drift vs dash reach) |
 | Dead air (no live spirit on screen) | ≤ 1.5 s total per run |
 | Max combo achievable (router bot) | ≥ 5 (lines-build scoring: combo grows only on multi-pop dashes and golds) |
@@ -154,6 +160,83 @@ routing pay) — never by bot changes or window moves. The substitution
 question is closed: the original planning metric stays, its number stays
 on record (0.80× → 1.05×).
 
+**A7 (post play-review r2, composite 0.58 — committed BEFORE the round-3
+implementation; B1 CLOSES after round 3 regardless of score: its lessons
+apply in Stage C).**
+
+*The finding that changes the campaign, with its numbers:* the shell
+integrates the dash per RENDER frame. Realised dash 2.13 m at 30 fps,
+3.20 at 60/120, 2.84 at 90/45, 2.54–3.17 under jittered dt (contract
+3.2). A fully deterministic policy on one seed, six runs: 3180 / 3330 /
+3350 / 3550 / 3900 / 4100 (1.29×, zero input variation). A recorded
+input tape replayed: 680 vs the 1740 it was recorded from. Median greedy
+score by frame rate: 30:1740, 60:3210, 75:2270, 90:1930, 120:2480,
+144:2880, 240:1890 (1.84×, non-monotone). Every gate ran at dt = 1/60 —
+the best rate for the greedy bot — and A6's window (1500..4500) was drawn
+around that 3210; at 30 fps the same instrument reads 1740, below its own
+floor. "Same seed, same puzzle" on the score screen is false.
+
+Also measured: the ladder judges synthetic single events while the game
+fires composites (a double banks 50 pts at magnitude 16.07; gold banks 60
+at 8.41 — 1.9× louder for less value, gate green); gold-vs-single shake
+0.83 vs 0.07 px — not visibly bigger; particles render at 0.79–1.84 px.
+The oni is inert for active bots (0 stuns across 15–17 telegraphs) and
+still occludes the player during a stun. Decisions: greedy beats router
+5/7 at 1.45× median; oracle worst; multiPops greedy 14.6 vs router 15.1 —
+"lines are not read, they are collected" (clusters of 3 inside 1.6 m fall
+to any 3.2 m sweep). Fade decay works (+21.3/−15.7 ledger) but the fade
+has no read. Whiffs: 53–62 % of inputs land in silence. Seed label shows
+two seeds. Contract prose still carried r1's numbers (3.6 m / 0.16 s /
+1.9 s / gold 5× / 1.78×) and the block omitted DASH.radius, SPIRIT.r,
+ONI.r/cooldown, GOLD ttl/dist, COURT.
+
+*Targets, each with its number to move:*
+1. **Fixed timestep.** The shell runs the sim on `SIM_DT = 1/120` with an
+   accumulator (`FixedStep`, shared engine); render interpolates
+   presentation from the last two sim states; input is stamped with the
+   sim tick it lands on. Gate `check-juicebox-replay.mjs`: a tick-indexed
+   input tape replayed at 30 / 60 / 90 / 144 fps and with jittered dt
+   produces byte-identical `run` state (score, pos, spirits, combo) at
+   every 5-s checkpoint — through the real shell in headless Chrome. The
+   headless curve gate states its dt and runs the referee at two rates
+   (1/60 and 1/30 render cadence over the fixed sim step) and requires
+   identical medians.
+2. **Delivered-value drift.** `check-contract-drift.mjs` gains delivered
+   rows for this entry: measured dash reach (3.2 ± 0.05 m at every frame
+   rate), chain window, recovery — measured in the shell, not read from
+   source. Prose is reconciled to the block (this amendment does it) and
+   the drift gate scans the contract prose for numbers with units that
+   the block does not carry.
+3. **The decision exists or it doesn't.** Cluster geometry changes so a
+   line must be READ to be swept: cluster members spaced 2.6–3.4 m along a
+   line with a per-cluster orientation, so a 3.2 m dash aligned with the
+   line takes 2–3 and a dash from any other angle takes 1; the n-th pop
+   multiplier only pays for aligned sweeps. Aim: router multiPops ≥ 1.4×
+   greedy's (r2: 15.1 vs 14.6), and router median ≥ greedy median. Not
+   the score window, not the bot.
+4. **Rendered-space ladder.** `check-juicebox-feel.mjs` judges the
+   COMPOSITE events the game fires (single, double = pop+multi-pop, gold,
+   triple) by rendered magnitude at the play camera: screen-space shake
+   in px, hitstop frames, particle pixels above 3 px, text present. The
+   particle point-size formula is fixed so a burst reads at ≥ 4 px at the
+   court camera. Monotone in banked value.
+5. **Reads.** Whiff: a dash that pops nothing gets a visible read (trail
+   fizzle + short tick) — whiff-silence rate gated ≤ 5 % of dashes. Hit:
+   the player is never fully occluded by the oni during a stun (oni
+   renders behind, stun ring on top). Text collision: staggered per pop
+   (kept) and capped to two on screen. Fade: the fading spirit's last
+   0.5 s reads (shrink + dim), the combo step-down flashes the combo
+   label. Gold blink no longer shrinks it (opacity, not scale). Seed
+   label: one seed, the one the run used.
+
+*Recorded from r2, not targets:* greedy 5/7 at 1.45× (design finding,
+ruled); execution headroom real (2–3×) but unobservable under the 1.29×
+noise floor until (1) lands.
+
+*Constants reconciliation.* Values marked "recorded" were copied from
+the code after implementation; a later change to any of them needs a
+design justification.
+
 ```constants
 DASH.len = 3.2
 DASH.time = 0.1
@@ -168,4 +251,17 @@ SPIRIT.ttlMax = 3.9
 GOLD.value = 30
 GOLD.comboGain = 1
 RUN_SECONDS = 60
+DASH.radius = 0.5
+SPIRIT.r = 0.35
+ONI.r = 0.62
+ONI.cooldown = 1
+GOLD.ttlMin = 2.3
+GOLD.ttlMax = 2.8
+GOLD.distMin = 5
+GOLD.distMax = 7
+COURT.x1 = 8.5
+COURT.z1 = 5
+SIM_DT = 0.008333333333333333
 ```
+(DASH.radius, SPIRIT.r, ONI.r, ONI.cooldown, GOLD.ttl*/dist*, COURT.*:
+recorded, not designed. SIM_DT: designed in A7.)
