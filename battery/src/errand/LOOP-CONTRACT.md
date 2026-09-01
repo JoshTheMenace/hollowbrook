@@ -98,4 +98,69 @@ RADIUS = 1.7
 
 ## Amendments
 
-(none yet)
+**A0 (corrections to the record, before round 3).**
+- The `constants` block above was added to this contract by commit
+  2f8cbd8, titled "B1 Amendment A6" — a B3 contract edit filed under a
+  B1 amendment. Recorded here as the B3 amendment it should have been.
+  `RADIUS = 1.7` was transcribed FROM the code after implementation:
+  **recorded, not designed** — any change needs a design justification.
+- The round-2 evidence set (er2-open, er2-meet, er2-reload, er2-relit,
+  er2-done) replaced the declared set (er-candle dropped, er2-open added)
+  with no amendment. Declared set from round 3: er3-open, er3-meet,
+  er3-reload (after a WALK), er3-relit (from the interaction spot, the
+  lanterns in frame), er3-done.
+- Round-1's contract and build commits carried identical timestamps
+  (staged together); round 2 had 10 m 40 s separation. Noted.
+
+**A1 (post play-review r2, composite 0.44 — committed BEFORE the round-3
+implementation).** The blockers are dead; the round fixed the symptoms a
+reviewer named and not their cause: nothing in the loop is composed for
+where the player stands. Measured: from the interaction spot the six
+lanterns project to NDC y 1.35–1.48 (35–48 % above the top of the
+frame); the relight flash is gone in 350 ms; `lanterns-lit` has no text;
+and `check-errand-shell` passed "string lit" from a state flag while its
+own captured frame contained no lantern. Also: bow tips the head
+BACKWARDS (head.x −= where nod uses +=; peak +0.729 chin-up) with gaze
+still craning; a 126° single-frame arm snap when a line advances
+mid-envelope; three of nine lines finish acting before the text; position
+saved only at six quest events (5.6 m teleport on F5); a corrupt player
+array bricks the run; `done + lit:false` restores verbatim.
+
+Targets, each with its number to move:
+- **Payoff staged for the interaction spot.** On `lanterns-lit` the camera
+  pitches up and holds on the string for 1.5 s (`hero` boom pitch to the
+  string's centroid, eased in/out), the event carries text ("the string
+  wakes"), and the flash becomes a persistent low practical (the string's
+  own glow is the light). Gate: the shell gate's er3-relit frame is
+  asserted ON — lantern pixels (ID-mask, lantern glow meshes) ≥ 0.5 % of
+  the frame from the interaction spot through the play camera. A state
+  flag no longer passes this row.
+- **Gesture blend-out**: `direct()` cross-fades 0.15 s — the outgoing
+  envelope keeps running with a falling weight while the new one rises;
+  stateless per frame is preserved (both are functions of time).
+  Number: max single-frame joint delta across a mid-envelope line advance
+  ≤ 0.35 rad (was 126° ≈ 2.2 rad).
+- **Gesture shape**: bow's head sign fixed (head down with the torso);
+  gaze damped to zero over the bow. Gate: `check-performer-shape.mjs` —
+  a signed-direction table per verb (nod: head.x +; shake: head.y
+  alternates; bow: spine.x − AND head.x +; wave/point/open_hand: upperArmR
+  raised; lean_in: spine.x −; lean_back: spine.x +; tilt_left/right:
+  head.z ±; small_shrug: shoulders up) checked at the envelope peak; a
+  Performer playing any verb backwards fails.
+- **Acting paced to the line**: gesture duration scales to
+  max(DURATION, text.length ÷ 42 s × 0.9) so the pose outlives the
+  typewriter; lines longer than one gesture get an idle-gesture cadence
+  (a second, softer gesture at the midpoint). Number: 0 of 9 lines finish
+  acting before the text (was 3 of 9).
+- **Persistence**: position saved continuously (every 0.5 s while moving,
+  and on move→idle); `reloadAndCompare` WALKS 3 m between the save and the
+  reload; the shell payload is validated like the quest payload
+  (`Number.isFinite` on every component, else fresh); `done` implies
+  `lit` (an inconsistent snapshot restores fresh).
+- **The corner at evening**: sun 2.0 → the dusk phase (DayNight 'dusk'
+  from the start; the string being dark is then a contradiction the
+  player can see); candles pop in under a short spawn puff; bursts at
+  the event's own height, not y = 1.1; `Look` on the string during find
+  reads as a look (a soft tick + "still dark"), not `ui-deny`.
+- Observability gate: a refused press returns `{ok:false}`; `ok:true` is
+  reserved for a state change or a truthful event.
