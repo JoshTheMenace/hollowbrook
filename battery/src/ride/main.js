@@ -454,14 +454,14 @@ function measureLegibility() {
   for (const [o, m] of restore) { if (m === null) o.visible = true; else o.material = m; }
   const n = pairs.length;
   const px = new Array(n).fill(0), markPx = new Array(n).fill(0);
-  const pixels = Array.from({ length: n }, () => []);
+  const pixels = Array.from({ length: n }, () => []);   // BODY pixels only (A7 §2: the marker is its own row)
   const box = Array.from({ length: n }, () => [W, H, -1, -1]);
   for (let p = 0; p < W * H; p++) {
     const id = _idBuf[p * 4];
     if (!id || id > n) continue;
     const i = id - 1, x = p % W, y = H - 1 - ((p / W) | 0);
+    if (_idBuf[p * 4 + 1] > 200) { markPx[i]++; continue; }   // marker pixels never count toward the body
     px[i]++;
-    if (_idBuf[p * 4 + 1] > 200) markPx[i]++;
     pixels[i].push((y * W + x) * 4);
     const b = box[i];
     if (x < b[0]) b[0] = x; if (y < b[1]) b[1] = y; if (x > b[2]) b[2] = x; if (y > b[3]) b[3] = y;
@@ -485,8 +485,11 @@ function measureLegibility() {
       }
     }
     const elite = !!e.def.elite;
-    const legible = elite ? px[i] >= LEGIBLE.eliteMinPx && markPx[i] >= LEGIBLE.eliteMarkerPx : px[i] >= LEGIBLE.minPx && sep >= LEGIBLE.minSep;
-    out.set(e, { px: px[i], markPx: markPx[i], sep: +sep.toFixed(3), elite, legible });
+    // an elite is legible by its BODY (size + contrast, like chaff at its
+    // size); whether it reads AS an elite is the marker row, judged apart
+    // (r1: depthTest:false marker + dead-bar pixels made the row a tautology)
+    const legible = elite ? px[i] >= LEGIBLE.eliteMinPx && sep >= LEGIBLE.minSep : px[i] >= LEGIBLE.minPx && sep >= LEGIBLE.minSep;
+    out.set(e, { px: px[i], markPx: markPx[i], sep: +sep.toFixed(3), elite, legible, marker: elite && markPx[i] >= LEGIBLE.eliteMarkerPx });
   });
   return out;
 }
@@ -527,7 +530,7 @@ window.__playCheck = (seconds = 175) => {
   window.__autoplay(true, 7);
   const frustum = new THREE.Frustum(), mat = new THREE.Matrix4(), pt = new THREE.Vector3();
   const samples = [], legSamples = [];
-  let eliteFrames = 0, eliteLegible = 0;
+  let eliteFrames = 0, eliteLegible = 0, eliteMarker = 0;
   for (let i = 0; i < seconds * 60 && started; i++) {
     tick(1 / 60);
     camera.updateMatrixWorld();
@@ -548,7 +551,7 @@ window.__playCheck = (seconds = 175) => {
         const s = leg.get(e);
         if (!s) continue;
         if (e.pos.distanceTo(P) <= LEGIBLE.combatRange) { inRange++; if (s.legible) ok++; }
-        if (s.elite && frustum.containsPoint(pt.set(e.pos.x, 0.8, e.pos.z))) { eliteFrames++; if (s.legible) eliteLegible++; }
+        if (s.elite && frustum.containsPoint(pt.set(e.pos.x, 0.8, e.pos.z))) { eliteFrames++; if (s.legible) eliteLegible++; if (s.marker) eliteMarker++; }
       }
       if (inRange >= 3) legSamples.push(ok / inRange);
     }
@@ -560,7 +563,9 @@ window.__playCheck = (seconds = 175) => {
   return {
     frames: samples.length, visibleP10: +p10.toFixed(3), survived: +ride.time.toFixed(1),
     climaxLegibleFrac: +legMean.toFixed(3), climaxSamples: legSamples.length,
-    eliteLegibleFrac: eliteFrames ? +(eliteLegible / eliteFrames).toFixed(3) : null,
-    pass: p10 >= 0.8 && legMean >= 0.6 && (eliteFrames === 0 || eliteLegible / eliteFrames >= 0.8),
+    eliteLegibleFrac: eliteFrames ? +(eliteLegible / eliteFrames).toFixed(3) : null,   // BODY
+    eliteMarkerFrac: eliteFrames ? +(eliteMarker / eliteFrames).toFixed(3) : null,     // marker, separately
+    eliteFrames,
+    pass: p10 >= 0.8 && legMean >= 0.6 && (eliteFrames === 0 || (eliteLegible / eliteFrames >= 0.8 && eliteMarker / eliteFrames >= 0.8)),
   };
 };
