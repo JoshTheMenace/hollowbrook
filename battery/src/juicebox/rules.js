@@ -3,19 +3,28 @@
 // architecture, applied to a 60-second score attack).
 //
 // Determinism is the fairness model: the whole spirit schedule is a pure
-// function of the seed. Same seed = the identical puzzle.
+// function of the seed. Same seed = the identical puzzle. Gold placement is
+// a pure function of seed + PLAY (A5): a replay of identical inputs is
+// identical, but a board-blind route cannot pre-script it.
+//
+// Every number here is declared in LOOP-CONTRACT.md's `constants` block and
+// diffed by scripts/check-contract-drift.mjs.
 
 export const COURT = { x0: -8.5, z0: -5, x1: 8.5, z1: 5 };
 export const RUN_SECONDS = 60;
 export const DASH = { len: 3.2, time: 0.1, recover: 0.45, radius: 0.5 };
 export const CHAIN_WINDOW = 1.6;   // seconds between pops that keep the combo
 export const SPIRIT = { r: 0.35, ttlMin: 2.9, ttlMax: 3.9, driftMin: 0.35, driftMax: 0.75 };
+export const GOLD = { value: 30, comboGain: 1, ttlMin: 2.3, ttlMax: 2.8, distMin: 5, distMax: 7 };
+// the oni: FREEZES to telegraph, then bites its threat radius; a dash is an
+// i-frame through the bite (threat == bite radius, so a telegraph is always
+// a real threat to a stationary player and never a surprise)
+export const ONI = { r: 0.62, stun: 0.5, telegraph: 0.5, threat: 1.07, cooldown: 1.0, count: 2 };
 
 export const JUICE_EVENTS = [
   'dash', 'pop', 'multi-pop', 'combo-break', 'fade-warning', 'spirit-fade',
-  'oni-hit', 'final-10s', 'timeup',
+  'oni-telegraph', 'oni-hit', 'final-10s', 'timeup',
 ];
-export const ONI = { r: 0.62, stun: 1.2, count: 2 };
 
 const mulberry32 = (a) => () => {
   a |= 0; a = (a + 0x6D2B79F5) | 0;
@@ -23,10 +32,12 @@ const mulberry32 = (a) => () => {
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
+const clampCourt = (v, lo, hi) => Math.max(lo + 0.3, Math.min(hi - 0.3, v));
 
 // The seeded schedule: [{t, x, z, vx, vz, ttl}] for the whole run.
 // Rhythm: a base drip plus a 3-spirit cluster burst roughly every 7 s —
-// the cluster is the risk/reward the contract promises.
+// the cluster is the risk/reward the contract promises. Gold entries carry
+// only a time + ttl + a seeded angle; their position resolves at spawn.
 export function makeSchedule(seed) {
   const r = mulberry32(seed);
   const events = [];
@@ -53,8 +64,8 @@ export function makeSchedule(seed) {
       for (let i = 0; i < 3; i++) {
         events.push({
           t: t + i * 0.18,
-          x: Math.max(COURT.x0 + 0.3, Math.min(COURT.x1 - 0.3, base.x + (r() - 0.5) * 1.6)),
-          z: Math.max(COURT.z0 + 0.3, Math.min(COURT.z1 - 0.3, base.z + (r() - 0.5) * 1.6)),
+          x: clampCourt(base.x + (r() - 0.5) * 1.6, COURT.x0, COURT.x1),
+          z: clampCourt(base.z + (r() - 0.5) * 1.6, COURT.z0, COURT.z1),
           vx: base.vx * 0.55, vz: base.vz * 0.55,   // clusters drift together, slowly — the line stays buildable
           ttl: SPIRIT.ttlMin + r() * (SPIRIT.ttlMax - SPIRIT.ttlMin),
         });
@@ -69,11 +80,10 @@ export function makeSchedule(seed) {
       t += 0.5 + r() * 0.4;
     }
   }
-  // gold spirits: the commitment decision. Worth 5x, short-lived, far from
-  // centre — weaving one in WITHOUT dropping the chain is the skill.
+  // gold: the commitment decision. Position resolves at spawn time relative
+  // to the PLAYER (far side, distance band) — see JuiceRun.update.
   for (let gt = 4 + r() * 2; gt < RUN_SECONDS - 3; gt += 5.5 + r() * 1.6) {
-    const sp = edgeSpawn();
-    events.push({ t: gt, ...sp, ttl: 2.3 + r() * 0.5, gold: true });
+    events.push({ t: gt, x: 0, z: 0, vx: 0, vz: 0, ttl: GOLD.ttlMin + r() * (GOLD.ttlMax - GOLD.ttlMin), gold: true, angle: (r() - 0.5) * 1.2, dist: GOLD.distMin + r() * (GOLD.distMax - GOLD.distMin) });
   }
   events.sort((a, b) => a.t - b.t);
   return events;
@@ -93,6 +103,7 @@ export class JuiceRun {
     this.pops = 0;
     this.fades = 0;
     this.dashes = 0;
+    this.whiffs = 0;
     this.spirits = [];
     this.pos = { x: 0, z: 0 };
     this.dashUntil = 0;          // dashing while time < dashUntil
@@ -100,18 +111,28 @@ export class JuiceRun {
     this.dashDir = { x: 0, z: 0 };
     this.over = false;
     this._final10 = false;
+    this._dashPops = 0;
     // oni orbs: seeded lissajous patrols — the risk the router routes around
     const orng = mulberry32(seed * 7 + 13);
-    this.onis = Array.from({ length: ONI.count }, (_, i) => ({
+    this.onis = Array.from({ length: ONI.count }, () => ({
       ax: 5.5 + orng() * 2, az: 3 + orng() * 1.2,
       fx: 0.25 + orng() * 0.2, fz: 0.31 + orng() * 0.2,
       px: orng() * 6.28, pz: orng() * 6.28,
       x: 0, z: 0,
+      windupAt: -1,              // telegraph started at (or -1)
+      readyAt: 0,                // may telegraph again after this
+      paused: 0,                 // patrol time spent frozen in wind-ups
     }));
     this.stunnedUntil = -1;
+    this.stuns = 0;
+    // A5 instrumentation: what the gates measure
+    this.stunnedTime = 0;
+    this.comboUptime = 0;        // seconds spent at combo >= 2
   }
 
   canDash() { return !this.over && this.time >= this.dashReadyAt && this.time >= this.stunnedUntil; }
+  dashing() { return this.time < this.dashUntil; }
+  stunned() { return this.time < this.stunnedUntil; }
 
   dash(dx, dz) {
     if (!this.canDash()) return false;
@@ -126,6 +147,27 @@ export class JuiceRun {
     return true;
   }
 
+  // gold resolves far from where the player STANDS: across the court in the
+  // direction away from them, within the distance band, on the court
+  _placeGold(e) {
+    const px = this.pos.x, pz = this.pos.z;
+    let ax = -px, az = -pz;
+    const l = Math.hypot(ax, az);
+    if (l < 0.5) { ax = Math.cos(e.angle); az = Math.sin(e.angle); }
+    else { ax /= l; az /= l; }
+    const ca = Math.cos(e.angle), sa = Math.sin(e.angle);
+    const dx = ax * ca - az * sa, dz = ax * sa + az * ca;
+    const x = clampCourt(px + dx * e.dist, COURT.x0, COURT.x1);
+    const z = clampCourt(pz + dz * e.dist, COURT.z0, COURT.z1);
+    return { x, z, vx: -x * 0.05, vz: -z * 0.05 };
+  }
+
+  _decayCombo(reason) {
+    if (this.combo <= 1) return;
+    this.combo -= 1;
+    this.fx['combo-break']?.({ reason, to: this.combo });
+  }
+
   update(dt) {
     if (this.over) return;
     this.time += dt;
@@ -138,45 +180,52 @@ export class JuiceRun {
       this._final10 = true;
       this.fx['final-10s']?.({});
     }
+    if (this.stunned()) this.stunnedTime += dt;
+    if (this.combo >= 2) this.comboUptime += dt;
     // spawn
     while (this.nextSpawn < this.schedule.length && this.schedule[this.nextSpawn].t <= this.time) {
       const s = this.schedule[this.nextSpawn++];
-      this.spirits.push({ x: s.x, z: s.z, vx: s.vx, vz: s.vz, dieAt: this.time + s.ttl, warned: false, gold: !!s.gold });
+      const at = s.gold ? this._placeGold(s) : s;
+      this.spirits.push({ x: at.x, z: at.z, vx: at.vx, vz: at.vz, dieAt: this.time + s.ttl, warned: false, gold: !!s.gold });
     }
     // dash movement (swept hits)
-    if (this.time < this.dashUntil) {
+    if (this.dashing()) {
       const step = (DASH.len / DASH.time) * dt;
       const nx = this.pos.x + this.dashDir.x * step;
       const nz = this.pos.z + this.dashDir.z * step;
-      // hits along the segment
       for (const sp of this.spirits) {
         if (sp.popped) continue;
         if (segCircle(this.pos.x, this.pos.z, nx, nz, sp.x, sp.z, DASH.radius + SPIRIT.r)) {
           sp.popped = true;
           this.pops++;
           this._dashPops++;
-          // chains SUSTAIN on any pop, but combo GROWS only on line pops
-          // (2nd+ spirit in one dash) and golds — singles keep the flame,
-          // lines and commitment build it. Skill = constructing lines.
           if (this.time - this.lastPopAt > CHAIN_WINDOW) this.combo = 1;
-          if (this._dashPops >= 2) this.combo += 1;
-          if (sp.gold) this.combo += 2;
+          if (this._dashPops >= 2) this.combo += 1;     // lines build the combo
+          if (sp.gold) this.combo += GOLD.comboGain;    // commitment builds it
           this.bestCombo = Math.max(this.bestCombo, this.combo);
           this.lastPopAt = this.time;
-          this.score += (sp.gold ? 50 : 10) * this.combo;
-          this.fx.pop?.({ pos: { x: sp.x, z: sp.z }, combo: this.combo, score: this.score, gold: sp.gold });
-          if (this._dashPops >= 2) this.fx['multi-pop']?.({ pos: { x: sp.x, z: sp.z }, count: this._dashPops });
+          // A5 repricing: the n-th pop of one dash is worth 10·n·combo; gold
+          // is worth 30·combo — a triple line outpays a solo gold
+          const value = sp.gold ? GOLD.value * this.combo : 10 * this._dashPops * this.combo;
+          this.score += value;
+          this.fx.pop?.({ pos: { x: sp.x, z: sp.z }, combo: this.combo, score: this.score, gold: sp.gold, value, nth: this._dashPops });
+          if (this._dashPops >= 2) this.fx['multi-pop']?.({ pos: { x: sp.x, z: sp.z }, count: this._dashPops, value });
         }
       }
       this.pos.x = Math.max(COURT.x0, Math.min(COURT.x1, nx));
       this.pos.z = Math.max(COURT.z0, Math.min(COURT.z1, nz));
+    } else if (this.dashUntil > 0 && this.time - DASH.time < this.dashUntil && this.time >= this.dashUntil && this._dashPops === 0 && !this._whiffCounted) {
+      // a dash just ended with no pop
+      this._whiffCounted = true;
+      this.whiffs++;
     }
+    if (this.dashing()) this._whiffCounted = false;
     // chain decay: too long since a pop drops the combo (bank behavior)
     if (this.combo > 1 && this.time - this.lastPopAt > CHAIN_WINDOW) {
       this.combo = 1;
-      this.fx['combo-break']?.({ reason: 'timer' });
+      this.fx['combo-break']?.({ reason: 'timer', to: 1 });
     }
-    // spirits drift, warn, fade
+    // spirits drift, warn, fade — a fade DECAYS the combo one step (A5)
     for (let i = this.spirits.length - 1; i >= 0; i--) {
       const sp = this.spirits[i];
       if (sp.popped) { this.spirits.splice(i, 1); continue; }
@@ -189,27 +238,46 @@ export class JuiceRun {
       if (left <= 0) {
         this.spirits.splice(i, 1);
         this.fades++;
-        if (this.combo > 1) this.fx['combo-break']?.({ reason: 'fade' });
-        this.combo = 1;
+        this._decayCombo('fade');
         this.fx['spirit-fade']?.({ pos: { x: sp.x, z: sp.z } });
       }
     }
-    // oni orbs patrol; touching one stuns and breaks the chain
+    // oni: patrol → telegraph when the player is in threat range → bite.
+    // A dash in progress is an i-frame; a stationary player always sees the
+    // telegraph first. Never stuns while already stunned.
     for (const o of this.onis) {
-      o.x = Math.sin(this.time * o.fx * 6.28 + o.px) * o.ax;
-      o.z = Math.sin(this.time * o.fz * 6.28 + o.pz) * o.az;
-      if (this.time >= this.stunnedUntil) {
-        const d = Math.hypot(this.pos.x - o.x, this.pos.z - o.z);
-        if (d < ONI.r + 0.3) {
+      if (o.windupAt >= 0) o.paused += dt;           // frozen while winding up
+      const pt = this.time - o.paused;
+      o.x = Math.sin(pt * o.fx * 6.28 + o.px) * o.ax;
+      o.z = Math.sin(pt * o.fz * 6.28 + o.pz) * o.az;
+      const d = Math.hypot(this.pos.x - o.x, this.pos.z - o.z);
+      if (o.windupAt < 0) {
+        if (this.time >= o.readyAt && d < ONI.threat && !this.stunned()) {
+          o.windupAt = this.time;
+          this.fx['oni-telegraph']?.({ pos: { x: o.x, z: o.z }, index: this.onis.indexOf(o) });
+        }
+      } else if (this.time - o.windupAt >= ONI.telegraph) {
+        o.windupAt = -1;
+        o.readyAt = this.time + ONI.cooldown;
+        const bite = d < ONI.threat && !this.dashing() && !this.stunned();
+        if (bite) {
           this.stunnedUntil = this.time + ONI.stun;
-          this.dashUntil = 0;                    // the dash dies on impact
-          if (this.combo > 1) this.fx['combo-break']?.({ reason: 'oni' });
-          this.combo = 1;
-          this.stuns = (this.stuns ?? 0) + 1;
+          this.stuns++;
+          this._decayCombo('oni');
           this.fx['oni-hit']?.({ pos: { x: o.x, z: o.z } });
         }
       }
     }
+  }
+
+  // A5 gate instrumentation
+  stats() {
+    const scheduled = this.schedule.length;
+    return {
+      score: this.score, bestCombo: this.bestCombo, pops: this.pops, fades: this.fades, dashes: this.dashes, whiffs: this.whiffs,
+      stuns: this.stuns, stunTax: this.stunnedTime / RUN_SECONDS,
+      poppedFraction: this.pops / scheduled, comboUptime: this.comboUptime / RUN_SECONDS,
+    };
   }
 }
 
@@ -236,16 +304,15 @@ export function greedyBot(run) {
 
 // Router: the skilled bot. Stays where density is (corridor sweeps among
 // NEAR spirits), and commits to gold when it is worth the trip — chain
-// preservation by popping often beats heroic cross-court saves.
+// preservation by popping often beats heroic cross-court saves. Reads the
+// oni's telegraph: a winding-up oni in reach is dodged with a dash.
 export function routerBot(run) {
   if (!run.canDash()) return;
-  // survival first: an oni closing on the resting spot forces an escape dash
   for (const o of run.onis) {
     const d = Math.hypot(run.pos.x - o.x, run.pos.z - o.z);
-    if (d < 1.15) {
+    if (o.windupAt >= 0 && d < ONI.r + 0.9) {
       let ex = run.pos.x - o.x, ez = run.pos.z - o.z;
       const l = Math.hypot(ex, ez) || 1;
-      // bias the escape toward the court centre so we don't pin on a wall
       ex = ex / l - run.pos.x * 0.06;
       ez = ez / l - run.pos.z * 0.06;
       run.dash(ex, ez);
@@ -301,21 +368,20 @@ export function routerBot(run) {
 }
 
 // Oracle: the router plus SEED KNOWLEDGE — between engagements it
-// pre-positions toward spawns arriving in the next ~2.6s (clusters and
-// golds first). This is what a repeat player of a daily seed actually
-// learns, so the headroom gate measures whether the DESIGN pays for
-// planning, not whether one hand-written policy beats another.
+// pre-positions toward spawns arriving in the next ~2.6s (clusters first;
+// gold positions are unknowable in advance by design, so only their
+// timing is planned around). This is the ORIGINAL planning-headroom
+// instrument, restored by A5: it measures whether the DESIGN pays for
+// planning, and its number is recorded whatever it is.
 export function oracleBot(run) {
   if (!run.canDash()) return;
-  // engaged? let the router play the board
   const nearNow = run.spirits.some((sp) => Math.hypot(sp.x - run.pos.x, sp.z - run.pos.z) <= DASH.len * 1.35);
   if (nearNow) { routerBot(run); return; }
-  // otherwise: move toward what the schedule says comes next
-  const soon = run.schedule.filter((e) => e.t > run.time && e.t < run.time + 2.6 && !e._taken);
+  const soon = run.schedule.filter((e) => e.t > run.time && e.t < run.time + 2.6 && !e.gold);
   if (soon.length) {
     let wx = 0, wz = 0, w = 0;
     for (const e of soon) {
-      const wt = (e.gold ? 3 : 1) / Math.max(0.3, e.t - run.time);
+      const wt = 1 / Math.max(0.3, e.t - run.time);
       wx += e.x * wt; wz += e.z * wt; w += wt;
     }
     const tx = wx / w, tz = wz / w;
@@ -325,11 +391,13 @@ export function oracleBot(run) {
   routerBot(run);
 }
 
+// Control case for the stun-tax gate: never dashes. Its number is printed,
+// never passed — it documents what standing still costs.
+export function stillBot() {}
+
 // Actuation-noise wrapper: the measurable form of EXECUTION skill. The same
 // policy, played with human imperfections — reaction delay + aim jitter —
-// at two profiles. If expert reflexes don't outscore novice reflexes, the
-// design doesn't reward the skill it actually asks for. (Perfect-execution
-// bots cannot express this axis; planning bots measured nothing here.)
+// at two profiles.
 export function makeNoisy(policy, { delay = 0.25, jitterDeg = 12, seed = 99 } = {}) {
   const r = mulberry32(seed);
   let pendingAt = -1;
@@ -338,7 +406,6 @@ export function makeNoisy(policy, { delay = 0.25, jitterDeg = 12, seed = 99 } = 
     if (pendingAt < 0) { pendingAt = run.time + delay * (0.7 + r() * 0.6); return; }
     if (run.time < pendingAt) return;
     pendingAt = -1;
-    // let the policy choose, then corrupt the aim
     const realDash = run.dash.bind(run);
     let chosen = null;
     run.dash = (dx, dz) => { chosen = { dx, dz }; return true; };

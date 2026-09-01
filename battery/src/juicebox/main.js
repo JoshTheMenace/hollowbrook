@@ -1,14 +1,15 @@
 import * as THREE from 'three';
-import { JuiceRun, JUICE_EVENTS, COURT, RUN_SECONDS, DASH, ONI, greedyBot, makeNoisy, NOVICE, EXPERT } from './rules.js';
+import { JuiceRun, JUICE_EVENTS, COURT, RUN_SECONDS, DASH, ONI, greedyBot, makeNoisy, EXPERT } from './rules.js';
 import { toonMaterial, facetBall, facet } from '@forge/lib/parts.js';
 import { Feel } from '@forge/engine/feel.js';
 import { AdaptiveMusic, SfxPlayer } from '@forge/soundforge/runtime.js';
 import { SFX } from '@forge/soundforge/content/sfx-core.js';
 import { LOOP } from '@forge/soundforge/content/loop-nightbloom.js';
+import { wireJuice, LADDER_STEPS, LADDER_PAIRS } from './feel-table.js';
 
 /* JUICE BOX shell — the B1 micro-game. Rules are pure (rules.js, gated
- * headlessly); this file is presentation + feel. Every JUICE_EVENTS type is
- * wired or check-feel fails the build. */
+ * headlessly); this file is presentation + feel. The feel table lives in
+ * feel-table.js so the ladder gate wires the SAME table it judges. */
 
 const canvas = document.querySelector('#view');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -28,11 +29,13 @@ key.position.set(-6, 12, 6);
 scene.add(key);
 
 // the court: glowing plate + rim + corner lanterns
+const rimMat = new THREE.MeshBasicMaterial({ color: '#171226' });
+const RIM_BASE = rimMat.color.clone();
 {
   const plate = new THREE.Mesh(new THREE.PlaneGeometry(COURT.x1 - COURT.x0 + 1, COURT.z1 - COURT.z0 + 1), toonMaterial('#2c2547', { rim: 0.3, rimColor: '#6a5a9a' }));
   plate.rotation.x = -Math.PI / 2;
   scene.add(plate);
-  const band = new THREE.Mesh(new THREE.PlaneGeometry(COURT.x1 - COURT.x0 + 1.6, COURT.z1 - COURT.z0 + 1.6), new THREE.MeshBasicMaterial({ color: '#171226' }));
+  const band = new THREE.Mesh(new THREE.PlaneGeometry(COURT.x1 - COURT.x0 + 1.6, COURT.z1 - COURT.z0 + 1.6), rimMat);
   band.rotation.x = -Math.PI / 2;
   band.position.y = -0.02;
   scene.add(band);
@@ -40,7 +43,8 @@ scene.add(key);
     const post = facet(new THREE.CylinderGeometry(0.07, 0.09, 1.6, 5), toonMaterial('#3c3358', { rim: 0.3 }));
     post.position.set(sx * (COURT.x1 + 0.4), 0.8, sz * (COURT.z1 + 0.4));
     scene.add(post);
-    const glow = new THREE.Mesh(new THREE.OctahedronGeometry(0.16, 1), new THREE.MeshBasicMaterial({ color: '#ffd9a0' }));
+    // decor lanterns stay DIM: gold must be the brightest thing on the court
+    const glow = new THREE.Mesh(new THREE.OctahedronGeometry(0.14, 1), new THREE.MeshBasicMaterial({ color: '#8a6a4a' }));
     glow.position.set(sx * (COURT.x1 + 0.4), 1.72, sz * (COURT.z1 + 0.4));
     scene.add(glow);
   }
@@ -54,6 +58,13 @@ const BOX_BASE = boxMat.color.clone();
 const box = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.62, 0.62), boxMat);
 box.position.y = 0.31;
 scene.add(box);
+// the recovery ring: the 0.45s cooldown made visible (fills as it recharges;
+// red while stunned) — review r1: inputs were swallowed with no read
+const ringMat = new THREE.MeshBasicMaterial({ color: '#9adfff', transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false });
+const ring = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.62, 32, 1, 0, Math.PI * 2), ringMat);
+ring.rotation.x = -Math.PI / 2;
+ring.position.y = 0.04;
+scene.add(ring);
 const trail = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.5), new THREE.MeshBasicMaterial({ color: '#9adfff', transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }));
 trail.rotation.x = -Math.PI / 2;
 trail.position.y = 0.06;
@@ -61,30 +72,25 @@ scene.add(trail);
 
 // spirits + onis
 const spiritMat = toonMaterial('#a8e8ff', { rim: 1.0, rimColor: '#ffffff' });
-const goldMat = toonMaterial('#ffd76a', { rim: 1.0, rimColor: '#fff6d8' });
+const goldMat = new THREE.MeshBasicMaterial({ color: '#ffe36a' });   // unlit: reads as light, not paint
+const goldRingMat = new THREE.MeshBasicMaterial({ color: '#ffd04a', transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
 const oniMat = toonMaterial('#c0506a', { rim: 0.8, rimColor: '#ff9ab0' });
+const telegraphMat = new THREE.MeshBasicMaterial({ color: '#ff6a7a', transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
 const spiritVisuals = new Map();
 const oniVisuals = [];
 
 // ---- feel ----------------------------------------------------------------
 const feel = new Feel({ scene, camera, sfx: null });
-const comboEl = document.querySelector('#combo');
-const breakEl = document.querySelector('#breakflash');
-feel.wire('dash', { sfx: 'slash', sfxOpts: { vol: 0.4, rate: 1.5 } });
-feel.wire('pop', {
-  // the pitch IS the combo meter
-  sfx: 'pickup-gem', sfxOpts: (d) => ({ vol: d.gold ? 0.9 : 0.6, rate: 1 + Math.min(1.2, (d.combo - 1) * 0.09) }),
-  burst: { count: 10, color: '#a8e8ff', color2: '#fff', speed: 2.2, up: 2.2, ttl: 0.4 },
-  text: (d) => (d.combo > 1 ? `×${d.combo}` : '+'),
+const el = (id) => document.querySelector(id);
+const comboEl = el('#combo'), breakEl = el('#breakflash'), vignetteEl = el('#vignette'), clockEl = el('#clock');
+let finalPulse = false;
+wireJuice(feel, {
+  breakFlash: () => { breakEl.style.opacity = '0.55'; setTimeout(() => { breakEl.style.opacity = '0'; }, 240); },
+  telegraph: (i) => { const v = oniVisuals[i]; if (v) v.userData.telegraphAt = performance.now(); },
+  final10: () => { finalPulse = true; vignetteEl.style.opacity = '1'; clockEl.classList.add('final'); },
 });
-feel.wire('multi-pop', { sfx: 'impact-hit', sfxOpts: { vol: 0.7 }, hitstop: 0.07, shake: 0.25, burst: { count: 20, color: '#ffd76a', color2: '#a8e8ff', speed: 3, up: 2.6, ttl: 0.6 } });
-feel.wire('combo-break', { sfx: 'ui-deny', call: () => { breakEl.style.opacity = '0.55'; setTimeout(() => { breakEl.style.opacity = '0'; }, 240); } });
-feel.wire('fade-warning', { sfx: 'ui-click', sfxOpts: { vol: 0.25, rate: 0.7 } });
-feel.wire('spirit-fade', { sfx: 'ui-deny', sfxOpts: { vol: 0.2, rate: 1.5 }, burst: { count: 6, color: '#5a5478', color2: '#3a3450', speed: 0.8, up: 0.6, ttl: 0.5, size: 0.06 } });
-feel.wire('oni-hit', { sfx: 'hurt', shake: 0.55, hitstop: 0.1, burst: { count: 16, color: '#ff5a6e', color2: '#fff', speed: 2.6, up: 2, ttl: 0.5 } });
-feel.wire('final-10s', { sfx: 'impact-heavy', sfxOpts: { vol: 0.45, rate: 0.8 } });
-feel.wire('timeup', { sfx: 'victory' });
 window.__feelCheck = () => feel.check(JUICE_EVENTS);
+window.__feelLadder = () => feel.checkLadder(LADDER_STEPS, LADDER_PAIRS);
 
 // ---- audio ----------------------------------------------------------------
 let music = null, sfxPlayer = null, audioLoading = false;
@@ -110,10 +116,14 @@ addEventListener('keydown', unlockAudio);
 let seed = Number(new Date().toISOString().slice(0, 10).replaceAll('-', '')) % 100000; // the daily
 let run = null;
 let started = false;
-const overlay = document.querySelector('#overlay');
-const scoreEl = document.querySelector('#score');
-const clockEl = document.querySelector('#clock');
-document.querySelector('#seedlabel').textContent = seed;
+const overlay = el('#overlay');
+const scoreEl = el('#score');
+const bestEl = el('#best');
+el('#seedlabel').textContent = seed;
+const BEST_KEY = 'juicebox-best-v2';
+const best = () => { try { return Number(localStorage.getItem(BEST_KEY)) || 0; } catch { return 0; } };
+const showBest = () => { const b = best(); bestEl.textContent = b ? `BEST ${b}` : ''; };
+showBest();
 
 function fxAdapter() {
   const at = (p) => new THREE.Vector3(p.x, 0.5, p.z);
@@ -137,10 +147,22 @@ function startRun() {
     const spike = facet(new THREE.ConeGeometry(0.1, 0.3, 4), oniMat);
     spike.position.y = 0.65;
     o.add(spike);
+    // the telegraph: a wide bite-radius disc that brightens through the
+    // wind-up so the bite is READ before it lands (an 8cm ring at 14m was
+    // ~2px — invisible in the first capture)
+    const tele = new THREE.Mesh(new THREE.RingGeometry(ONI.r * 0.8, ONI.threat, 40), telegraphMat.clone());
+    tele.rotation.x = -Math.PI / 2;
+    tele.position.y = -0.44;
+    o.add(tele);
+    o.userData.tele = tele;
     scene.add(o);
     oniVisuals.push(o);
   }
   started = true;
+  finalPulse = false;
+  vignetteEl.style.opacity = '0';
+  clockEl.classList.remove('final');
+  rimMat.color.copy(RIM_BASE);
   overlay.style.display = 'none';
   music?.setIntensity(0.55, 1.5);
 }
@@ -148,10 +170,25 @@ function startRun() {
 function endRun(d) {
   started = false;
   overlay.style.display = 'flex';
-  document.querySelector('#result').style.display = 'block';
-  document.querySelector('#finalscore').textContent = d.score;
-  document.querySelector('#finalstats').textContent = `best combo ×${d.bestCombo} · ${d.pops} pops · seed ${seed}`;
-  document.querySelector('#startline').textContent = 'press any direction to go again';
+  el('#result').style.display = 'block';
+  el('#finalscore').textContent = d.score;
+  const prev = best();
+  const delta = el('#finaldelta');
+  if (d.score > prev) {
+    try { localStorage.setItem(BEST_KEY, String(d.score)); } catch { /* private mode */ }
+    delta.textContent = prev ? `new best  +${d.score - prev}` : 'first run — that is the bar';
+    delta.className = 'delta up';
+  } else {
+    delta.textContent = `best ${prev}  (${d.score - prev})`;
+    delta.className = 'delta down';
+  }
+  showBest();
+  el('#finalstats').textContent = `best combo ×${d.bestCombo} · ${d.pops} pops · seed ${seed}`;
+  el('#startline').textContent = 'press any direction to go again';
+  vignetteEl.style.opacity = '0';
+  clockEl.classList.remove('final');
+  finalPulse = false;
+  rimMat.color.copy(RIM_BASE);
   music?.setIntensity(0.3, 2);
 }
 
@@ -175,8 +212,8 @@ addEventListener('keydown', (e) => {
     }
     e.preventDefault();
   }
-  if (e.code === 'BracketLeft') { seed = (seed + 99999) % 100000; document.querySelector('#seedlabel').textContent = seed; }
-  if (e.code === 'BracketRight') { seed = (seed + 1) % 100000; document.querySelector('#seedlabel').textContent = seed; }
+  if (e.code === 'BracketLeft') { seed = (seed + 99999) % 100000; el('#seedlabel').textContent = seed; }
+  if (e.code === 'BracketRight') { seed = (seed + 1) % 100000; el('#seedlabel').textContent = seed; }
 });
 addEventListener('keyup', (e) => held.delete(e.code));
 const ray = new THREE.Raycaster();
@@ -195,23 +232,40 @@ function squash() {
 
 // ---- loop -----------------------------------------------------------------
 const clock = new THREE.Clock();
+let autoplay = null;   // evidence capture: a bot plays through the REAL loop at rAF cadence
 function tick(rawDt) {
   const dt = rawDt * feel.hitstop.scale(rawDt);
   if (run && started) {
+    if (autoplay) autoplay(run);
     run.update(dt);
     // sync visuals
     box.position.set(run.pos.x, 0.31, run.pos.z);
     box.scale.lerp(new THREE.Vector3(1, 1, 1), 1 - Math.exp(-10 * dt));
-    const dashing = run.time < run.dashUntil;
+    const dashing = run.dashing();
     trail.material.opacity += ((dashing ? 0.5 : 0) - trail.material.opacity) * (1 - Math.exp(-14 * dt));
     trail.position.set(run.pos.x - run.dashDir.x * 0.9, 0.06, run.pos.z - run.dashDir.z * 0.9);
     trail.rotation.z = -Math.atan2(run.dashDir.z, run.dashDir.x);
     trail.scale.set(2.4, 1, 1);
+    // recovery ring: arc fills over DASH.recover; solid red while stunned
+    ring.position.set(run.pos.x, 0.04, run.pos.z);
+    const stunned = run.stunned();
+    const frac = stunned ? 1 : Math.min(1, 1 - (run.dashReadyAt - run.time) / DASH.recover);
+    ring.geometry.dispose();
+    ring.geometry = new THREE.RingGeometry(0.5, 0.62, 32, 1, 0, Math.max(0.01, frac) * Math.PI * 2);
+    ringMat.color.set(stunned ? '#ff5a6e' : frac >= 1 ? '#9adfff' : '#5a7a98');
+    ringMat.opacity = stunned ? 0.95 : frac >= 1 ? 0.35 : 0.85;
     const live = new Set();
     for (const sp of run.spirits) {
       let v = spiritVisuals.get(sp);
       if (!v) {
         v = facetBall(0.32, sp.gold ? goldMat : spiritMat, [1, 1.15, 1], [6, 5]);
+        if (sp.gold) {
+          const halo = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.62, 28), goldRingMat);
+          halo.rotation.x = -Math.PI / 2;
+          halo.position.y = -0.46;
+          v.add(halo);
+          v.userData.halo = halo;
+        }
         scene.add(v);
         spiritVisuals.set(sp, v);
       }
@@ -219,20 +273,32 @@ function tick(rawDt) {
       const left = sp.dieAt - run.time;
       const blink = left < 1 ? (Math.sin(run.time * 18) > 0 ? 1 : 0.35) : 1;
       v.position.set(sp.x, 0.5 + Math.sin(run.time * 3 + sp.x) * 0.08, sp.z);
-      v.scale.setScalar(blink * (sp.gold ? 1.15 : 1));
+      v.scale.setScalar(blink * (sp.gold ? 1.25 : 1));
+      if (v.userData.halo) {
+        // child offset is scaled by the parent — keep the halo on the court
+        v.userData.halo.position.y = -0.46 / v.scale.x;
+        v.userData.halo.rotation.z = run.time * 1.5;
+      }
     }
     for (const [sp, v] of spiritVisuals) if (!live.has(sp)) { scene.remove(v); spiritVisuals.delete(sp); }
     run.onis.forEach((o, i) => {
       const v = oniVisuals[i];
       v.position.set(o.x, 0.5, o.z);
-      v.rotation.y = run.time * 2.4;
+      const winding = o.windupAt >= 0;
+      v.rotation.y = winding ? v.rotation.y : run.time * 2.4;
+      const p = winding ? (run.time - o.windupAt) / ONI.telegraph : 0;
+      v.scale.setScalar(winding ? 1 + p * 0.35 : 1);
+      v.userData.tele.position.y = -0.44 / v.scale.x;   // stays on the court while the oni swells
+      v.userData.tele.material.opacity = winding ? 0.3 + p * 0.5 : 0;
+      v.userData.tele.scale.setScalar(winding ? (1.3 - p * 0.3) / (1 + p * 0.35) : 1);   // disc shrinks to the bite radius as the parent swells
     });
-    if (run.time < run.stunnedUntil) boxMat.color.setRGB(1, 0.42, 0.42);
+    if (stunned) boxMat.color.setRGB(1, 0.42, 0.42);
     else boxMat.color.copy(BOX_BASE);
     scoreEl.textContent = run.score;
     comboEl.textContent = run.combo > 1 ? `combo ×${run.combo}` : '';
     comboEl.style.transform = `scale(${1 + Math.min(0.5, run.combo * 0.03)})`;
     clockEl.textContent = Math.max(0, Math.ceil(RUN_SECONDS - run.time));
+    if (finalPulse) rimMat.color.copy(RIM_BASE).lerp(new THREE.Color('#ff4a3a'), 0.5 + 0.5 * Math.sin(run.time * 9));
     if (music && Math.floor(run.time * 2) % 4 === 0) music.setIntensity(0.45 + Math.min(0.45, run.combo * 0.04));
   }
   feel.update(dt, rawDt);
@@ -253,6 +319,7 @@ requestAnimationFrame(function loop() { tick(Math.min(clock.getDelta(), 0.05)); 
 // ---- gates ----------------------------------------------------------------
 window.__tick = tick;
 window.__game = { get run() { return run; }, startRun, feel, get music() { return music; }, camera, seedSet: (s) => { seed = s; } };
+window.__autoplay = (on) => { autoplay = on ? makeNoisy(greedyBot, EXPERT) : null; };
 window.__latencyCheck = () => {
   if (!run || run.over) { seed = 7; startRun(); }
   for (let i = 0; i < 40; i++) tick(1 / 60);
@@ -285,10 +352,4 @@ window.__playCheck = (seconds = 30) => {
   }
   const mean = samples.reduce((a, b) => a + b, 0) / Math.max(1, samples.length);
   return { frames: samples.length, visibleFrac: +mean.toFixed(4), pass: mean >= 0.999 };
-};
-window.__shot = async (name) => {
-  tick(1 / 60);
-  const data = renderer.domElement.toDataURL('image/jpeg', 0.92);
-  const res = await fetch('/__shot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, data }) });
-  return res.json();
 };
