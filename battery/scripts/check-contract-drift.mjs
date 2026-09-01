@@ -35,5 +35,24 @@ for (const e of ENTRIES) {
     if (!ok) failures++;
   }
 }
+// A7 (B1 r2): the gate reads the WHOLE contract. Numbers with units in the
+// prose must equal a value the block carries — prose may not carry numbers
+// the block doesn't. (Table windows, times-of-day and percentages are not
+// checked; units checked: m, s, ms.)
+for (const e of ENTRIES) {
+  const md = readFileSync(new URL(e.contract, import.meta.url), 'utf8');
+  const block = md.match(/```constants\n([\s\S]*?)```/)?.[1] ?? '';
+  const blockVals = new Set([...block.matchAll(/=\s*(\S+)/g)].map((m) => Number(m[1])).filter(Number.isFinite));
+  const body = md.replace(/```constants[\s\S]*?```/g, '').replace(/\*\*A\d[\s\S]*?(?=\n\*\*A\d|\n## |$)/g, '');   // amendment log records history, not the design
+  const orphans = [];
+  for (const m of body.matchAll(/(\d+(?:\.\d+)?)\s?(m|s|ms)\b/g)) {
+    const v = Number(m[1]) * (m[2] === 'ms' ? 0.001 : 1);
+    if (![...blockVals].some((b) => Math.abs(b - v) < 1e-9)) orphans.push(`${m[1]} ${m[2]}`);
+  }
+  const uniq = [...new Set(orphans)];
+  const ok = uniq.length === 0;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${e.name}: prose numbers with units all carried by the block${ok ? '' : ` — orphans: ${uniq.join(', ')}`}`);
+  if (!ok) failures++;
+}
 console.log(failures ? `\n${failures} DRIFT(S) in ${total} constants` : `\nALL PASS — ${total} constants match`);
 process.exit(failures ? 1 : 0);
