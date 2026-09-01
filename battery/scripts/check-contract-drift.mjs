@@ -15,6 +15,7 @@ import { readFileSync } from 'node:fs';
 const ENTRIES = [
   { name: 'juicebox', contract: '../src/juicebox/LOOP-CONTRACT.md', rules: '../src/juicebox/rules.js' },
   { name: 'errand', contract: '../src/errand/LOOP-CONTRACT.md', rules: '../src/errand/rules.js' },
+  { name: 'ride', contract: '../src/ride/LOOP-CONTRACT.md', rules: '../src/ride/curve.js' },
 ];
 
 let failures = 0, total = 0;

@@ -278,3 +278,22 @@ Design changes (choreography; windows untouched, instrument untouched):
   referee is still red after A4, it ships red as a recorded finding.)
 
 Fifth measurement to be recorded whatever it says.
+
+**A5 (fifth measurement — the round-1 bundle ships on these numbers; no
+further tuning before review, per A4).**
+- Tracking: r **0.736** (≥ 0.75 — red by 0.014), MAE **0.182** (≤ 0.18 —
+  red by 0.002), breather drop **0.302** (green). Keyframes, expert seed 1:
+  25 s 0.32 · 45 s 0.20 · 70 s 0.31 · 95 s 0.10 · 120 s 0.55 · 140 s
+  0.20 · 150 s 0.44 · 172 s 0.62 · 180 s 0.50 — the shape now has every
+  rise and fall in the right order; the residual is the climax's first
+  seconds (0.44 vs 1.0) and a release that decays slower than the curve
+  drops (0.50 vs 0.10 at 180 s).
+- Survival: expert **6/6**; novice **1/6** (157, 84, 169, 133, 106,
+  180 s) — red, recorded. The novice referee (340 ms, ±16°) does not
+  survive a ring at any size tried; whether the ride should be
+  novice-survivable at all is a design question for the review.
+- Headroom (damage/min): novice 58.7 vs expert 29.3 = **2.00×** (green).
+  Kills row: 1.19× (recorded).
+- Climax: elite alive through the hold 6/6; drive tier open. Camera gate:
+  p10 **0.80**, climax legibility **0.703**, elite legibility **1.0**
+  (green). Determinism green. Drift: 28 constants match.
