@@ -92,6 +92,10 @@ Multiple NPCs, quest chains, rewards/economy, retargeting, Mira LLM
 integration (the script is authored, the contract is what's exercised).
 Stage C owns composition.
 
+```constants
+RADIUS = 1.7
+```
+
 ## Amendments
 
 (none yet)

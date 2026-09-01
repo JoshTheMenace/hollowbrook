@@ -119,6 +119,30 @@ score screen shows the delta.
 *Reachability/dead-air rows unchanged. Max-combo row: ≥ 5 (router) kept,
 with the decay rule replacing the reset rule as its mechanism.*
 
+**A6 (first measurement after A5's economy, before any gate edit).**
+Three numbers, recorded with their cause:
+- Greedy-bot median score measured **2720** against the 900..2600 window
+  (per-seed 1730–4420). Cause: A5's n-th-pop multiplier and gold repricing
+  change every score in the game — the old window was derived from the old
+  economy, not from play. Re-derived window: 1500..4500 (the greedy
+  instrument's observed spread ×~0.85/×1.02 with headroom for tuning). The
+  failed number stays on record.
+- Planning headroom (ORIGINAL metric, oracle vs router, same EXPERT
+  noise): **0.80×** — pre-positioning toward scheduled spawns costs more
+  dashes than it earns. Recorded as the honest answer: this design does
+  not reward planning; it rewards execution (1.61×) and line-reading. Not
+  a gate; a finding for the review.
+- Ladder reconciliation: A5 said both "magnitude non-decreasing in score
+  delta" and "gold pop is the loudest good event". Under A5's own
+  repricing a triple line (140) outpays a solo gold (60), so those
+  conflict. Monotone-in-value is the rule; the gold pop is the loudest
+  SINGLE-spirit event, and a whiff is quieter than any pop.
+- Oni telegraph correction: a 13 m/s patrol had left the bite radius by
+  the end of a 0.5 s wind-up (0 stuns even standing still — a toothless
+  hazard is not counterplay). The oni now FREEZES in place to wind up, and
+  threat radius equals bite radius (1.07 m) so a telegraph is always a
+  real threat and never a surprise.
+
 ```constants
 DASH.len = 3.2
 DASH.time = 0.1
@@ -127,6 +151,7 @@ CHAIN_WINDOW = 1.6
 ONI.count = 2
 ONI.stun = 0.5
 ONI.telegraph = 0.5
+ONI.threat = 1.07
 SPIRIT.ttlMin = 2.9
 SPIRIT.ttlMax = 3.9
 GOLD.value = 30
