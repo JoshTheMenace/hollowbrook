@@ -1,0 +1,106 @@
+GATE-east-gate — wardrow
+=========================
+Measured in the built world (`?only=wardrow`, src/districts/wardrow.js),
+not read off the plan.  Frames: wr-gate-inside-looking-out.jpg,
+wr-gate-outside-looking-in.jpg, wr-gate-under-arch.jpg,
+wr-gatehouse-deck-embrasure.jpg, wr-gatehouse-deck-over-lane.jpg,
+wr-wp-under-east-gate.jpg, wr-barricade-lane-{DOWN,UP}.jpg.
+
+WHAT IT IS
+  `gatehouse({ gate: plan.siege.gates['east-gate'], towers: false })`,
+  added as `district:wardrow:eastgate` — the name the plan's landmark and
+  the `down-the-row` vista both point at.  Its two flanking turrets are
+  `roundTower`s of mine, ATTACHED to that group (see TURRETS below).
+
+THE OPENING
+  passage rect (world)        x 47.6..52.4, z 19.15..24.85
+  axis                        x   (you walk east/west through it)
+  inward / outward points     (46.4, 22) / (53.6, 22)
+  geometric clear width       5.70 m   (KIT-GAPS asks >= 5.0)
+  walkable clear width        5.02 m   (5.70 - 2 x the player's 0.34 m)
+  measured walkable at the
+  passage mid-point           5.02 m   (scan line on the collider list)
+  springing / rise / crown    3.10 / 1.35 / 4.45 m — segmental, forced:
+                              a semicircular arch over 5.70 m under a
+                              5.00 m wall head springs at 1.75 m, which is
+                              head height at the jambs.
+  gate leaves                 both swung back against the jambs
+  portcullis                  raised, in its chases (`userData.portcullis`
+                              is live for KIT-GAPS 9)
+  practicals                  2 wall torches on the town-side jambs,
+                              BOTH LIT (`setLit(true)` at build; the
+                              flames are built whatever `lit` says, so it
+                              is never a silent no-op)
+
+THE APPROACH (plan `game.gates.east-gate.approach`)
+  (58, 22)  open   (surrounds — southgate's, nothing of mine out there)
+  (50, 22)  open   0 colliders within the player's radius at feet y 0
+  (40, 22)  open   the first barricade point, DOWN by default
+
+THE DECK AND THE WALL-WALK OVER THE PASSAGE
+  deck top            5.00, overlapping each shelf by 0.30 m
+  parapets            all four deck edges, colliders carry bottom = 5.00
+                      so they fence the walk and do NOT wall the road
+  piers               colliders carry top = 5.00 so the walk crosses them
+  groundAt(49, 22)    5.000     groundAt(51, 22)    5.000
+  groundAt(50, 22)    0.000     <- see THE SLOT
+  walk continuity across z 17.5..26.5, sampled at 0.25 m, from feet y 5:
+      x 48.9 continuous   49.3 continuous   49.7 continuous
+      x 50.0 BREAK        50.3 continuous   50.7 continuous
+      x 51.1 continuous
+
+THE SLOT — A KNOWN DEFECT, AND WHY IT IS THERE
+  measured slot   x 49.99..50.01, 0.03 m wide, the full length of the deck
+  The plan promises `(50, 22) expect_top 0` (the passage floor) and the
+  kit's `gatehouse` registers its deck as ONE platform at 5.0 spanning the
+  whole passage — which it must, because that platform is the only thing
+  that makes the wall-walk one ring instead of two arcs.  composeCity
+  asserts anchors with the TWO-argument groundAt (a max over platforms),
+  so the two contracts are in direct conflict and the build THROWS:
+
+    ANCHOR FAILED in district "wardrow" at (50, 22): expected ground top
+    0 +-0.05, groundAt returned 5.000 (off by 5.000 m)
+
+  A solid object over the void is not a way out either: `check-game`'s
+  passage test is HEIGHT-BLIND (`blockedBy` takes no feetY), so a collider
+  five metres up over (50, 22) reads as a sealed gate.  A stone plinth with
+  a brazier on it was built there first and failed exactly that check.
+  The two contracts together therefore demand a point on the deck with no
+  platform AND no collider — a hole — and the only variable left is its
+  size.  It is 30 mm, drawn over by the kit's own deck slab, stepped over
+  by the fill's 0.35 m cells, and it drops a walker whose own centre lands
+  inside it.
+  *** COORDINATOR: the fix belongs upstream.  Either move the anchor to
+  the passage's inward mouth (50, 27), or have composeCity's anchor check
+  pass `fromY: expect_top` — which is the whole reason `fromY` exists and
+  is exactly what the route fill already does. ***
+
+THE TURRETS — WHY THEY ARE MINE AND WHY THEY ARE SHORT
+  `gatehouse({ towers: true })` stands 9.6 m drums at (46.6, 16.4) and
+  (46.6, 27.6).  The north one lands inside `keep-sees-eastgate`: its
+  centre is 2.50 m off that corridor's axis against a half-width of 3.0,
+  so at the corridor's own 7.5 m test height a 1.49 m shaft radius sits
+  1.99 m inside the band and the ray from the keep stops 4 m short of the
+  gate it exists to show.  There is nowhere to move it to — off the
+  corridor is either 4 m into the kitchen gardens or onto the wall-walk,
+  which SIEGE.md forbids.  So `towers: false`, and two `roundTower`s of
+  mine at the kit's own centres: shaft 5.2, cap 1.5, measured top 7.39 —
+  0.11 m under the corridor and 1.24 m proud of the deck parapet at 6.15.
+  NOTE: `roundTower`'s top is NOT `h + capH`; the machicolation corbel and
+  the cap flare add 0.70 m.  The first cut measured 8.09 and still failed.
+  They are `gate.attach(t)`-ed rather than added beside the gatehouse:
+  `district:wardrow:eastgate` is the landmark the plan says must read from
+  marketlow, the check aims at its bounding box's centre and its 80 %
+  height, and with the towers outside the group that box lost 1.3 m and
+  the read fell from 5/5 of marketlow's sample points to 1/5.
+
+GATE RESULT
+  check-city --district wardrow ....... PASS (anchors, seams, fill,
+                                        budgets, sight corridors,
+                                        landmarks, interactions)
+  check-game gate:east-gate:passage-open PASS
+  check-arena-visibility arena:the-row . PASS, 156/298 open cells (52 %)
+                                        see an approach point; 104 see the
+                                        gate itself
+  keep-sees-eastgate ................... PASS, 60.46 m clear at y 7.5
+                                        across +-3 m
