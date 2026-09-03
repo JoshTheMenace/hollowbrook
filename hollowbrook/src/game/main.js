@@ -510,7 +510,7 @@ if (import.meta.env.DEV) {
     // stand where the player completes it, facing the thing
     let spot; let look;
     if (o.kind === 'activate') { const pt = o.points[o.points.length - 1]; spot = [pt.x + 1.6, pt.z + 0.8]; look = [pt.x, pt.z]; for (let i = 0; i < o.points.length - 1; i += 1) o.points[i].done = true; }
-    else { spot = [o.def.to[0] + 2.2, o.def.to[1] + 1.0]; look = o.def.to; const n = r.npc(o.npc); n.x = o.def.to[0] + 4.4; n.z = o.def.to[1] + 2.0; }   // outside the 1.5 m finish: the last steps happen under the hook
+    else { spot = [o.def.to[0] + 2.2, o.def.to[1] + 1.0]; look = o.def.to; const n = r.npc(o.npc); n.x = o.def.to[0] + 2.0; n.z = o.def.to[1] + 2.6; n.y = world.groundAt(n.x, n.z, null); n.path = null; }   // 3.3 m out on the door's own level: the last steps happen under the hook
     r.player.x = spot[0]; r.player.z = spot[1]; r.player.y = world.groundAt(spot[0], spot[1], null);
     r.player.yaw = Math.atan2(-(look[0] - spot[0]), -(look[1] - spot[1])); r.player.pitch = -0.15;
     fps.snap();

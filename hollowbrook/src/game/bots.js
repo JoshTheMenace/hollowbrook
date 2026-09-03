@@ -22,33 +22,52 @@
  * you is behind you.  Nothing here reads a record the HUD does not show.
  *
  * WHAT THE POLICY PLAYS (GAME-DESIGN, "the decision per minute").
- *   - WHERE TO STAND is chosen twice over: a hold spot (the highest
- *     reachable ground in the arena, away from the gate) at the 10 s
- *     scale, and a steering direction at the 0.3 s scale.  The steering
- *     is a sampled fan: sixteen headings, each scored by where the known
- *     melee will be in 0.9 s if it keeps closing, by the ground it leads
- *     onto, by whether it goes where the hold spot is, and by how square
- *     it is to a live hexbolt.  That is one mechanism for backing off,
- *     sidestepping a staff-glow and walking a lane, instead of three
- *     branches that fight each other.
- *   - MELEE IS A FOOTWORK PROBLEM.  An enemy in windup does not move, so
- *     a player who is already walking away when the swing starts is not
- *     hit at all.  Everything that gets a bot killed is therefore a thing
- *     that stops it moving: charging the lance at 2.6 m/s, or two bodies
- *     on opposite sides.  So the lance is gated on space (nothing closing
- *     inside 8.5 m) and aborted when that space is lost, and the fan
- *     scores a heading by its worst threat rather than its nearest.
+ *   - WHERE TO STAND is chosen twice over: a hold spot at the 8 s scale
+ *     and a steering direction at the `delay` scale.  The hold spot is
+ *     scored on the arena's OWN ground — high relative to this arena's
+ *     modal level, away from the gate that feeds it, with escape routes
+ *     that stay on the level, and with FEW level approaches, which is the
+ *     numeric form of "the top of a stair": anything arriving off the
+ *     level has to walk round to a ramp and so arrives one or two at a
+ *     time, which is the lance lane the design asks for.
+ *   - A HOLD SPOT IS WALKED TO, NOT STEERED TO.  The steering fan is a
+ *     local one-second look-ahead and cannot see round a retaining bank.
+ *     The previous policy steered, so it walked into the sunken market
+ *     (y −1.4) during the breather, could not climb the 1.4 m rim back
+ *     out (the step is 0.38), and dithered in the corner of the bowl
+ *     while both gates fed cutpurses down the four ramps: 100 HP to dead
+ *     in six seconds, three times a wave.  So: A* while the spot is far,
+ *     the fan only once it is standing on it.
+ *   - AND THE FAN MAY NOT STEP OFF A LEDGE.  Descent is free and ascent
+ *     is step-limited for player and enemy alike, so a drop is a ONE-WAY
+ *     door.  The fan treats one as a wall — except in the committed
+ *     retreat, where dropping off the market rim or the keep's terrace is
+ *     exactly the escape a player takes and the walk back up is A*'s
+ *     problem.
+ *   - MELEE IS A FOOTWORK PROBLEM, and the numbers make it winnable: the
+ *     walk is 4.6 m/s against a cutpurse's 4.4, backpedalling is full
+ *     speed, and a strike only lands if the body is still in reach when
+ *     the windup ends.  So the bot gives ground from STANDOFF metres and
+ *     rations everything that stops it moving: the lance is gated on
+ *     space and aborted when the space is lost, the reload is taken in
+ *     the gap.
  *   - WHEN PRESSED, TURN AND RUN.  Sprint only applies to forward motion
- *     (rules.js: `sprint && move.z > 0.2`), so a bot that backpedals while
- *     facing its target can never sprint — it walks at 4.6 against a
- *     cutpurse's 4.4 and is caught the moment it is boxed.  Repositioning
- *     is therefore a committed mode: face the way you are going, sprint,
- *     hold the commitment about a second, and take the cost of not
- *     shooting and not seeing behind you.
+ *     (rules.js: `sprint && move.z > 0.2`), so a bot that backpedals
+ *     while facing its target can never sprint.  Repositioning is a
+ *     committed mode: face the way you are going, sprint, hold the
+ *     commitment about a second, and take the cost of not shooting.
+ *   - AND IT COMES BACK.  A bot that only ever gives ground abandons the
+ *     town and wins nothing; the hold spot is a pull, not a preference,
+ *     which is also why a bot that cannot shoot dies in wave 1 — the
+ *     bodies it never killed are still standing on the ground it has to
+ *     hold.
  *   - HEXERS FIRST, AND WITH THE LANCE.  102 HP against a 120 dmg lance
  *     is one shot, and a hexer holding its 9–12 m band is the most nearly
- *     stationary target in the game.  Bolts at that range under a ±16°
- *     hand are a wasted magazine.
+ *     stationary target in the game.  Jitter is ANGULAR, so a 0.32 m body
+ *     at 20 m subtends 1.8° against a ±16° hand: bolts at that range are
+ *     a spent magazine, and a spent magazine is when melee lands.  ENGAGE
+ *     is therefore a BOLT range and the hexer's priority is only paid
+ *     inside it.
  *
  * Jitter is TRIANGULAR on ±jitterDeg (the sum of two uniforms): most
  * shots land near the aim point, the worst ones are a full jitter off,
@@ -80,14 +99,22 @@ const MELEE = new Set(['cutpurse', 'reaver', 'shieldbearer', 'captain']);
 const wrap = (a) => ((a + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-/* Engagement discipline, one table for both hands: a bolt at 20 m subtends
- * under a degree and is a wasted reload, and a reload is when melee lands.
- * Hexers are the exception the design asks for — they never come to you. */
-const ENGAGE = { cutpurse: 15, reaver: 15, shieldbearer: 17, hexer: 21, captain: 20 };
-/* Space the lance needs: 0.9 s of charge at 2.6 m/s, and a cutpurse covers
- * 4.4 m in that second.  Below ABORT the charge is dropped. */
-const LANCE_SPACE = 8.5;
-const LANCE_ABORT = 6.0;
+/* Engagement discipline, one table for both hands (see the header: the
+ * jitter is angular, so a bolt's hit chance falls with range and the
+ * magazine is the resource).  Hexers get a little more rope because they
+ * never come to you; the lance is what actually answers them. */
+const ENGAGE = { cutpurse: 13, reaver: 13, shieldbearer: 14, hexer: 15, captain: 15 };
+/* Give ground from here.  Backpedalling is 4.6 against a cutpurse's 4.4, so
+ * once the bot is moving the gap only closes at 0.2 m/s; what has to be
+ * bought is the reaction, and 8 m buys 1.3 s even for the slow hand. */
+const STANDOFF = 8.0;
+/* Space the lance needs: 0.9 s of charge at 2.6 m/s while a cutpurse covers
+ * 4.4 m in that second.  Inside ABORT the charge is dropped — releasing
+ * under full charge is a no-op by the rules, so an abort costs nothing. */
+const LANCE_SPACE = 9.0;
+const LANCE_ABORT = 5.5;
+const AIM_WINDOW = 0.7;              // seconds to hold a full charge waiting for the line
+const HOLD_REFRESH = 8;              // seconds between hold-spot surveys
 
 /**
  * makeBot(run, profile, { aim = true, move = true }) → () => input for this tick.
@@ -104,7 +131,7 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
     dirX: 0, dirZ: 0, sprint: false, mode: 'fight', modeUntil: 0,
     path: null, pathI: 0, pathAt: -99, pathTo: null,
     holdSpot: null, holdAt: -99, lookAt: null, lookUntil: -99,
-    wantLance: false, wantReload: false, lanceTarget: null,
+    wantLance: false, wantReload: false, lanceTarget: null, fullAt: Infinity,
     holdInteract: false, pressInteract: false,
   };
   const w = run.world;
@@ -136,10 +163,12 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
       } else known.set(e.id, { id: e.id, x: e.x, z: e.z, vx: 0, vz: 0, first: run.tick, last: run.tick, kind: e.kind, e });
     }
     // being hit tells you where from (the damage ring), and you turn to look
-    for (const ev of run.events.slice(-8)) {
-      if (ev.name !== 'player-hurt' || ev.tick !== run.tick - 1) continue;
-      const src = wrap(st.yaw + ev.data.dir);
-      st.lookAt = src; st.lookUntil = run.tick + Math.round(1.1 / TICK);
+    for (let i = run.events.length - 1; i >= 0 && i >= run.events.length - 24; i -= 1) {
+      const ev = run.events[i];
+      if (ev.tick < run.tick - 1) break;
+      if (ev.name !== 'player-hurt') continue;
+      st.lookAt = wrap(st.yaw + ev.data.dir);
+      st.lookUntil = run.tick + Math.round(1.1 / TICK);
       for (const e of run.enemies) {
         if (e.state === 'dead' || known.has(e.id)) continue;
         if (Math.hypot(e.x - p.x, e.z - p.z) < 3.2) known.set(e.id, { id: e.id, x: e.x, z: e.z, vx: 0, vz: 0, first: run.tick - delayTicks, last: run.tick, kind: e.kind, e });
@@ -152,6 +181,13 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
 
   const acquired = () => [...known.values()].filter((k) => run.tick - k.first >= delayTicks);
   const fresh = (k) => run.tick - k.last <= STALE_SHOT / TICK;
+  /** Nearest thing on the mental map that swings — the player's own read. */
+  const nearMelee = () => {
+    const p = run.player;
+    let d = Infinity;
+    for (const k of known.values()) if (MELEE.has(k.kind)) d = Math.min(d, Math.hypot(k.x - p.x, k.z - p.z));
+    return d;
+  };
 
   /* ---- the ground ---------------------------------------------------- */
   const gy = (x, z) => {
@@ -160,22 +196,29 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
     const n = grid.index(i, j);
     return grid.open[n] ? grid.y[n] : -99;
   };
-  /** Can the walker go `len` metres along (dx, dz) from its feet? */
-  const rayOK = (x, z, dx, dz, len, fromY) => {
+  /**
+   * Can the walker go `len` metres along (dx, dz) from its feet?  Ascent is
+   * step-limited exactly as the walker moves.  `noDrop` also refuses a
+   * DESCENT over the step: the rules let any body fall freely and let none
+   * climb, so a ledge is a one-way door, and treating it as a wall is the
+   * whole difference between holding the market's rim and dying in the bowl.
+   */
+  const rayOK = (x, z, dx, dz, len, fromY, noDrop = false) => {
     let y = fromY;
     for (let s = 0.45; s <= len + 1e-6; s += 0.45) {
       const [i, j] = grid.toCell(x + dx * s, z + dz * s);
       if (!grid.inside(i, j)) return false;
       const n = grid.index(i, j);
       if (!grid.open[n]) return false;
-      if (grid.y[n] - y > C.player.step) return false;   // ascent is step-limited, descent is free
+      if (grid.y[n] - y > C.player.step) return false;
+      if (noDrop && y - grid.y[n] > C.player.step) return false;
       y = grid.y[n];
     }
     return true;
   };
 
   /* ---- where to stand for the next thirty seconds --------------------- */
-  const arenaHold = (wave = run.wave) => {
+  const arenaHold = (wave) => {
     const a = w.arenas[wave.arena];
     const p = run.player;
     // the arena's own modal ground, so "high" means high HERE and not high
@@ -191,10 +234,15 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
         if (y < -90) continue;
         let dg = Infinity;
         for (const g of gates) dg = Math.min(dg, Math.hypot(x - g.at[0], z - g.at[1]));
-        // room to give ground in every direction is what a hold spot IS
-        let room = 0;
-        for (let a2 = 0; a2 < 8; a2 += 1) { const ang = a2 / 8 * Math.PI * 2; if (rayOK(x, z, Math.sin(ang), Math.cos(ang), 5, y)) room += 1; }
-        const s = clamp(y - base, -2, 2.5) * 3 + Math.min(dg, 34) * 0.22 + room * 1.6;
+        // room to give ground ON THE LEVEL is what a hold spot IS; a drop is
+        // not room, it is a place you cannot come back from
+        let esc = 0;
+        for (let a2 = 0; a2 < 8; a2 += 1) { const ang = a2 / 8 * Math.PI * 2; if (rayOK(x, z, Math.sin(ang), Math.cos(ang), 5, y, true)) esc += 1; }
+        if (esc < 2) continue;                          // a pocket is not a hold spot
+        // and the funnel: how many bearings can walk in at this level at all
+        let apr = 0;
+        for (let a2 = 0; a2 < 16; a2 += 1) { const ang = a2 / 16 * Math.PI * 2; if (rayOK(x, z, Math.sin(ang), Math.cos(ang), 2.6, y, true)) apr += 1; }
+        const s = clamp(y - base, -2.5, 3) * 3 + Math.min(dg, 34) * 0.2 + Math.min(esc, 4) * 1.6 - apr * 0.55;
         if (s > bs) { bs = s; best = [x, z]; }
       }
     }
@@ -205,7 +253,7 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
   };
 
   /* ---- the steering fan ---------------------------------------------- */
-  const pickDir = ({ threats, dodge, goal, goalW, safeW, highW, sprint }) => {
+  const pickDir = ({ threats, dodge, goal, goalW, safeW, highW, sprint, allowDrop = false }) => {
     const p = run.player;
     const v = sprint ? C.player.sprint : C.player.walk;
     const y0 = p.y;
@@ -214,11 +262,12 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
     let ax = 0; let az = 0;
     if (dodge) { const l = Math.hypot(p.x - dodge.x, p.z - dodge.z) || 1; ax = (p.x - dodge.x) / l; az = (p.z - dodge.z) / l; }
     let best = null; let bs = -Infinity;
+    const probe = sprint ? 5.0 : 3.6;
     for (let a = 0; a < FAN; a += 1) {
       const ang = a / FAN * Math.PI * 2;
       const dx = Math.sin(ang); const dz = Math.cos(ang);
       const reach = v * LOOK;
-      if (!rayOK(p.x, p.z, dx, dz, Math.min(reach, 3.6), y0)) continue;
+      if (!rayOK(p.x, p.z, dx, dz, Math.min(reach, probe), y0, !allowDrop)) continue;
       const qx = p.x + dx * reach; const qz = p.z + dz * reach;
       let dmin = Infinity;
       for (const k of threats) {
@@ -228,7 +277,7 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
         const kz = k.z + (p.z - k.z) / kd * es * LOOK;
         dmin = Math.min(dmin, Math.hypot(qx - kx, qz - kz));
       }
-      let s = Math.min(dmin, 9) * safeW;
+      let s = Math.min(dmin, 10) * safeW;
       s += clamp(gy(qx, qz) - y0, -0.8, 0.8) * highW;
       if (goal) s += (dx * gx + dz * gz) * goalW;
       if (dodge) s += Math.abs(dx * -az + dz * ax) * 2.2;
@@ -264,10 +313,10 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
       if (!fresh(k)) continue;
       const d = Math.hypot(k.x - p.x, k.z - p.z);
       if (d > ENGAGE[k.kind]) continue;
-      let s = -d * 0.6;
-      if (k.kind === 'hexer') s += 16;                       // "which hexer to go for" — always
-      if (k.kind === 'captain') s += 5;
-      if (d < 3.5) s += 9;                                   // the one about to hit you
+      let s = -d * 0.8;
+      if (k.kind === 'hexer') s += 10;                       // "which hexer to go for" — always
+      if (k.kind === 'captain') s += 4;
+      if (d < 4) s += 8;                                     // the one about to hit you
       if (k.e.hp < k.e.hpMax * 0.4) s += 3;                  // the world-space HP bar: finish it
       if (k === st.target) s += 2.5;                         // do not re-aim every third of a second
       if (s > bs) { bs = s; best = k; }
@@ -300,46 +349,56 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
       if (d < 16 && (dx * h.dx + dz * h.dz) / (d || 1) > 0.8) dodge = { x: h.x, z: h.z };
     }
 
+    if (!st.holdSpot || run.time - st.holdAt > HOLD_REFRESH) { st.holdSpot = arenaHold(run.wave); st.holdAt = run.time; }
+    const gd = Math.hypot(st.holdSpot[0] - p.x, st.holdSpot[1] - p.z);
+
     /* pressed?  two bodies inside five metres, or one inside a swing, or
-     * low and touched at all: turn and run, and commit to it */
-    const pressed = near5 >= 2 || nd < 2.9 || (p.hp < 45 && near9 >= 2);
-    if (move && pressed && run.tick >= st.modeUntil) { st.mode = 'reposition'; st.modeUntil = run.tick + Math.round(1.0 / TICK); }
-    else if (run.tick >= st.modeUntil) st.mode = 'fight';
+     * low and surrounded: turn and run, and commit to it */
+    const pressed = near5 >= 2 || nd < 2.7 || (p.hp < 50 && near9 >= 3);
+    if (move && pressed && run.tick >= st.modeUntil) { st.mode = 'reposition'; st.modeUntil = run.tick + Math.round(0.9 / TICK); }
+    else if (run.tick >= st.modeUntil) st.mode = (gd > 4.5 && nd > 6.5) ? 'travel' : 'fight';
 
     if (!move) { st.dirX = 0; st.dirZ = 0; st.sprint = false; }
     else if (st.mode === 'reposition') {
+      /* the committed retreat MAY take a drop — off the market's rim, off
+       * the keep's terrace — because a ledge is an escape when something is
+       * standing on top of you, and A* brings you back up afterwards */
       if (!st.fallback || run.tick - (st.fallbackAt ?? -1e9) > Math.round(2.5 / TICK) || Math.hypot(st.fallback[0] - p.x, st.fallback[1] - p.z) < 4) {
-        st.fallback = st.holdSpot && Math.hypot(st.holdSpot[0] - p.x, st.holdSpot[1] - p.z) > 6 ? st.holdSpot : null;
+        st.fallback = gd > 6 ? st.holdSpot : null;
         st.fallbackAt = run.tick;
       }
-      const d = pickDir({ threats, dodge, goal: st.fallback, goalW: 1.2, safeW: 2.4, highW: 1.2, sprint: true });
+      const d = pickDir({ threats, dodge, goal: st.fallback, goalW: 1.2, safeW: 2.4, highW: 1.2, sprint: true, allowDrop: true });
       if (d) { st.dirX = d[0]; st.dirZ = d[1]; }
       st.sprint = true;
+    } else if (st.mode === 'travel') {
+      const d = walkTo(st.holdSpot, { stopAt: 2.0 });
+      if (d) { st.dirX = d[0]; st.dirZ = d[1]; st.sprint = nd > 13; }
+      else { st.mode = 'fight'; st.dirX = 0; st.dirZ = 0; st.sprint = false; }
     } else {
-      // hold the ground: keep a standoff, sidestep the telegraph, drift toward
-      // the hold spot when nothing is close enough to matter
-      if (!st.holdSpot || run.time - st.holdAt > 12) { st.holdSpot = arenaHold(); st.holdAt = run.time; }
+      // hold the ground: keep the standoff, sidestep the telegraph, and keep
+      // drifting back onto the spot — a bot that only gives ground loses the
+      // town, and the pull is what makes the arena the place the fight is
       let goal = null; let goalW = 0;
-      if (nd > 7) {
-        const gd = Math.hypot(st.holdSpot[0] - p.x, st.holdSpot[1] - p.z);
-        if (gd > 2.5) { goal = st.holdSpot; goalW = nd > 11 ? 2.0 : 1.2; }
-      }
-      const want = nd < 7 || dodge || goal;
-      if (want) {
-        const d = pickDir({ threats, dodge, goal, goalW, safeW: nd < 7 ? 1.7 : 0.5, highW: 1.4, sprint: false });
-        if (d) { st.dirX = d[0]; st.dirZ = d[1]; } else { st.dirX = 0; st.dirZ = 0; }
-      } else { st.dirX = 0; st.dirZ = 0; }
+      if (gd > 2.0) { goal = st.holdSpot; goalW = nd > 11 ? 2.2 : 1.0; }
+      const d = pickDir({ threats, dodge, goal, goalW, safeW: nd < STANDOFF ? 2.0 : 0.35, highW: 1.2, sprint: false });
+      if (d) { st.dirX = d[0]; st.dirZ = d[1]; } else { st.dirX = 0; st.dirZ = 0; }
       st.sprint = false;
     }
 
     /* reloading is a thing you do in the gap, not a thing that happens to
-     * you: top up whenever nothing is inside a two-second walk */
-    st.wantReload = p.bolts === 0 || (p.bolts <= 3 && nd > 11) || (p.bolts < C.crossbow.magazine && nd > 18 && !st.target);
+     * you: the reload is 1.4 s and a cutpurse crosses 6.2 m in it */
+    st.wantReload = p.bolts === 0
+      || (p.bolts <= 2 && nd > 8)
+      || (p.bolts < C.crossbow.magazine && nd > 13);
 
     /* the lance: 120 dmg through a shield, four bodies in a lane, or the
-     * hexer that will not come to you — but only with room to stand still */
+     * hexer that will not come to you — but only with room to stand still.
+     * Once the charge is running the gate loosens to ABORT so that something
+     * wandering to 8 m does not throw away a charge that is nearly done. */
     st.wantLance = false; st.lanceTarget = null;
-    if (aim && p.lanceCd <= 0 && nd > LANCE_SPACE) {
+    const room = p.charging ? nd > LANCE_ABORT : nd > LANCE_SPACE;
+    const stillAiming = !p.charging || run.time - st.fullAt < AIM_WINDOW;
+    if (aim && p.lanceCd <= 0 && room && stillAiming && !pressed) {
       const hex = seen.filter((k) => k.kind === 'hexer' && fresh(k)).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
       const hard = seen.find((k) => (k.kind === 'shieldbearer' || k.kind === 'captain') && fresh(k) && Math.hypot(k.x - p.x, k.z - p.z) < 20);
       const lane = bestLane(seen.filter(fresh), p, 11 * Math.PI / 180, 5, 22);
@@ -347,14 +406,12 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
       else if (hard) { st.wantLance = true; st.lanceTarget = hard; }
       else if (lane && lane.count >= 2) { st.wantLance = true; st.lanceTarget = lane.k; }
     }
-    if (p.charging && nd < LANCE_ABORT) { st.wantLance = false; st.lanceTarget = null; }
     if (st.lanceTarget) st.target = st.lanceTarget;
   };
 
   /* ---- breathers ------------------------------------------------------ */
   const breatherDir = () => {
     const o = run.objective;
-    const p = run.player;
     if (run.dialogue) { st.pressInteract = run.tick % 18 === 0; return null; }
     if (o && !o.done && !o.failed) {
       if (o.kind === 'escort') {
@@ -371,13 +428,12 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
         }
       }
     }
-    // done, or nothing to do: walk to the HOLD SPOT of the next wave's arena —
-    // the rim, the keep — not its centre.  A bot that waits for the wave in
-    // the sunk square never gets out of it: once a body is within reach the
-    // fight logic will not walk to high ground (a trace showed the expert
-    // dying at (-7.8, -9.5), y -1.4, through all of wave 4)
+    /* done, or nothing to do: walk to the SPOT the next wave will be held
+     * from, not to the middle of its arena — the middle of the market IS
+     * the floor of the sunken square, and arriving there is how the wave
+     * used to begin with the bot already in the hole */
     const next = C.waves[Math.min(C.waves.length - 1, run.waveIndex + 1)];
-    if (!st.nextHold || st.nextHoldWave !== next.id) { st.nextHold = arenaHold(next); st.nextHoldWave = next.id; }
+    if (!st.nextHold || st.nextHoldFor !== next.id) { st.nextHold = arenaHold(next); st.nextHoldFor = next.id; }
     return walkTo(st.nextHold, { stopAt: 1.5 });
   };
 
@@ -397,13 +453,20 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
     if (run.over) return inp;
     perceive();
     st.holdInteract = false; st.pressInteract = false;
+    // how long the charge has sat at full, waiting for the line
+    if (!p.charging) st.fullAt = Infinity;
+    else if (p.charge >= C.lance.charge - 1e-9 && st.fullAt === Infinity) st.fullAt = run.time;
     if (run.phase !== st.lastPhase || run.waveIndex !== st.lastWave) {
       st.holdSpot = null; st.path = null; st.pathTo = null; st.fallback = null;
       st.mode = 'fight'; st.modeUntil = 0; st.target = null; st.dirX = 0; st.dirZ = 0;
+      st.nextDecision = 0;
       st.lastPhase = run.phase; st.lastWave = run.waveIndex;
     }
 
-    const bellWalk = run.phase === 'wave' && run.wave.id === 'w6' && !run.captain && run.objective && run.objective.id === 'o6-ring-the-bell' && !run.objective.done;
+    // the walk to the bell is a walk, not a stroll through a crowd: anything
+    // inside a swing is still what decides where the feet go
+    const bellWalk = run.phase === 'wave' && run.wave.id === 'w6' && !run.captain
+      && run.objective && run.objective.id === 'o6-ring-the-bell' && !run.objective.done && nearMelee() > 4.5;
     if (run.phase === 'breather' || bellWalk) {
       // the walking phases are continuous: the path is stepped every tick
       const d = run.phase === 'breather' ? breatherDir() : bellDir();
@@ -425,7 +488,7 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
       const e = k.e;
       const dx = e.x - p.x; const dz = e.z - p.z; const d = Math.hypot(dx, dz) || 1;
       let tx = e.x; let tz = e.z;
-      if (st.wantLance || p.charging) {
+      if (st.wantLance) {
         // a 22 m/s projectile has to be led, and the lead is the velocity the
         // eye has been differencing since the contact was made
         const tof = d / C.lance.speed;
@@ -434,7 +497,7 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
       desiredYaw = Math.atan2(-(tx - p.x), -(tz - p.z));
       const cy = e.y + BODY[e.kind].height * e.scale * 0.55;
       desiredPitch = Math.atan2(cy - (p.y + C.player.eye), Math.hypot(tx - p.x, tz - p.z));
-    } else if ((st.mode === 'reposition' || run.phase === 'breather' || bellWalk) && move && (st.dirX || st.dirZ)) {
+    } else if ((st.mode === 'reposition' || st.mode === 'travel' || run.phase === 'breather' || bellWalk) && move && (st.dirX || st.dirZ)) {
       desiredYaw = Math.atan2(-st.dirX, -st.dirZ);           // face where you run, or you cannot sprint
       desiredPitch = 0;
     } else if (run.phase === 'wave' && run.tick < st.lookUntil && st.lookAt !== null) {
@@ -462,7 +525,7 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
     if (shooting) {
       const k = st.target;
       const onTarget = Math.abs(wrap(desiredYaw - st.yaw)) < 0.05 && Math.abs(desiredPitch - st.pitch) < 0.05;
-      if (st.wantLance || p.charging) {
+      if (st.wantLance) {
         inp.charge = true;
         if (p.charge >= C.lance.charge - 1e-9 && onTarget) { inp.charge = false; inp.yaw = st.yaw + jit(); inp.pitch = st.pitch + jit() * 0.5; }
       } else if (onTarget && fresh(k) && p.bolts > 0 && p.fireCd <= 0 && p.reloadLeft === 0) {
