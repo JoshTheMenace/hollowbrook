@@ -47,7 +47,7 @@ export {
   tradeFront, windowOn, doorOn, frameElevation, faceFrame, facePlane, FACES,
 } from './buildings.js';
 
-export { bigTree, treeStand, smallTree, hedgeRun } from './trees.js';
+export { bigTree, treeStand, smallTree, hedgeRun, tree } from './trees.js';
 
 export {
   villageProps, lightPool, withPools, hitbox, interactive, lanternString,

@@ -642,3 +642,64 @@ each is named, because which tool finds a class of bug is the reusable part.
   quarter of the frame from a standing eye on the wall. Hold it outboard of
   the parapet, put rafters under it, and do not draw a big flat card in
   `oakDark` at dusk.
+
+## Post-gate errata (reported by the districts, fixed once all six were up)
+
+- **`brazier`'s flame was an upside-down cone (fixed).** The hayRick parasol
+  again, in the one prop that is always the brightest thing in its frame:
+  `cyl(R * 0.62, R * 0.18, …)` puts the wide radius at the TOP, so the fire
+  came to a point at the coals and flared at the sky. Measured on the ember
+  cone before and after: r(bottom) 0.0648 / r(top) 0.2232 becomes 0.2232 /
+  0.0648. The cone's centre moved h + 0.40 → h + 0.38 so its wide end lands
+  exactly on the coal disc's top face at h + 0.17 rather than 20 mm over it;
+  `fireY` is unchanged, because a district that hung something off it did so
+  against the old number. **The third time `cyl(r0, r1)` has been read as
+  (bottom, top) in this kit. It is (TOP, BOTTOM).**
+- **`windmill`'s footprint sealed its own gallery (fixed).** The collider was
+  `±(r + 0.14)` — the base square — while the gallery deck reaches
+  `G.rad + 1.05` from the axis. On a 3.0 m mill that is 3.48 m of inflated
+  collider against a 3.66 m ring: **0.18 m of stage**, i.e. the one place a
+  district would want to stand on a mill, walled off. The footprint is now
+  the shaft ring at `galleryT` (`G.rad + 0.05` = 2.66), which leaves 0.66 m —
+  wider than the route fill's 0.35 m stride — and `userData.galleryRing =
+  { cx, cz, rIn, rOut, y }` is exposed so a district can platform the deck
+  from the same numbers the brackets were drawn from. `gallery: false` keeps
+  the old base square, because without a deck there is nothing to seal.
+  (millreach's `collide: false` workaround still stands; it does not need
+  removing.)
+- **`leanTo` returned no `userData.kind` (fixed).** It set `prop: true` and
+  nothing else, so the terminus pass counted a finished shelter as an
+  untagged mesh in every district that stood one up. `kind: 'lean-to'`. A
+  generator that tags itself a prop and not a *kind* is invisible to half the
+  gates while rendering perfectly.
+- **`tree` was not re-exported from `index.js` (fixed).** The errata row four
+  screens up tells districts to prefer `tree({ at })` over a multi-spot
+  `treeStand`, and the one import a district is supposed to use did not carry
+  it — southgate reached round the barrel to `'../kit/trees.js'`. Appended to
+  the trees line; that direct import still works and was left alone.
+- **`bracketLantern` and `postLantern` could not switch (fixed).** Neither had
+  `setLit`, and a `glow` made the pane glow for ever. The blocker was
+  structural rather than an omission: the pane was `P.add(pane, …)` into the
+  per-material pool, and **a merged mesh has one material**, so there was
+  nothing to swap. The pane is its own one-box mesh now (cast off, tagged
+  with the rest); everything else stays pooled, at one draw call a lamp. Both
+  carry `practical`, `lit` and `setLit(on)` — pane to the lit material or
+  `M.glass`, pool shown or hidden — and **the pool is built whatever `lit`
+  says** and merely hidden, which is the brazier's rule and the reason
+  `setLit(true)` is not a silent no-op on the dark half of the town. Initial
+  state is exactly what it was, `lit || glow != null`; `bracketLantern` still
+  has no pool without a `groundDrop`; the pool is still a `withPools`
+  sibling, so no lamp's bounding box grows by a 4 m plane.
+- **`hollowShell`'s windows cut holes and built no glass (fixed).** The
+  chapel saw the almshouse's lit windows 25 m away through its own north
+  window, and from inside a dark room a bright rectangle on the far wall
+  reads as a second doorway. A window may now carry `glass: true` (a 0.02 m
+  pane in `mats.glass`) or `glass: <material>` for that one opening. The pane
+  is centred in the wall's own thickness — never on either face, because two
+  coplanar sheets are a coin toss and here the loser is the whole elevation —
+  and carries no collider, the window's own box already being in the run.
+  Default is no glass, so nothing already built changed. **`builders.js` may
+  not import `kit/mats.js`**: the nav/sim layer imports this file before any
+  DOM stub exists and `kit/mats.js` builds canvas textures at import, so
+  `mats.glass` is required rather than defaulted, and asking for `glass: true`
+  without it throws with the material named.

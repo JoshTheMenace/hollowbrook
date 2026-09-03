@@ -1557,10 +1557,12 @@ export function windmill({
    * carried on brackets off the tower, which is what a real one is, and it
    * is what stops a tapered cylinder reading as a chimney. */
   let galleryY = null;
+  let galleryRing = null;
   if (gallery) {
     const G = at(galleryT);
     const gr = G.rad + 1.05;
     galleryY = G.y;
+    galleryRing = { cx: G.cx, cz: G.cz, rIn: G.rad, rOut: gr, y: G.y };
     for (let k = 0; k < seg * 2; k += 1) {
       const a = (k / (seg * 2)) * TAU;
       P.add(M.oakDark, tubeGeo([G.cx + Math.cos(a) * (G.rad - 0.05), G.y - 1.05, G.cz + Math.sin(a) * (G.rad - 0.05)],
@@ -1726,11 +1728,24 @@ export function windmill({
 
   P.flush(group);
   group.userData = {
-    kind: 'windmill', r, h, rTop, topY: top.y, capH, galleryY, sailLen: L,
+    kind: 'windmill', r, h, rTop, topY: top.y, capH, galleryY, galleryRing, sailLen: L,
     sailGroup, cap, spin, speed,
     hubAt: [top.cx, top.y + capH * 0.52 + Math.sin(tilt) * capR * 1.5, top.cz + Math.cos(windDir) * capR * 1.5],
     doorAt: [0, 0, r + 0.3],
-    footprint: { x0: -r - 0.14, z0: -r - 0.14, x1: r + 0.14, z1: r + 0.14 },
+    /* THE FOOTPRINT IS THE SHAFT AT THE GALLERY COURSE, NOT THE BASE.
+     * A square of half-extent r + 0.14 inflated by the walker's 0.34
+     * reaches 3.48 on a 3.0 m tower, and the gallery deck only reaches
+     * G.rad + 1.05 = 3.71 — 0.22 m of stage, i.e. a mill that seals the
+     * one place a district would want to stand on it. Sized to the ring
+     * the deck is actually carried off, the same walker gets 0.66 m.
+     * `galleryRing` above is what a district platforms the deck from.
+     * (Without a gallery there is no deck and the base square is right.) */
+    footprint: galleryRing
+      ? {
+        x0: galleryRing.cx - galleryRing.rIn - 0.05, z0: galleryRing.cz - galleryRing.rIn - 0.05,
+        x1: galleryRing.cx + galleryRing.rIn + 0.05, z1: galleryRing.cz + galleryRing.rIn + 0.05,
+      }
+      : { x0: -r - 0.14, z0: -r - 0.14, x1: r + 0.14, z1: r + 0.14 },
   };
   return group;
 }

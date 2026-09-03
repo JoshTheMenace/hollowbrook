@@ -957,11 +957,20 @@ export function barricade({
        * 0.95 m board: written at the bed's own centre it reached 0.27 m
        * under the ground.  1.5 x 0.7 at 0.95 clears by 0.14. */
       U.add(M.oakSilver, bx(1.5, 0.7, 0.13, cx + sx * 0.2, 0.95, 0.42, { rz: sx * 0.95, seg: 3 }));
+      /* THE WHEEL IS THE PROP — `felledCart`'s note, and this pair of carts
+       * was the version that had not had it. Rim, hub and spokes were all
+       * `oakDark` against dusk ground of nearly the same value, so the two
+       * discs disappeared and the barricade read as leaning boards. Pale
+       * rim, dark hub disc standing proud of it, pale spokes: same radii,
+       * same positions, and the wheel reads at 25 m. */
       for (const dz of [-0.42, 0.46]) {
-        U.add(M.oakDark, cyl(0.52, 0.52, 0.12, cx - sx * 0.5, 0.58, dz, { seg: 11, rx: Math.PI / 2 }));
+        const wx = cx - sx * 0.5;
+        U.add(M.oakSilver, cyl(0.52, 0.52, 0.12, wx, 0.58, dz, { seg: 11, rx: Math.PI / 2 }));
+        U.add(M.oakDark, cyl(0.4, 0.4, 0.14, wx, 0.58, dz, { seg: 11, rx: Math.PI / 2 }));
+        U.add(M.oakSilver, cyl(0.13, 0.13, 0.2, wx, 0.58, dz, { seg: 8, rx: Math.PI / 2 }));
         for (let k = 0; k < 6; k += 1) {
           const a = (k / 6) * TAU + r.range(0, 1);
-          U.add(M.oakDark, bx(0.09, 0.48, 0.07, cx - sx * 0.5 + Math.cos(a) * 0.24, 0.58 + Math.sin(a) * 0.24, dz, { rz: a }));
+          U.add(M.oakSilver, bx(0.09, 0.48, 0.07, wx + Math.cos(a) * 0.24, 0.58 + Math.sin(a) * 0.24, dz, { rz: a }));
         }
       }
     }

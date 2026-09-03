@@ -298,9 +298,50 @@ export function lanternString({
 /* ---- lamps, torches, fire ----------------------------------------------- */
 
 /**
+ * THE PANE OF A LANTERN THAT SWITCHES, as its own small mesh.
+ *
+ * A merged mesh has ONE material, so a pooled pane cannot be swapped for
+ * `M.glass` and back — which is why both lanterns below built their pane
+ * lit-or-dark once and then had no way to change their minds. The rest of
+ * the lantern stays pooled; this is the one part that has to stand out of
+ * the pool, and at one box it costs a single draw call per lamp.
+ */
+function switchPane(geometry, litMat, isLit) {
+  const mesh = new THREE.Mesh(geometry, isLit ? litMat : M.glass);
+  mesh.castShadow = false;
+  mesh.receiveShadow = false;
+  mesh.name = 'lantern-pane';
+  return mesh;
+}
+
+/**
+ * Wire `practical` / `lit` / `setLit` onto a lamp body. Called BEFORE
+ * `withPools`, because `withPools` copies the body's userData onto the
+ * outer group — set it after and the switch exists on the body nobody
+ * holds a reference to.
+ */
+function wireSwitch(body, pane, litMat, pool, isLit) {
+  body.userData.practical = true;
+  body.userData.lit = isLit;
+  body.userData.setLit = (on) => {
+    const now = !!on;
+    pane.material = now ? litMat : M.glass;
+    if (pool) pool.visible = now;
+    body.userData.lit = now;
+  };
+  return body;
+}
+
+/**
  * A lantern on a wall bracket. ORIGIN ON THE WALL FACE, projecting +Z, and
  * `airborne: true`. Pass `groundY` (the ground height BELOW the bracket,
  * relative to the bracket's own origin, i.e. negative) to get its pool.
+ *
+ * IT SWITCHES. `userData.setLit(bool)` swaps the pane between its lit
+ * material and `M.glass` and shows or hides the pool, and `practical` is
+ * how the day-night rig finds it. The pool is built whatever `lit` says
+ * (and merely hidden), because a light that has nothing to become makes
+ * `setLit(true)` a silent no-op — the same trap the brazier records.
  */
 export function bracketLantern({ seed = 'bracket', reach = 0.55, lit = false, glow = null, groundDrop = null } = {}) {
   const g = new THREE.Group();
@@ -312,23 +353,30 @@ export function bracketLantern({ seed = 'bracket', reach = 0.55, lit = false, gl
     const a = (i / 4) * TAU + Math.PI / 4;
     P.add(M.ironDark, bx(0.026, 0.32, 0.026, Math.cos(a) * 0.105, -0.19, reach + Math.sin(a) * 0.105));
   }
-  const pane = glow != null ? glowing(glow, glow, 0.9) : (lit ? M.lit : M.glass);
-  P.add(pane, bx(0.17, 0.28, 0.17, 0, -0.19, reach));
   P.add(M.ironDark, cyl(0.17, 0.02, 0.13, 0, 0.0, reach, { seg: 4 }));
   P.add(M.ironDark, bx(0.2, 0.03, 0.2, 0, -0.35, reach));
   P.flush(g, { receive: false });
+  const isLit = !!(lit || glow != null);
+  const litMat = glow != null ? glowing(glow, glow, 0.9) : M.lit;
+  const pane = switchPane(bx(0.17, 0.28, 0.17, 0, -0.19, reach), litMat, isLit);
+  g.add(pane);
   tagProp(g, 'bracket-lantern', { airborne: true, reach, lampY: -0.19 });
   const pools = [];
-  if ((lit || glow) && groundDrop != null) {
-    const pool = lightPool({ r: 1.7, opacity: 0.42 });
+  let pool = null;
+  if (groundDrop != null) {
+    pool = lightPool({ r: 1.7, opacity: 0.42 });
     pool.position.set(0, groundDrop + 0.03, reach);
+    pool.visible = isLit;
     pools.push(pool);
   }
+  wireSwitch(g, pane, litMat, pool, isLit);
   return withPools(g, pools);
 }
 
 /**
  * A lantern on a post: the village's street light. Origin on the ground.
+ * IT SWITCHES — see `bracketLantern` above for why the pane is its own
+ * mesh and why the pool is built whether or not it starts lit.
  */
 export function postLantern({ seed = 'post-lantern', h = 2.6, lit = false, glow = null, arm = true, mat = null } = {}) {
   const rr = rng(seed);
@@ -342,24 +390,24 @@ export function postLantern({ seed = 'post-lantern', h = 2.6, lit = false, glow 
     const a = (i / 4) * TAU + Math.PI / 4;
     P.add(M.ironDark, bx(0.03, 0.4, 0.03, Math.cos(a) * 0.13, ly, Math.sin(a) * 0.13));
   }
-  const pane = glow != null ? glowing(glow, glow, 0.9) : (lit ? M.lit : M.glass);
-  P.add(pane, bx(0.21, 0.35, 0.21, 0, ly, 0));
   P.add(M.ironDark, cyl(0.21, 0.02, 0.16, 0, ly + 0.26, 0, { seg: 4 }));
   P.add(M.ironDark, bx(0.25, 0.04, 0.25, 0, ly - 0.2, 0));
   if (arm) P.add(M.iron, bx(0.42, 0.026, 0.026, 0, h - 0.36, 0));
   P.flush(g);
   void rr;
+  const isLit = !!(lit || glow != null);
+  const litMat = glow != null ? glowing(glow, glow, 0.9) : M.lit;
+  const pane = switchPane(bx(0.21, 0.35, 0.21, 0, ly, 0), litMat, isLit);
+  g.add(pane);
   tagProp(g, 'post-lantern', {
     topY: ly + 0.34, lampY: ly, hookAt: [0, h - 0.36, 0],
     footprint: { x0: -0.22, z0: -0.22, x1: 0.22, z1: 0.22 },
   });
-  const pools = [];
-  if (lit || glow) {
-    const pool = lightPool({ r: 2.1, opacity: 0.42 });
-    pool.position.y = 0.03;
-    pools.push(pool);
-  }
-  return withPools(g, pools);
+  const pool = lightPool({ r: 2.1, opacity: 0.42 });
+  pool.position.y = 0.03;
+  pool.visible = isLit;
+  wireSwitch(g, pane, litMat, pool, isLit);
+  return withPools(g, [pool]);
 }
 
 /**
@@ -429,9 +477,15 @@ export function brazier({ seed = 'brazier', r: R = 0.36, h = 0.62, lit = true, c
   const flame = new THREE.Group();
   flame.name = 'brazier-flame';
   const F = parts();
+  /* `cyl(r0, r1, ...)` is (radius TOP, radius BOTTOM). A flame is wide at
+   * the coals and pointed at the sky, so the WIDE radius is the second
+   * argument — written the other way round the fire is a funnel standing on
+   * its point, which is the hayRick parasol again. The ember cone's y is
+   * set so its wide end lands exactly on the coal disc's top face
+   * (h + 0.17); the pale core sits just inside it. */
   F.add(M.emberDeep, cyl(R * 0.5, R * 0.44, 0.1, 0, h + 0.12, 0, { seg: 9 }));
-  F.add(M.ember, cyl(R * 0.62, R * 0.18, 0.42, 0, h + 0.4, 0, { seg: 8 }));
-  F.add(M.lit, cyl(R * 0.34, R * 0.08, 0.24, 0, h + 0.32, 0, { seg: 7 }));
+  F.add(M.ember, cyl(R * 0.18, R * 0.62, 0.42, 0, h + 0.38, 0, { seg: 8 }));
+  F.add(M.lit, cyl(R * 0.08, R * 0.34, 0.24, 0, h + 0.32, 0, { seg: 7 }));
   F.flush(flame, { receive: false, cast: false });
   flame.visible = lit;
   g.add(flame);

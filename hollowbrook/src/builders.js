@@ -902,7 +902,10 @@ export function leanTo({ w = 3, d = 2.4, h = 2.3, pitch = 0.22, open = 'z+', pos
     put(0, -d / 2 + T / 2, w / 2, T / 2);
     for (const s of [-1, 1]) put(s * (w / 2 - T / 2), 0, T / 2, d / 2);
   }
-  group.userData = { prop: true, ry, backTopY: at[1] + backTop, frontTopY: at[1] + roofY(d / 2 - POST / 2) };
+  // `kind` is not decoration: the terminus pass reads it, and a shelter
+  // without one is reported as an untagged mesh in every district that
+  // stands one up.
+  group.userData = { prop: true, kind: 'lean-to', ry, backTopY: at[1] + backTop, frontTopY: at[1] + roofY(d / 2 - POST / 2) };
   return group;
 }
 
@@ -1098,7 +1101,12 @@ function shellPlan({
     // Walkable means: it starts at the floor and a body fits through it.
     // That, and only that, is what leaves a gap in the collider run.
     const walkable = isDoor || ((sillY - floorTopY) <= 0.05 && (headY - sillY) >= 1.8);
-    openings.push({ face: spec.face, axis: wall.axis, o0, o1, sillY, headY, isDoor, walkable, width });
+    // `c0`/`c1` are the wall's own thickness band, carried so the glazing
+    // below can be centred IN the wall rather than re-derived against it.
+    openings.push({
+      face: spec.face, axis: wall.axis, o0, o1, sillY, headY, isDoor, walkable, width,
+      c0: wall.c0, c1: wall.c1, glass: isDoor ? null : (spec.glass ?? null),
+    });
   };
   if (!door) throw new Error(`[builders] hollowShell("${name}"): an enterable shell needs a \`door\``);
   push({ ...door, height: door.height ?? 2.05 }, true);
@@ -1201,6 +1209,14 @@ export function enterableColliders(spec) {
  *     opening, each one a box so its inward face exists;
  *   - an optional inner lining in a second material, cut by the same
  *     openings, so the room has its own tone without a second geometry pass;
+ *   - GLAZING, per window, on `glass`. `{ ..., glass: true }` fills that
+ *     opening with a 0.02 m pane in `mats.glass` (which it then requires —
+ *     `M.glassDark` is the usual one; this file may not import the kit's
+ *     material pool, see the note at the code), or pass a material for that
+ *     one window as `glass: M.something`. Default is no glass, and a shell
+ *     with none is a shell you can see straight through — from outside,
+ *     into whatever is lit behind it. The pane is centred in the wall's
+ *     thickness and carries no collider.
  *   - the interior floor slab (one `ctx.platform`) and the threshold through
  *     the doorway (another, overlapping both the slab and the ground —
  *     platforms overlap, never meet);
@@ -1220,8 +1236,8 @@ export function enterableColliders(spec) {
  *   const shell = hollowShell({
  *     w: 6.4, d: 5.2, h: 3.1, at: [8, -4], groundY: ctx.groundAt(8, -4),
  *     door: { face: 'z+', offset: -0.6, width: 1.5 },
- *     windows: [{ face: 'z+', offset: 1.6, width: 1.0, height: 1.0 }],
- *     mats: { wall: M.render, inner: M.plaster, floor: M.boards, ceiling: M.beam },
+ *     windows: [{ face: 'z+', offset: 1.6, width: 1.0, height: 1.0, glass: true }],
+ *     mats: { wall: M.render, inner: M.plaster, floor: M.boards, ceiling: M.beam, glass: M.glassDark },
  *     ctx, name: 'inn',
  *   });
  *   ctx.add(gableRoof({ w: 6.4, d: 5.2, pitch: 0.62, mat: M.thatch }), 'inn-roof')
@@ -1248,6 +1264,48 @@ export function hollowShell(spec) {
   shellMesh.receiveShadow = true;
   shellMesh.name = `${name}-walls`;
   group.add(shellMesh);
+
+  /* GLAZING. A cut opening with nothing in it is a hole through the
+   * building: the chapel saw the almshouse's lit windows 25 m away through
+   * its own north window, and from inside a dark room a bright rectangle on
+   * the far wall reads as a second doorway. `glass: true` on a window fills
+   * it. The pane sits in the MIDDLE of the wall's thickness, never on
+   * either face — two coplanar sheets are a coin toss, and here the loser
+   * is the whole elevation. It carries no collider: the window's own box is
+   * already in the collider run for anything not walkable. */
+  const glazed = plan.openings.filter((o) => o.glass);
+  if (glazed.length) {
+    const byMat = new Map();
+    for (const o of glazed) {
+      /* The material comes from the CALLER, never from the kit's pool.
+       * `builders.js` is imported by the nav/sim layer before any DOM stub
+       * exists, and `kit/mats.js` builds canvas textures at import — so a
+       * single `import { M }` here takes the headless siege simulation down
+       * with "document is not defined" and nothing in this file is at
+       * fault. Pass `mats.glass`. */
+      const mat = o.glass === true ? mats.glass : o.glass;
+      if (!mat) {
+        throw new Error(`[builders] hollowShell("${name}"): a window on ${o.face} asks for \`glass: true\` but no `
+          + '`mats.glass` was passed. Give the shell a glass material (M.glassDark is the usual one), or pass the '
+          + 'material on the window itself as `glass: M.something`.');
+      }
+      const c = (o.c0 + o.c1) / 2;
+      const r = rectOf(o.axis, o.o0, o.o1, c - 0.01, c + 0.01);
+      let list = byMat.get(mat);
+      if (!list) byMat.set(mat, (list = []));
+      list.push([r.x1 - r.x0, o.headY - o.sillY, r.z1 - r.z0,
+        (r.x0 + r.x1) / 2, (o.sillY + o.headY) / 2, (r.z0 + r.z1) / 2]);
+    }
+    let gi = 0;
+    for (const [mat, boxes] of byMat) {
+      const paneMesh = mergedBoxes(boxes, mat);
+      paneMesh.castShadow = false;   // the wall round it already casts
+      paneMesh.receiveShadow = true;
+      paneMesh.name = `${name}-glazing${gi ? `-${gi}` : ''}`;
+      gi += 1;
+      group.add(paneMesh);
+    }
+  }
 
   if (innerMat && lining > 0) {
     // Same split, inset to the room side. The lining's back plane is

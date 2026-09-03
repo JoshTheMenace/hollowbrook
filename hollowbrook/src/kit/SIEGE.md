@@ -305,3 +305,28 @@ terrain and flood-fills the walk with a 4.5 m floor, so the fill cannot
 cheat by dropping into the street, walking round and coming back up a stair.
 It reads 5 986 cells and reaches all four corners, both gate decks and all
 five stair-head landings from one seed.
+
+## Post-gate errata (reported by the districts, fixed once all six were up)
+
+- **`bracketLantern` and `postLantern` did not switch, and the rule above
+  says they must (fixed in `props.js`).** Neither had `setLit`, and a `glow`
+  glowed unconditionally — so the two lamps the districts actually hang on a
+  wall and stand on a street were the only practicals in the town that could
+  not take part in a relight beat. The blocker was structural: the pane went
+  into the per-material pool with `P.add(pane, …)` and **a merged mesh has
+  one material**, so there was nothing to swap. The pane is its own one-box
+  mesh now and everything else stays pooled. Both carry `practical`, `lit`
+  and `setLit(on)`; the pool is **built whatever `lit` says** and merely
+  hidden, per "Practicals that switch" above; and it is still a `withPools`
+  sibling, so no lamp's bounding box grows by a 4 m plane. Initial state is
+  unchanged — `lit || glow != null` — and `bracketLantern` still has no pool
+  without a `groundDrop`.
+- **`barricade({ kind: 'carts' })` drew its wheels in `oakDark` (fixed).**
+  `felledCart`'s own note two hundred lines down the same file says a cart on
+  its side is read by its wheels and by nothing else, and this pair of carts
+  was the version that had not had the treatment: rim, hub and spokes were
+  all one dark tone against dusk ground of nearly the same value, so the two
+  discs disappeared and the barricade read as leaning boards. Pale rim in
+  `oakSilver`, dark hub disc standing proud of it, pale hub cap, pale spokes —
+  same radii, same positions, same seeded angles, so nothing downstream of
+  the rng moved.
