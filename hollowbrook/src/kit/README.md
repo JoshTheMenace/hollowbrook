@@ -11,8 +11,20 @@ import {
   bigTree, treeStand, smallTree, hedgeRun,
   villageProps, marketStall, lanternString, interactive,
   signKit,
+  // the siege kit — read SIEGE.md in this folder before your first wall
+  SIEGE, curtainWall, gatehouse, stairTurret, barricade,
+  wallTorch, beaconCage, lantern, arrowSlit, arrowSlitAt,
+  siegeProps, placeCover, campFire, tent, colliderBlocks,
 } from '../kit/index.js';
 ```
+
+**The perimeter, the gates and everything a raid leaves behind are in
+`SIEGE.md`**, next to this file. Two things in it are not optional and are
+not obvious: a collider now carries `top` and `bottom` (a parapet 5 m up
+fences the walk and must not wall the street; a gatehouse pier is solid from
+the road and is walked over), and `ctx.groundAt(x, z, fromY)` takes a third
+argument, which is the only reason a gate passage and the wall-walk over it
+can both exist.
 
 **The kit is append-only during district builds.** If you need a generator that
 is not here, ask the coordinator — do not write your own building generator.
@@ -516,3 +528,117 @@ because it is not a city. Everything else must come back clean.
   a longhouse, worst bite 0.126 m) and the count is **identical before and
   after** — the fix redistributes the same clashes onto their own faces
   rather than piling both faces' worth on the '+' one.
+
+---
+
+## Traps the SIEGE round added, all of them shipped and all of them found
+
+Every one of these rendered perfectly and threw nothing. The tool that found
+each is named, because which tool finds a class of bug is the reusable part.
+
+- **A collider has no top and no bottom unless you give it one, and a wall
+  town needs both.** `ctx.collide` took four arguments for the life of this
+  codebase. A gatehouse cannot exist under that contract: its parapet, 5 m
+  up, is directly over the gate passage, so a full-height collider there
+  **seals a 7 m gate** — and its piers are solid stone from the road that
+  the wall-walk has to be walked **over**, so without `top` the walk stops
+  dead at both gates. There is no geometry that dodges either one: a parapet
+  is above a passage by definition. `colliderBlocks` in `src/builders.js` is
+  the one copy of the test; the player and the route fill both call it.
+  *(Found by: a walk-only flood fill, `check-siege.mjs`.)*
+- **Two walkable levels cannot share a footprint without `fromY`.** The
+  gatehouse's deck platform at 5.0 spans the passage, and `groundAt` is a max
+  over platforms — so the gate's floor became 5 m high, the walk was
+  perfectly continuous, and the gate was sealed **by the very platform that
+  made the walk work**. One symptom, two causes, and the fill that proves the
+  walk is the fill that hides it. `groundAt(x, z, fromY)` now refuses a
+  platform more than 0.55 m above your feet. Builders seating props keep
+  calling it with two arguments. *(Found by: a ground-level fill from the
+  spawn failing to reach the moor.)*
+- **Anything that crosses a gate has to take the arch's own spans.** The
+  gatehouse's string course went in as one 7.5 × 5.1 m slab at y 3.45 — 0.15 m
+  of coping straight across the opening. From the road it did not read as a
+  mistake: it read as a **lintel**, with the arch ring floating above it like
+  a decoration. From inside the passage it was the **ceiling** — a flat
+  coursed soffit, with the real vault a metre above it, never once seen. The
+  vault's own courses were correct the whole time. *(Found by: one frame from
+  under the arch.)*
+- **A semicircular arch does not fit over a wide gate in a low wall, and the
+  numbers say so before any render does.** A 5.70 m opening under a 5.00 m
+  wall head crowns 2.85 m above its springing, which puts the springing at
+  1.75 m — head height at the jambs. Segmental, springing 3.10, rise 1.35,
+  crown 4.45, 0.43 m of spandrel. Solve it; do not pick it.
+- **A generator that varies tone at its own construction grid is telling you
+  where its construction grid is.** The curtain chose a stone tone per
+  3 m segment per 1.2 m band from three tones a long way apart, and 40 m of
+  wall came back as a **checkerboard** — which reads as damage, not masonry.
+  A wall reads horizontally because its courses do: the band index picks the
+  tone, and the stone-scale variation is the micro-texture map's job, which
+  is the right scale for it. The same mistake in vertical form turned a stair
+  cheek wall into stripes at 0.42 m centres (`i % 2`).
+- **A raked slab's vertical half-extent is `L·sin(θ)/2 + h·cos(θ)/2`, and the
+  second term is not small.** A 2.4 m cart bed written at 1.42 rad (81°) and
+  centred at 0.62 puts 0.59 m of itself under the ground. Three props here
+  did it — a felled cart, a barricade's tipped cart, its side board — and
+  the audit reports BURIED while the street reads it as a *shorter* prop.
+  *(Found by: `check-spatial.mjs`.)*
+- **`Box3.setFromObject` does not skip invisible children.** A two-state prop
+  (a barricade with `up` hidden) is audited as the union of both states, so a
+  defect in the state you cannot see is reported against the state you can.
+  That is correct and useful — fix the hidden state.
+- **The lit thing must not be inside the unlit thing.** `lantern` built its
+  glass as a solid 0.185 m box and its lit pane at 0.175 **inside** it, so
+  `setLit(true)` swapped a material on a mesh entirely within an opaque one:
+  the relight beat played perfectly with nothing whatever to see, and the lit
+  lantern was pixel-identical to the unlit one beside it. Two states are the
+  **same box** with one of them hidden. (Same shape as a vending machine
+  dropping its can inside its own body.) *(Found by: one frame with the two
+  side by side — which is why the showcase has both.)*
+- **A dressed surround has to be paler than the void it dresses.** The arrow
+  slits' frame was `curtainDark` and their slot `ironDark`: same value, so
+  the whole opening read as one dark blob on the wall rather than as a slot
+  in raised stone. `M.coping` for the surround and the slit appears.
+- **A camera's subject must be something SOLID.** The camera gate casts at a
+  subject's bounding-box **centre**, and the centre of a chain slung between
+  two posts is empty air — the ray sails under the catenary, between the
+  posts, and lands on the ground beyond, which the gate correctly calls a
+  blocked view. Frame a thin open prop; name something solid in the frame.
+- **A clear ray to the subject says nothing about what else is in shot.** The
+  bell-tower camera passed its gate with a 1 m beacon cage 2.3 m from the
+  lens filling a third of the frame and reading as part of the tower. The
+  gate cannot find that one; only the frame can.
+- **A camera named after a thing is not aimed at it until somebody checks.**
+  Two cameras inherited in this showcase were wrong and had never been
+  looked at: `tower` was aimed six metres west of the tower, at the inn, and
+  `trees` stood inside the inn's own footprint collider. A wrong aim returns
+  a perfectly composed frame of something else. **Declare a `subject` on
+  every review camera** — the gate refuses one without it, and that refusal
+  is the whole value.
+- **The audit's hole grid samples the footprint you declare, not the ground
+  you laid.** Quote a rounder, bigger rectangle than the slabs actually
+  cover and every square metre outside them comes back as HOLE: a true
+  statement about a false contract. And two ground slabs that **butt** at a
+  round number are a row of samples falling between them — overlap by 0.1 m.
+- **All the stakes lean the same way.** Alternating the sign per stake — the
+  obvious way to get variety — builds a row of X's, which is a
+  chevaux-de-frise and not a stockade: the eye reads the crossings, not the
+  points. The variety is in the angle.
+- **A fire reads by being taller than it is wide.** A camp fire's flame at
+  0.6 × its ring radius is a 0.96 m trapezoid of flat saturated orange and
+  the loudest object in any frame with a camp in it.
+- **A wheel is what makes a cart a cart.** A cart on its side is read by its
+  wheels and by nothing else — the bed and the boards are planks at an angle
+  — and both wheels drawn in `oakDark` against ground of nearly the same
+  value at dusk gave a prop that came back as *two leaning boards*. Pale rim,
+  dark spokes.
+- **A prop's own light pool is on the SHARED pooled material.** `lightPool`
+  hands back a mesh whose material is one of two objects for the whole town,
+  so `pool.material.opacity = k` in a per-frame updater writes the opacity of
+  every warm pool in Hollowbrook — six districts' braziers fighting over one
+  number, and whichever updater ran last won the frame. Breathe by
+  `scale`, never by opacity. (This was live in the inherited `brazier`.)
+- **A roof written over the wall's centre line overhangs the walk.** The
+  curtain's hoarding put a 3.2 × 2.0 m unmodulated dark plane across a
+  quarter of the frame from a standing eye on the wall. Hold it outboard of
+  the parapet, put rafters under it, and do not draw a big flat card in
+  `oakDark` at dusk.

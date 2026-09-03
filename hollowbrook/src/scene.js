@@ -9,6 +9,7 @@ import { keephill } from './districts/keephill.js';
 import { millreach } from './districts/millreach.js';
 import { chapelclose } from './districts/chapelclose.js';
 import { wardrow } from './districts/wardrow.js';
+import { buildShowcase, SHOWCASE_CAMERAS } from './kit/_showcase.js';
 
 /**
  * Hollowbrook — the composition root.  composeCity lays ONE continuous
@@ -23,14 +24,25 @@ import { wardrow } from './districts/wardrow.js';
  * other as its plan `massing` stub — what a district agent sees mid-build.
  * The game layer (src/game/) is additive over this and never edits it.
  */
-export function buildVignette(scene, { only = null } = {}) {
+export function buildVignette(scene, { only = null, showcase = null } = {}) {
   if (only === null && typeof location !== 'undefined') {
     only = new URLSearchParams(location.search).get('only');
+  }
+  /* THE KIT SHOWCASE, and the reason it is a branch here rather than a
+   * scratch copy of this file: `check-spatial.mjs` and `check-cameras.mjs`
+   * both import THIS module, so a showcase reviewed through a fork of it
+   * is reviewed by a fork of the gates.  `?showcase` in the page,
+   * HOLLOWBROOK_SHOWCASE=1 for the scripts.  Inert otherwise. */
+  if (showcase === null) {
+    showcase = (typeof location !== 'undefined' && new URLSearchParams(location.search).has('showcase'))
+      || (typeof process !== 'undefined' && !!process.env?.HOLLOWBROOK_SHOWCASE);
   }
   const root = new THREE.Group();
   root.name = 'city';
   scene.add(root);
   const ctx = createBuilder(root);
+
+  if (showcase) return buildShowcaseVignette(root, ctx, plan);
 
   const MODULES = [southgate, marketlow, keephill, millreach, chapelclose, wardrow];
   const city = composeCity({
@@ -67,5 +79,42 @@ export function buildVignette(scene, { only = null } = {}) {
     auditIslands: ['props'],
     auditLinear: ['ground'],
     reviewCameras: Object.fromEntries((plan.vista_cameras ?? []).map((v) => [v.name, v])),
+  };
+}
+
+/**
+ * The kit showcase as a vignette: one of every generator, laid out in
+ * ranks, with `SHOWCASE_CAMERAS` as its review set.  Not a district, not
+ * part of the city, and not built unless asked for.
+ *
+ * The ground slabs come back as UNEXPLAINED-MASS from the spatial audit and
+ * that is correct and decided: they are the harness's stand-in for
+ * `core/terrain.js`, which the showcase does not run because it is not a
+ * city.  Everything else must come back clean.
+ */
+function buildShowcaseVignette(root, ctx, cityPlan) {
+  const { spawn } = buildShowcase(ctx);
+  return {
+    root, plan: cityPlan, city: { order: [], stats: {}, warnings: [], only: 'showcase' },
+    colliders: ctx.colliders,
+    platforms: ctx.platforms,
+    interactables: ctx.interactables,
+    groundAt: ctx.groundAt,
+    spawn,
+    update: (dt, eye) => ctx.step(dt, eye),
+    interiorFloors: ctx.interiorFloors,
+    reset: () => ctx.resetAll(),
+    state: () => ({ district: 'showcase' }),
+    diagnostics: (renderer) => ctx.diagnostics(renderer),
+    /* the footprint is what the audit's hole grid samples, so it has to be
+     * the ground the showcase actually lays and not a round number: quote a
+     * bigger rectangle and every square metre outside the slabs comes back
+     * as HOLE, which is a true statement about a false contract. */
+    footprint: { x0: -48, z0: -25, x1: 48, z1: 65.5 },
+    footprintHeight: 24,
+    holeFloorY: -0.5,
+    auditIslands: ['props'],
+    auditLinear: ['ground'],
+    reviewCameras: SHOWCASE_CAMERAS,
   };
 }
