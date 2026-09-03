@@ -97,6 +97,18 @@ try {
       const [i, j] = grid.toCell(g.spawn_ring.centre[0], g.spawn_ring.centre[1]);
       const d = flow.dist[grid.index(i, j)];
       check(`flow:${g.id}->keep`, d >= 0, d >= 0 ? `${d} steps (${(d * grid.cell).toFixed(0)} m of walking) from the ring to the keep's centre` : 'the reverse BFS does not reach the ring');
+      // the route must go THROUGH a gate passage, on the passage's own level —
+      // a gatehouse deck read as ground, or piers read as walls, both fail here
+      const passages = Object.values(plan.siege?.gates ?? {}).map((s) => s.passage).filter(Boolean);
+      let n = grid.index(i, j); let via = null; let hops = 0;
+      while (n >= 0 && hops < 5000) {
+        const ci = n % grid.W; const cj = (n - ci) / grid.W;
+        const [x, z] = grid.toWorld(ci, cj);
+        const hit = passages.find((r) => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1);
+        if (hit && grid.y[n] < 1.0) { via = { x: +x.toFixed(1), z: +z.toFixed(1), y: +grid.y[n].toFixed(2) }; break; }
+        n = flow.next[n]; hops += 1;
+      }
+      check(`route:${g.id}->keep:through-passage`, !!via, via ? `passes a gate passage cell at (${via.x}, ${via.z}) y ${via.y}` : passages.length ? 'the ring-to-keep route never crosses a gate passage at street level' : 'plan has no siege.gates passages to test');
     }
   }
   finish('RESULT');

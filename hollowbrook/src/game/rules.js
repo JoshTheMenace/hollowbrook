@@ -25,6 +25,7 @@
  * ------------------------------------------------------------------ */
 import { CONTRACT as C, BODY, SCHEDULES, VARIETY, CORPSE_SECONDS, POISE, HIT_STUN, RECOVER, HEXBOLT_RADIUS, HEXBOLT_RANGE } from './data.js';
 import { astar, lineOpen, nearestOpen } from './nav.js';
+import { colliderBlocks } from '../builders.js';
 
 export const TICK = 1 / 60;
 const R = C.player.radius;
@@ -1083,12 +1084,9 @@ function stepAxis(world, body, axis, delta, radius) {
 
 function resolve(world, body, radius) {
   for (const c of world.colliders) {
-    // a barrier whose job is only at height: feet more than 1.9 m under it walk through
-    if (c.bottom !== undefined && c.bottom !== null && body.y < c.bottom - 1.9) continue;
-    // a low kerb is stepped over, not walked into
-    if (c.top !== undefined && c.top !== null && c.top - body.y <= STEP) continue;
+    // the collider contract's ONE copy: `top` is stood on, `bottom` is walked under
+    if (!colliderBlocks(c, body.x, body.z, body.y, radius)) continue;
     const x0 = c.x0 - radius; const x1 = c.x1 + radius; const z0 = c.z0 - radius; const z1 = c.z1 + radius;
-    if (body.x <= x0 || body.x >= x1 || body.z <= z0 || body.z >= z1) continue;
     const d = [body.x - x0, x1 - body.x, body.z - z0, z1 - body.z];
     let m = 0;
     for (let i = 1; i < 4; i += 1) if (d[i] < d[m]) m = i;

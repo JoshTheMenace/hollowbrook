@@ -15,6 +15,8 @@
  * in the forward direction.
  * ------------------------------------------------------------------ */
 
+import { colliderBlocks } from '../builders.js';
+
 export const NAV = Object.freeze({ cell: 0.35, radius: 0.34, step: 0.38 });
 
 export function buildNavGrid({ colliders, groundAt, rect, cell = NAV.cell, radius = NAV.radius }) {
@@ -33,10 +35,13 @@ export function buildNavGrid({ colliders, groundAt, rect, cell = NAV.cell, radiu
       }
     }
   }
-  const blocked = (x, z) => {
+  // the collider contract (top / bottom) through the ONE copy of its
+  // arithmetic: a gatehouse pier (top 5.0) is walked OVER on the wall-walk
+  // and its parapet (bottom ~4.4) is walked UNDER in the passage
+  const blocked = (x, z, y) => {
     const list = buckets.get(key(Math.floor(x / GRID), Math.floor(z / GRID)));
     if (!list) return false;
-    for (const c of list) if (x > c.x0 - radius && x < c.x1 + radius && z > c.z0 - radius && z < c.z1 + radius) return true;
+    for (const c of list) if (colliderBlocks(c, x, z, y, radius)) return true;
     return false;
   };
   const open = new Uint8Array(W * D);
@@ -46,8 +51,11 @@ export function buildNavGrid({ colliders, groundAt, rect, cell = NAV.cell, radiu
       const x = rect.x0 + i * cell;
       const z = rect.z0 + j * cell;
       const n = j * W + i;
-      y[n] = groundAt(x, z);
-      open[n] = blocked(x, z) ? 0 : 1;
+      // the GROUND layer: the surface within a step of the terrain underfoot,
+      // never a deck five metres up (groundAt's fromY, when it takes one)
+      const base = groundAt(x, z, -1e9);
+      y[n] = groundAt(x, z, base);
+      open[n] = blocked(x, z, y[n]) ? 0 : 1;
     }
   }
   const grid = {
