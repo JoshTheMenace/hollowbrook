@@ -85,16 +85,21 @@ import { tree } from '../kit/trees.js';
  *     and `check-interactions` would still have passed it — that gate
  *     only wants an effect within 8 m of the prompt, and never checks the
  *     prompt against the plan.  The kit's turrets are gone (see below) and
- *     the windlass stands in the pocket between the west drum and the gate
- *     pier at (-4.4, 45.4), 6.53 m from the portcullis it drives and clear
- *     of the only route to the stair foot.
+ *     the windlass stands out in the muster ground at (-4.7, 43.8), 7.78 m
+ *     from the portcullis it drives — and, more to the point, 0.32 m clear
+ *     of the ONLY route to the stair foot.  Every position nearer the gate
+ *     was tried and each one closed that route to a single 0.35 m cell:
+ *     the pocket between the pier and the stair's cheek wall is 1.9 m wide
+ *     and a windlass is 1.4 of it.
  *   - THE KIT'S GATEHOUSE TURRETS STAND ON THE TERRAIN'S STAIR.  They are
  *     placed at (+-5.6, 46.6) with r 1.6 by construction, and the plan's
  *     `south-wall-stair` starts at (-5.6, 47.3) and runs west: the west
  *     turret's collider (x -7.36..-3.84, z 44.84..48.36) swallows the
  *     first four treads, so the wall-walk and the stair-head turret are
  *     BOTH unreachable and the gate renders perfectly.  `towers: false`,
- *     and the pair is rebuilt as drums set back into the square.
+ *     and the pair is rebuilt — first set back into the square, which
+ *     filled the bowman's gallery, and finally as mural drums OUTSIDE the
+ *     wall.  See the note at the placement for all four of their numbers.
  *   - A LANDMARK IS READ BY A RAY AT ITS BOUNDING-BOX CENTRE, and a
  *     gatehouse's box centre is on the gate's own axis 3.4 m up — inside
  *     the open arch.  The ray went through the opening, out over the moor

@@ -1,0 +1,73 @@
+
+== plan ==
+PASS plan valid — 6 districts
+
+== build (composeCity anchors assert during it) ==
+PASS built in order: millreach
+
+== seams ==
+seam check: 5 socket pairs involving millreach
+PASS sg-w-lane <> mr-e-lane [path] at (-18, 34) — southgate <-> millreach
+PASS sg-walk-w <> mr-walk-s [path] at (-18, 50) — southgate <-> millreach
+PASS market-lane-w <> mr-market-lane [path] at (-18, 6) — marketlow <-> millreach
+PASS mr-n-lane <> cc-s-lane [path] at (-36, -12) — millreach <-> chapelclose
+PASS mr-walk-n <> cc-walk-s [path] at (-50, -12) — millreach <-> chapelclose
+PASS — ground continuous and corridors clear at every socket
+
+== spatial audit (millreach) ==
+spatial audit: 62 units (62 tagged, 0 pooled clusters, 9 runs, 2 of them raked), 381256 triangles, 8501 seam samples (1003 inside colliders skipped, 180 inside 1 registered interior)
+PASS no spatial defects inside millreach
+
+== flood fill (millreach) ==
+fill: 39620 cells reachable from "under the mill" (-38, 24) over x -66..-6, z -24..66 at 0.35 m, radius 0.34, step 0.38 — 39907 visits, 92 colliders
+PASS [millreach] under the mill (-38, 24)
+PASS [millreach] the mill lane (-22, 34)
+PASS [millreach] the west wall-walk (-50, 10)
+PASS [millreach] the SW tower foot (-46, 46)
+PASS [millreach] the tannery yard (-40, -4)
+
+== budgets ==
+PASS [millreach] 342 meshes / 400, 72802 triangles / 150000, 70 colliders, 26 platforms
+
+== enterable interiors ==
+no enterable buildings declared in millreach — most buildings are not enterable, and that is correct
+1 interior registered in the scene, 0 declared in the plan
+
+== surrounds coverage (the whole footprint, not the parcels) ==
+sampled 7744 points at 1.5 m over x -66..66, z -66..66 (footprint_m 132×132); floor threshold y -4.4
+PASS ground everywhere in the footprint — nothing ends in a cut, surrounds owner "southgate"
+
+== sight corridors ==
+no sight corridors declared crossing millreach
+
+== landmark contracts ==
+PASS [millreach] "district:millreach:mill" reads from vista "along-the-wall"
+PASS [millreach] "district:millreach:mill" reads from 3/5 points in "southgate" (under the arch, the south wall-walk, the stair-head turret)
+
+== interactions ==
+PASS [millreach] 1 interactable registered for 1 declared
+
+== boundary features (declared vs. built) ==
+skipped — "millreach" is composed against stub massing, so a shared edge has no real neighbour on it
+
+== terminating sight lines (what closes each view — advisory) ==
+  [millreach] mr-e-lane looking +x from (-18, 34) -> 5/5 rays land on "(nothing — open sky or fog)" [owner: nobody], nothing within 45 m
+WARN TERMINUS [millreach] "mr-e-lane" looking +x: 5/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [millreach] mr-e-lane looking -x from (-18, 34) -> 3/5 rays land on "curtain-wall" [owner: millreach], the 5 that hit average 25.72 m
+  [millreach] mr-market-lane looking +x from (-18, 6) -> 5/5 rays land on "(nothing — open sky or fog)" [owner: nobody], nothing within 45 m
+WARN TERMINUS [millreach] "mr-market-lane" looking +x: 5/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [millreach] mr-market-lane looking -x from (-18, 6) -> 5/5 rays land on "curtain-wall" [owner: millreach], the 5 that hit average 30.48 m
+  [millreach] mr-n-lane looking +z from (-36, -12) -> 4/5 rays land on "bark-store" [owner: millreach], the 5 that hit average 10.41 m
+  [millreach] mr-n-lane looking -z from (-36, -12) -> 5/5 rays land on "terrain:ground" [owner: terrain], the 5 that hit average 34.49 m
+WARN TERMINUS [millreach] "mr-n-lane" looking -z: 5/5 rays land on bare terrain 34.49 m out. A ground plate is not a subject; the view along this axis ends on nothing built.
+  [millreach] mr-walk-s looking +x from (-18, 50) -> 4/5 rays land on "district:southgate:massing-1" [owner: southgate], the 5 that hit average 8.8 m
+WARN TERMINUS [millreach] "mr-walk-s" looking +x: 4/5 rays land on "district:southgate:massing-1" [owner: southgate], which carries no userData.kind — it is an untagged mesh, not a composed subject. What closes a view should be something a kit generator made on purpose.
+  [millreach] mr-walk-s looking -x from (-18, 50) -> 4/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 1 that hit average 33.2 m
+WARN TERMINUS [millreach] "mr-walk-s" looking -x: 4/5 rays leave the city 36 m out and hit nothing at all — this axis runs off the edge of the town. That terminus belongs to the surrounds owner ("southgate"): a treeline, a ridge, a wall, something that says the town stops here on purpose. Otherwise the view ends in fog.
+  [millreach] mr-walk-n looking +z from (-50, -12) -> 4/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 1 that hit average 45 m
+WARN TERMINUS [millreach] "mr-walk-n" looking +z: 4/5 rays hit NOTHING inside 45 m with 66 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [millreach] mr-walk-n looking -z from (-50, -12) -> 4/5 rays land on "district:chapelclose:massing-3" [owner: chapelclose], the 4 that hit average 35.5 m
+WARN TERMINUS [millreach] "mr-walk-n" looking -z: 4/5 rays land on "district:chapelclose:massing-3" [owner: chapelclose], which carries no userData.kind — it is an untagged mesh, not a composed subject. What closes a view should be something a kit generator made on purpose.
+10 terminating sight lines walked at 1.7 m eye, 5-ray fan across each socket's width, 45 m reach. The rule is editorial and is stated in references/city-scale.md: every terminating sight line must land on a subject somebody composed.
+
+RESULT: PASS — plan, anchors, seams, spatial audit, routes, budgets, surrounds, sight corridors, landmarks and interactions all green

@@ -1,0 +1,26 @@
+# In the page, http://127.0.0.1:5226/?only=millreach, POLISH ON:
+#   __vignette.checkCamera('along-the-wall')          -> ok, 0 failures, 0 warnings
+#   __vignette.checkVistaLegibility('along-the-wall') -> ok, 0 failures, 0 warnings
+
+camera  along-the-wall            PASS   (subject inside the aim band; camera not in a collider;
+                                          near-plane grid clear)
+vista   along-the-wall            PASS
+  subject                district:millreach:mill
+  share of frame         12.575 %      (65 188 px of 960x540)
+  occluded               2.1 %
+  edge contrast          51.42 luma overall
+    against sky          60.88 over 65 % of the outline
+    against solid        3.73  over the other 35 % — the mill's lower half stands
+                               against the curtain wall's inner face, which is
+                               the same value band; the cap, the sails and the
+                               gallery are the 65 % that carry it
+  ring contrast          32.09, top ring class "(sky)"
+  frame composition      sky 47.6 % · curtain-wall 13.5 % · paving 6.2 %
+                         · ground 4.0 % · cottage 1.6 % · southgate stub 1.6 %
+
+# The subject reads because it is the only thing in the frame ABOVE the wall
+# head.  The sun is bearing 268 / elevation 9 and the west curtain is 5 m, so
+# its shadow reaches x -17.2 and covers the whole of millreach: nothing below
+# 5 m gets direct light, and the mill's cap, its sails' ochre canvas and the
+# roof slopes of the row are the only lit surfaces in the district.  That is
+# also why every ground-level frame here is carried by torch and lantern.

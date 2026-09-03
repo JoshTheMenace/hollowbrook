@@ -1,0 +1,8 @@
+# check-cameras.mjs — the town's six vista cameras.
+
+PASS from-the-road
+PASS over-the-market
+PASS from-the-keep
+PASS down-the-row
+PASS along-the-wall
+PASS the-close

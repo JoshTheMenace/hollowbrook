@@ -1,0 +1,55 @@
+Every frame is a PLAY camera at a standing eye (1.62 m over the ground, or
+1.62 m over the wall-walk at y 5.0 = 6.62) except the four marked FREECAM,
+which are the orbit sweep.  1400 x 790, full pipeline, polish on.
+
+CONTRACTED
+  mr-01-vista-along-the-wall ....... the vista millreach owns, from the plan's
+                                     own camera (-50, 6.6, 0) -> (-42, 8, 26)
+
+ROUTE SWEEP — one per plan waypoint, plus one looking back
+  mr-02-wp-under-the-mill .......... (-38, 24), at the mill's door
+  mr-03-wp-under-the-mill-back ..... the same spot, looking back east across
+                                     the yard
+  mr-04-wp-mill-lane ............... (-22, 34), west into the yard
+  mr-05-wp-west-wall-walk .......... (-50, 10) on the walk, south to the tower
+  mr-06-wp-sw-tower-foot ........... (-46, 46), north up the wall lane
+  mr-07-wp-tannery-yard ............ (-40, -4), east at the bark store
+
+SOCKETS — each FROM THE NEIGHBOUR'S SIDE, looking in
+  mr-08-socket-e-lane-from-southgate ......... mr-e-lane, from (-14, 34)
+  mr-09-socket-market-lane-from-marketlow .... mr-market-lane, from (-14, 6)
+  mr-10-socket-n-lane-from-chapelclose ....... mr-n-lane, from (-36, -16)
+  mr-11-socket-walk-s-from-southgate ......... mr-walk-s, from (-14, 50) at 5 m
+  mr-12-socket-walk-n-from-chapelclose ....... mr-walk-n, from (-50, -16) at 5 m
+
+SIEGE — the arena, the lanes, the chokes, the high ground
+  mr-13-corner-and-barricade ....... the SW inside corner, north up the lane
+  mr-14-choke-granary-narrow ....... 2.4 m, cottage gable to granary gable
+  mr-15-choke-tannery-narrow ....... 2.4 m, bark store to tannery gable
+  mr-17-barricade-wall-lane ........ the raised barricade and its 1.9 m gap
+  mr-28-wall-lane-south ............ the whole wall lane, north end looking south
+  mr-29-wall-lane-north ............ and back
+  mr-30-walk-down-on-arena ......... from the wall-walk, down into the mill yard
+  mr-31-stage-and-stair ............ the mill stage and its flight, from the yard
+  mr-32-sheep-pens ................. the hurdles, the trough, the crook
+  mr-33-turret-from-yard ........... the stair turret and the flight to the walk
+  mr-34-mill-yard-and-warden-post .. the yard the Millstone Warden stands in
+  mr-27-sw-tower-along-south-walk .. from the SW tower, east along the south
+                                     walk toward the gate
+
+ENTERABLE — the granary (NOT declared in the plan; built as the arena's shelter)
+  mr-18-granary-door-shut .......... the street door, shut
+  mr-19-granary-glimpse ............ through the open door from the apron
+  mr-20-granary-interior ........... the room, wide
+  mr-21-granary-back-out ........... the view back OUT of the doorway
+
+CRAFT
+  mr-16-tannery-and-store .......... the tannery, its pits and its store
+  mr-22-roofline-low ............... low, up at the row's roofline
+  mr-23-mill-sails-whole ........... the mill, cap, sails, tailpole and hoist
+  mr-24-brake-before ............... the brake lever, at rest, sails running
+  mr-25-brake-after ................ after E: the lever thrown
+  mr-26-brake-sails-stopped ........ and the sails run down to a stop
+
+ORBIT SWEEP (free camera, 90-degree steps, 58 m out, 30 m up)
+  mr-orbit-0-FREECAM  mr-orbit-90-FREECAM  mr-orbit-180-FREECAM  mr-orbit-270-FREECAM

@@ -1,0 +1,52 @@
+# check-arena-visibility.mjs — arena "the-mill".  FAILS, and it is NOT
+# satisfiable from inside millreach.  Measured, whole city, this build:
+
+FAIL arena:the-mill:visibility — 75/292 open cells (26 %) see an approach
+     point of south-gate (need >= 40 %); 0 see the gate itself
+
+# THE CEILING, measured by hiding one district's meshes at a time and
+# re-running the identical sweep (scratch harness `visceil.mjs`):
+#
+#   full city, as built .............. 75/292 = 25.7 %
+#   southgate's meshes hidden ....... 222/292 = 76.0 %   <- millreach's own
+#                                                            buildings cost
+#                                                            50 points
+#   millreach's meshes hidden ....... 103/292 = 35.3 %   <- the CEILING with
+#                                                            southgate built:
+#                                                            still under 40 %
+#   both hidden ..................... 292/292 = 100.0 %
+#
+# So even with EVERY mesh millreach owns deleted, the arena reads 35.3 % and
+# the gate still fails.  The blockers, ranked, from the same sweep:
+#
+#   40 cells  southgate:shooting-stage:pool-2
+#   23 cells  southgate:shooting-stage:pool-0
+#   23 cells  southgate:wardens-lodge:pool-1
+#   18 cells  millreach:stage-stair          <- mine, and already minimised:
+#                                               turning the flight from an
+#                                               E-W run into a N-S one took
+#                                               it from 30 cells to 18 and
+#                                               the stub-mode figure from
+#                                               39.5 % to 45.7 %
+#   10 cells  southgate:stair-turret
+#
+# SECOND, SMALLER CAUSE — a gate bug, not a scene bug.  check-arena-
+# visibility.mjs builds its approach points with
+#
+#     vignette.groundAt(x, z) + 1.0
+#
+# and the middle approach point of south-gate is (0, 50), which is under the
+# gatehouse.  Two-argument `groundAt` is a max over platforms, so it returns
+# the gatehouse DECK at 5.0 and the "chest of a raider in the passage" is
+# sampled at y = 6.00, on the roof.  That is exactly the trap SIEGE.md
+# documents for src/game/nav.js, in the same two-argument form.  Passing the
+# cell's own height — `groundAt(x, z, 0)` — puts it back at y 1.00 and the
+# same sweep reads 82/292 = 28.1 % instead of 75/292 = 25.7 %.
+#
+# COORDINATOR REQUEST: either southgate's shooting stage and warden's lodge
+# move off the sight line from the mill yard to the gate square, or the
+# arena's `approach` for the-mill is re-pointed at approach coordinates
+# inside millreach's own reach.  Nothing millreach can build changes it.
+#
+# In stub mode (`?only=millreach`, which is what a district agent composes
+# against) the same sweep reads 121/292 = 41.4 % and passes.

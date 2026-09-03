@@ -1,0 +1,7 @@
+# check-interactions.mjs — millreach's rows.
+
+PASS interact:millreach:"the mill brake":registered — registered as "the mill brake"
+PASS interact:the mill brake:placed — registered at (-37.0, 22.5) in millreach
+PASS interact:the mill brake:effect — 1 object changed within 8 m of the prompt site
+
+town-wide: RESULT: PASS

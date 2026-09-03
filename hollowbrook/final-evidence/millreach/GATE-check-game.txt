@@ -1,0 +1,16 @@
+# check-game.mjs — millreach's rows.
+
+PASS arena:the-mill:district — district millreach
+PASS arena:the-mill:in-envelope — rect {"x0":-47,"z0":-10,"x1":-20,"z1":47} inside millreach
+PASS arena:the-mill:cover — 50 cover colliders fully inside (need >= 6)
+PASS arena:the-mill:elevation — 12 samples stand > 0.3 m over the district level 0 (need >= 6)
+PASS arena:the-mill:landmarks — 1/1 district landmarks read from the arena centre (need >= 1)
+PASS arena:the-mill:approach — approached from south-gate
+PASS npc:millwarden:ground — standable at (-32.5, 22) in millreach, ground y 0.00
+PASS npc:millwarden:facing — facing (1,0)
+FAIL npc:millwarden:present — NO character in the scene graph for post "millwarden" — standable ground is not a cast member
+
+town-wide: RESULT: FAIL (8)
+
+NOTE: npc:millwarden:present is the GAME LAYER's row — the post's ground is
+mine and passes; the character comes from src/game/cast.js, which is not built.

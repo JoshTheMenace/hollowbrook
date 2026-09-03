@@ -1,0 +1,6 @@
+# check-spatial.mjs — run over the WHOLE town; millreach's rows only.
+
+spatial audit: 451 units (451 tagged, 0 pooled clusters, 66 runs, 13 of them raked), 746134 triangles, 40717 seam samples (5939 inside colliders skipped, 786 inside 5 registered interiors)
+
+millreach rows: 0
+town-wide result: PASS — every unit grounded, no interpenetration, no ground holes
