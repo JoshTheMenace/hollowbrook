@@ -46,6 +46,9 @@ function frameGrabber(outDir) {
  * an alias bypasses the package's `exports` and breaks `three/addons/*`. */
 const FORGE = path.resolve(process.cwd(), '../charforge/src');
 const FORGE_PUBLIC = path.resolve(process.cwd(), '../charforge/public');
+// Mira's acting contract (normalizePlan): every NPC line in src/game/script.js
+// is validated through it at module load
+const MIRA = path.resolve(process.cwd(), '../src');
 
 export default defineConfig({
   base: './',
@@ -55,7 +58,7 @@ export default defineConfig({
   server: {
     host: '127.0.0.1', port: 5220, strictPort: true,
     watch: { ignored: ['**/.shots/**'] },      // a capture must not HMR-reload a run
-    fs: { allow: [process.cwd(), FORGE, FORGE_PUBLIC] },
+    fs: { allow: [process.cwd(), FORGE, FORGE_PUBLIC, MIRA] },
   },
   preview: { host: '127.0.0.1', port: 5221 },
   build: { target: 'es2020', assetsInlineLimit: 0 },

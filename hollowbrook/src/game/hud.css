@@ -1,0 +1,75 @@
+/* Hollowbrook HUD — dusk palette: ink #3a3450, paper #f1e9dc, warm #ffc57a, rust #b8482e, teal #62ead8 */
+.hb-hud { position: fixed; inset: 0; pointer-events: none; font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; color: #f1e9dc; text-shadow: 0 1px 0 rgba(58, 52, 80, 0.7); }
+.hb-hud * { box-sizing: border-box; }
+
+.hb-top { position: absolute; top: 18px; left: 22px; right: 22px; display: flex; justify-content: space-between; align-items: flex-start; }
+.hb-tracker { background: rgba(38, 32, 56, 0.72); border-left: 3px solid #ffc57a; border-radius: 3px 10px 10px 3px; padding: 9px 14px 8px; min-width: 260px; max-width: 380px; }
+.hb-wave { display: flex; justify-content: space-between; gap: 14px; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: #ffc57a; }
+.hb-wave-time { font-variant-numeric: tabular-nums; color: #f1e9dc; letter-spacing: 1px; }
+.hb-objective { margin-top: 4px; font-size: 15px; line-height: 1.3; display: flex; justify-content: space-between; gap: 10px; }
+.hb-obj-progress { color: #ffc57a; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hb-lights { display: flex; gap: 8px; }
+.hb-light { width: 26px; height: 34px; border-radius: 6px 6px 3px 3px; background: rgba(38, 32, 56, 0.72); border: 1px solid rgba(241, 233, 220, 0.25); position: relative; }
+.hb-light i { position: absolute; left: 7px; right: 7px; top: 7px; bottom: 9px; border-radius: 4px 4px 2px 2px; background: #4a4262; transition: background 0.4s, box-shadow 0.4s; }
+.hb-light.on i { background: #ffc57a; box-shadow: 0 0 12px 3px rgba(255, 197, 122, 0.55); }
+
+.hb-compass { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 420px; height: 26px; overflow: hidden; background: linear-gradient(90deg, transparent, rgba(38, 32, 56, 0.6) 20%, rgba(38, 32, 56, 0.6) 80%, transparent); }
+.hb-compass-strip { position: absolute; inset: 0; }
+.hb-compass-needle { position: absolute; left: 50%; top: 0; width: 2px; height: 8px; margin-left: -1px; background: #f1e9dc; }
+.hb-mark { position: absolute; top: 6px; transform: translateX(-50%); font-size: 14px; line-height: 1; transition: left 0.05s linear; }
+.hb-mark.obj { color: #ffc57a; }
+.hb-mark.gate { color: #b8482e; font-size: 12px; top: 8px; }
+.hb-mark.elite { color: #b8482e; font-weight: 700; font-size: 16px; top: 4px; }
+
+.hb-centre { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+.hb-ring { position: absolute; left: -60px; top: -60px; width: 120px; height: 120px; }
+.hb-ring path { fill: #b8482e; transition: opacity 0.08s; }
+.hb-crosshair i { position: absolute; background: #f1e9dc; opacity: 0.85; }
+.hb-crosshair i:nth-child(1) { left: -1px; top: -9px; width: 2px; height: 5px; }
+.hb-crosshair i:nth-child(2) { left: -1px; top: 4px; width: 2px; height: 5px; }
+.hb-crosshair i:nth-child(3) { left: -9px; top: -1px; width: 5px; height: 2px; }
+.hb-crosshair i:nth-child(4) { left: 4px; top: -1px; width: 5px; height: 2px; }
+.hb-hitmark { position: absolute; left: 0; top: 0; opacity: 0; transition: opacity 0.05s; }
+.hb-hitmark i { position: absolute; left: -12px; top: -1.5px; width: 24px; height: 3px; background: #f1e9dc; transform: rotate(45deg); }
+.hb-hitmark i:nth-child(2) { transform: rotate(-45deg); }
+.hb-hitmark.big i { width: 34px; left: -17px; background: #ffc57a; }
+.hb-prompt { position: absolute; left: 50%; top: 44px; transform: translateX(-50%); white-space: nowrap; background: #f1e9dc; color: #3a3450; text-shadow: none; font-size: 13px; font-weight: 700; padding: 5px 12px; border-radius: 8px; opacity: 0; transition: opacity 0.15s; }
+.hb-prompt.on { opacity: 1; }
+.hb-prompt b { background: #3a3450; color: #ffc57a; border-radius: 5px; padding: 1px 7px; margin-right: 7px; }
+.hb-channel { position: absolute; left: -60px; top: 80px; width: 120px; height: 6px; background: rgba(38, 32, 56, 0.7); border-radius: 3px; opacity: 0; }
+.hb-channel.on { opacity: 1; }
+.hb-channel-fill { height: 100%; background: #ffc57a; border-radius: 3px; }
+
+.hb-bottom { position: absolute; left: 22px; right: 22px; bottom: 22px; display: flex; justify-content: space-between; align-items: flex-end; }
+.hb-vitals { min-width: 260px; }
+.hb-hp { position: relative; height: 16px; background: rgba(38, 32, 56, 0.72); border: 1px solid rgba(241, 233, 220, 0.3); border-radius: 8px; overflow: hidden; }
+.hb-hp-fill { height: 100%; background: linear-gradient(90deg, #ffc57a, #e3823f); transition: width 0.12s; }
+.hb-hp-fill.low { background: linear-gradient(90deg, #b8482e, #8f3b4e); }
+.hb-hp-num { position: absolute; right: 8px; top: -1px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.hb-bolts { margin-top: 8px; display: flex; gap: 5px; align-items: center; }
+.hb-bolts i { width: 9px; height: 22px; border-radius: 2px; background: #4a4262; border: 1px solid rgba(241, 233, 220, 0.25); }
+.hb-bolts i.on { background: #f1e9dc; }
+.hb-reload { margin-left: 8px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #ffc57a; opacity: 0; }
+.hb-reload.on { opacity: 1; animation: hb-blink 0.5s steps(2) infinite; }
+@keyframes hb-blink { to { opacity: 0.35; } }
+.hb-lance { width: 64px; text-align: center; }
+.hb-lance svg { width: 64px; height: 64px; transform: rotate(-90deg); }
+.hb-lance-bg { fill: rgba(38, 32, 56, 0.72); stroke: rgba(241, 233, 220, 0.25); stroke-width: 3; }
+.hb-lance-arc { fill: none; stroke: #e3823f; stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 0.05s linear; }
+.hb-lance-arc.cooling { stroke: #6f6658; }
+.hb-lance-arc.charged { stroke: #ffc57a; filter: drop-shadow(0 0 6px #ffc57a); }
+.hb-lance-label { display: block; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-top: -4px; color: #ffc57a; }
+
+.hb-hurt { position: absolute; inset: 0; opacity: 0; background: radial-gradient(ellipse at center, transparent 50%, rgba(184, 72, 46, 0.75) 100%); transition: opacity 0.08s; }
+.hb-banner { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity 0.3s; }
+.hb-banner.on { opacity: 1; }
+.hb-banner-title { font-size: 34px; letter-spacing: 6px; text-transform: uppercase; color: #ffc57a; }
+.hb-banner-sub { font-size: 15px; color: #f1e9dc; margin-top: 4px; }
+.hb-end { position: absolute; inset: 0; display: none; place-content: center; text-align: center; background: rgba(38, 32, 56, 0.78); }
+.hb-end.on { display: grid; }
+.hb-end-title { font-size: 54px; letter-spacing: 10px; color: #b8482e; }
+.hb-end.won .hb-end-title { color: #ffc57a; }
+.hb-end-sub { font-size: 18px; margin-top: 8px; }
+.hb-end-hint { font-size: 12px; margin-top: 30px; opacity: 0.7; letter-spacing: 2px; text-transform: uppercase; }
+.hb-hint { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); font-size: 11px; opacity: 0; letter-spacing: 1px; white-space: nowrap; }
+.hb-hint.on { opacity: 0.6; }
