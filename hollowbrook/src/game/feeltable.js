@@ -20,7 +20,7 @@ export const FEEL = Object.freeze({
   'bolt-fired':        { sfx: 'bolt-fire', sfxOpts: { vol: 0.5 } },
   'bolt-miss':         { sfx: 'bolt-miss', sfxOpts: { vol: 0.35 } },
   'bolt-hit':          { sfx: 'bolt-hit', sfxOpts: { vol: 0.7 }, burst: { count: 4, color: '#f2d6a8', color2: '#b8482e', speed: 1.6, up: 1.0, ttl: 0.3, size: 0.06 } },
-  'lance-fired':       { sfx: 'lance-fire', sfxOpts: { vol: 0.8 }, shake: 0.05, burst: { count: 6, color: '#ffb877', color2: '#e3823f', speed: 1.2, up: 0.6, ttl: 0.35, size: 0.08 } },
+  'lance-fired':       { sfx: 'lance-fire', sfxOpts: { vol: 0.8 }, shake: 0.05, burst: { count: 6, color: '#ffb877', color2: '#e3823f', speed: 1.2, up: 0.6, ttl: 0.35, size: 0.4 } },
   'kill-cutpurse':     { sfx: 'kill-light', sfxOpts: { vol: 0.7 }, burst: { count: 8, color: '#b8482e', color2: '#f2d6a8', speed: 2.0, up: 1.6, ttl: 0.45, size: 0.24 }, text: () => 'cutpurse down', textOpts: { color: '#f2d6a8' } },
   'player-hurt':       { sfx: 'hurt', sfxOpts: (d) => ({ vol: 0.5 + Math.min(0.4, (d.damage ?? 12) / 60) }), shake: 0.25, burst: { count: 10, color: '#b8482e', color2: '#6c2a1e', speed: 1.0, up: 0.4, ttl: 0.3, size: 0.2 } },
   'kill-hexer':        { sfx: 'kill-hexer', sfxOpts: { vol: 0.8 }, shake: 0.2, burst: { count: 4, color: '#62ead8', color2: '#b8482e', speed: 2.2, up: 2.0, ttl: 0.5, size: 0.3 }, text: () => 'hexer down', textOpts: { color: '#9ef0e4' } },

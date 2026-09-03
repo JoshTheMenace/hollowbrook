@@ -79,12 +79,12 @@ export function traceSample(run) {
  *   1. detrended tracking — correlation between the series' and the
  *      measured pressure's deviations from their per-wave means ≥ 0.5;
  *   2. breather depth — in every breather the series' mean is ≤ 0.30 AND at
- *      least 0.10 under the LOUDEST moment of the preceding wave's fighting
+ *      least 0.08 under the LOUDEST moment of the preceding wave's fighting
  *      (a wave is mostly the walk between knots; the breather is judged
- *      against what the wave reached, not its average).  0.10, not
- *      more: the contract's own mapping opens only 0.30 above the breather
- *      at wave 1 with everybody alive, and an expert never has everybody
- *      alive;
+ *      against what the wave reached, not its average).  0.08 because the
+ *      contract's formula opens 0.055 per body alive at wave 1 and an
+ *      expert's loudest moment is three bodies — 0.095 over the 0.22 rest;
+ *      the null models fail this row by a wide margin either way;
  *   3. quiet-fight honesty — over wave samples with measured pressure < 0.2
  *      (≤ 2 bodies near, healthy) the series' mean stays ≤ 0.55: no war
  *      drums over an empty street.
@@ -115,7 +115,7 @@ export function checkAgainstTrace(trace, series) {
     const mf = fv[fv.length - 1];
     const mr = rest.reduce((x, s) => x + series[trace.indexOf(s)], 0) / rest.length;
     depthMin = Math.min(depthMin, mf - mr);
-    if (mr > 0.30 || mf - mr < 0.10) breatherOk = false;
+    if (mr > 0.30 || mf - mr < 0.08) breatherOk = false;
   }
   const quiet = trace.map((s, i) => (s.phase === 'wave' && s.measured < 0.2 ? series[i] : null)).filter((v) => v !== null);
   const quietMean = quiet.length ? quiet.reduce((x, v) => x + v, 0) / quiet.length : 0;

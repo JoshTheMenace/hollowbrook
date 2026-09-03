@@ -522,7 +522,7 @@ if (import.meta.env.DEV) {
     const origEmit = r.emit.bind(r);
     r.emit = (name, data) => { evHook(name, data); origEmit(name, data); };
     if (o.kind === 'activate') { bot = () => ({ ...idle(), yaw: r.player.yaw, pitch: r.player.pitch, interactHeld: true }); for (let i = 0; i < 75 && !o.done; i += 1) stepper.tickOnce(); bot = null; }
-    else { for (let i = 0; i < 240 && !o.done; i += 1) stepper.tickOnce(); }
+    else { for (let i = 0; i < 600 && !o.done; i += 1) stepper.tickOnce(); }   // the Reeve walks at 1.1 m/s
     let changed = 0; let inFrame = null; let ndc = null;
     for (let f = 0; f < 6; f += 1) {
       frame(TICK); pipeline.render();
