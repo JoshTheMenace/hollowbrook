@@ -257,7 +257,10 @@ export class SiegeRun {
     // mutate THEN emit (errand review r1): the save the shell writes on this
     // event must already say the objective is done
     this.checkpoint = this.serialize('breather-done');
-    this.emit('objective-done', { id: o.id, title: o.title, pos: this.playerPos() });
+    // the payoff lands where the eye is: on the NPC for an escort, at the last point for an activate
+    const n = o.kind === 'escort' ? this.npc(o.npc) : null;
+    const pos = n ? { x: n.x, y: n.y + 1.3, z: n.z } : this.playerPos();
+    this.emit('objective-done', { id: o.id, title: o.title, pos });
     this.openDialogue(o.id === 'o1-escort-runner' ? 'runner' : 'reeve', `done:${o.id}`);
   }
 
@@ -449,6 +452,7 @@ export class SiegeRun {
       p.charge = 0;
     }
     // the crossbow: held trigger, one bolt per interval, empty = reload
+    if (inp.fire && p.reloadLeft > 0 && this.tick % 24 === 0) this.emit('dry-fire', { pos: this.playerPos() });
     if (inp.fire && !p.charging && p.fireCd <= 0 && p.reloadLeft === 0) {
       if (p.bolts > 0) this._fireBolt();
       else { p.reloadLeft = C.crossbow.reload; this.emit('reload', { pos: this.playerPos(), auto: true }); }
@@ -628,7 +632,13 @@ export class SiegeRun {
     if (e.firstHitTick !== null) this.stats.ttk.push({ kind: e.kind, wave: this.waveIndex, s: (this.tick - e.firstHitTick) * TICK, dist: Math.hypot(e.x - this.player.x, e.z - this.player.z) });
     if (e.kind === 'hexer' && this.stats.firstHexerDeath === null) this.stats.firstHexerDeath = { wave: this.waveIndex, t: this.waveTime };
     const pos = { x: e.x, y: e.y + BODY[e.kind].height * e.scale * 0.6, z: e.z };
-    this.emit(`kill-${e.kind}`, { pos, enemy: e.id, by });
+    // literal emit sites: the feel lint greps call sites for names, by design
+    const d = { pos, enemy: e.id, by };
+    if (e.kind === 'cutpurse') this.emit('kill-cutpurse', d);
+    else if (e.kind === 'reaver') this.emit('kill-reaver', d);
+    else if (e.kind === 'shieldbearer') this.emit('kill-shieldbearer', d);
+    else if (e.kind === 'hexer') this.emit('kill-hexer', d);
+    else if (e.kind === 'captain') this.emit('kill-captain', d);
     if (e.kind === 'captain' && this.wave.id === 'w6') this._startObjective('o6-ring-the-bell');
   }
 
@@ -980,8 +990,8 @@ export class SiegeRun {
         if (p.activate >= ACTIVATE_SECONDS) {
           pt.done = true; p.activate = 0;
           const count = o.points.filter((q) => q.done).length;
-          const ev = o.id === 'o2-barricades' ? 'barricade-up' : 'brazier-lit';
-          this.emit(ev, { pos: { x: pt.x, y: this.world.groundAt(pt.x, pt.z, null) + 1.0, z: pt.z }, count, total: o.def.count, point: [pt.x, pt.z] });
+          const d = { pos: { x: pt.x, y: this.world.groundAt(pt.x, pt.z, null) + 1.0, z: pt.z }, count, total: o.def.count, point: [pt.x, pt.z] };
+          if (o.id === 'o2-barricades') this.emit('barricade-up', d); else this.emit('brazier-lit', d);
           if (count >= o.def.count) this._completeObjective();
         }
       } else p.activate = 0;

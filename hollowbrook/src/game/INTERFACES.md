@@ -75,9 +75,12 @@ where needed (e.g. `barricade-up` → the district's `userData.raise()`).
   walker asks `groundAt(x, z, fromY)` (world.js), which only offers a
   surface within 0.55 m of the feet. The nav grid is the ground layer.
 
-## Music contract (`music.js`)
+## Audio contract (`src/audio/index.js`, the music agent's)
 
-`intensityFor({ alive, peakAlive, hp, waveIndex, captain })` is the
-contract's formula. The audio module, when it lands, is consumed through
-`attachAudio({ music: { setIntensity(v, ramp) }, sfx: { play(name, opts), buffers: Map } })`;
-`SFX_BANK` in music.js lists the semantic names the feel table uses.
+`music.js` sends ONE number: `intensityOf(run)` every 0.25 s (the contract's
+formula during a wave, the breather intent point in a breather, `dawn()` on
+the bell). SFX go through the feel table's `sfx` names, which the bank
+resolves via its own `ALIASES`; gain comes from the bank's measured
+`MAGNITUDE`, never from a call site — the shell passes only pitch and the
+positional triple (`pos`, `listener`, `yaw`). `scripts/check-music-state.mjs`
+gates the sent number against MEASURED threat with a null-model table.

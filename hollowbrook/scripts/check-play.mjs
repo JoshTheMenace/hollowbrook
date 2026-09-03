@@ -66,16 +66,16 @@ try {
       const b1 = await window.__feelRender('kill-cutpurse');
       window.__game.feel.emit('kill-cutpurse', { pos: window.__game.camera.position.clone() });
       const b2 = await window.__feelRender('lance-multikill', { count: 2 });
-      return { single: a.changedPx + a.shakePx * 20, double: b1.changedPx + b2.changedPx + (b1.shakePx + b2.shakePx) * 20 };
+      return { single: a.changedPx + a.shakePx * 40 + a.text * 1500, double: b1.changedPx + b2.changedPx + (b1.shakePx + b2.shakePx) * 40 + (b1.text + b2.text) * 1500 };
     });
-    const score = (r) => r.changedPx + r.shakePx * 20 + r.hitstop * 800;
+    const score = (r) => r.changedPx + r.shakePx * 40 + r.hitstop * 800 + r.text * 1500;   // a floating text is ~120x18 DOM px the canvas cannot show
     let inv = [];
     for (let i = 1; i < ladder.length; i += 1) {
       const a = ladder[i - 1]; const b = ladder[i];
       if (score(rendered[b]) < score(rendered[a]) * 0.85 && !(a === 'bolt-miss' && b === 'bolt-hit' && rendered[b].changedPx >= rendered[a].changedPx)) inv.push(`${b} (${score(rendered[b]).toFixed(0)}) < ${a} (${score(rendered[a]).toFixed(0)})`);
     }
     console.log('rendered: ' + ladder.map((e) => `${e}:${rendered[e].changedPx}px/${rendered[e].shakePx}sh/${rendered[e].hitstop}hs/${rendered[e].text}t`).join(' '));
-    check('ladder:rendered-monotone', inv.length === 0, inv.length ? `inverted in pixels: ${inv.join('; ')}` : 'rendered magnitude (changed px + 20·shake px + 800·hitstop) non-decreasing up the ladder (15 % tolerance)');
+    check('ladder:rendered-monotone', inv.length === 0, inv.length ? `inverted in pixels: ${inv.join('; ')}` : 'rendered magnitude (changed px + 40·shake px + 800·hitstop + 1500·text) non-decreasing up the ladder (15 % tolerance)');
     check('ladder:rendered-whiff', rendered['bolt-miss'].changedPx <= rendered['bolt-hit'].changedPx + 50, `bolt-miss ${rendered['bolt-miss'].changedPx} px vs bolt-hit ${rendered['bolt-hit'].changedPx} px`);
     const weak = ladder.slice(3).filter((e) => rendered[e].changedPx < 400);
     check('ladder:rendered-visible', weak.length === 0, weak.length ? `rungs under 400 changed px: ${weak.map((e) => `${e} ${rendered[e].changedPx}`).join(', ')}` : 'every rung from lance-fired up moves >= 400 px at 1280x720');

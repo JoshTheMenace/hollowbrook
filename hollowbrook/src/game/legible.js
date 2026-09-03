@@ -14,10 +14,11 @@
 import * as THREE from 'three';
 import { CONTRACT as C } from './data.js';
 
-const W = 480;
-const H = 270;
-
 export function createLegibility({ renderer, scene, camera }) {
+  // the ID pass is read at the canvas's own resolution: the contract's pixel
+  // floors (14 body px, 10 marker px) are counted in the pixels the player gets
+  const gl0 = renderer.getContext();
+  const W = gl0.drawingBufferWidth || 1280; const H = gl0.drawingBufferHeight || 720;
   const rt = new THREE.WebGLRenderTarget(W, H, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthBuffer: true });
   const idBuf = new Uint8Array(W * H * 4);
   const black = new THREE.MeshBasicMaterial({ color: 0x000000, fog: false, toneMapped: false });

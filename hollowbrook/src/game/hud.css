@@ -1,3 +1,4 @@
+#view:focus-visible { outline: none; }   /* the viewer's focus ring is a frame round the whole game */
 /* Hollowbrook HUD — dusk palette: ink #3a3450, paper #f1e9dc, warm #ffc57a, rust #b8482e, teal #62ead8 */
 .hb-hud { position: fixed; inset: 0; pointer-events: none; font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; color: #f1e9dc; text-shadow: 0 1px 0 rgba(58, 52, 80, 0.7); }
 .hb-hud * { box-sizing: border-box; }

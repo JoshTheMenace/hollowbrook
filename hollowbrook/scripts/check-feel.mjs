@@ -27,7 +27,7 @@ const emitted = new Set();
 for (const f of fs.readdirSync(root)) {
   if (!f.endsWith('.js')) continue;
   const src = fs.readFileSync(new URL(f, root), 'utf8');
-  for (const m of [...src.matchAll(/feel\.emit\(([^;]*?)[,)]/g), ...src.matchAll(/onEvent\(([^;]*?)[,)]/g), ...src.matchAll(/fx\.emit\(([^;]*?)[,)]/g)]) {
+  for (const m of [...src.matchAll(/\bemit\(([^;]*?)[,)]/g), ...src.matchAll(/onEvent\(([^;]*?)[,)]/g)]) {   // rules.js emits through `this.emit(` (the run logs, then forwards to the bus)
     for (const q of m[1].matchAll(/'([\w-]+)'/g)) emitted.add(q[1]);
   }
 }

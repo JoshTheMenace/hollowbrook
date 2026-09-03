@@ -119,8 +119,9 @@ export class FirstPerson {
     if (Math.hypot(this.cur.x - this.prev.x, this.cur.z - this.prev.z) > 3) { this.prev = this.cur; this.eyeY = this.cur.y; }
     this.eyeY += (y - this.eyeY) * (1 - Math.exp(-20 * frameDt));
     // the view shows mouse motion the tick has not consumed yet
-    const vyaw = this.yaw - this.mouse.dx * SENS;
-    const vpitch = THREE.MathUtils.clamp(this.pitch - this.mouse.dy * SENS, -1.15, 1.05);
+    // the tick's own yaw (a bot or an instrument may be steering, not the mouse) plus what the mouse has not yet fed a tick
+    const vyaw = this.run.player.yaw - this.mouse.dx * SENS;
+    const vpitch = THREE.MathUtils.clamp(this.run.player.pitch - this.mouse.dy * SENS, -1.15, 1.05);
     const sh = this.shake?.offset;
     this.camera.position.set(x + (sh?.x ?? 0), this.eyeY + EYE + (sh?.y ?? 0), z);
     this.camera.rotation.set(vpitch, vyaw, (sh ? sh.x * 0.6 : 0), 'YXZ');

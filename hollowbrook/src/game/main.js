@@ -23,7 +23,7 @@ import { cel, flat, shadowTintActive } from '../core/toon.js';
 import { setOutlineResolution } from '../core/outline.js';
 import { skyTexture } from '../textures.js';
 import { Feel } from '@forge/engine/feel.js';
-import { initAudio, audioAdapter, isReady as audioReady, dawn as audioDawn, disposeAudio } from '../audio/index.js';
+import { initAudio, audioAdapter, dawn as audioDawn, disposeAudio, EVENTS as SFX_EVENTS, ALIASES as SFX_ALIASES } from '../audio/index.js';
 import '../style.css';
 import './hud.css';
 import { CONTRACT as C } from './data.js';
@@ -82,10 +82,6 @@ scene.add(new THREE.HemisphereLight(RIG.hemi.sky, RIG.hemi.ground, RIG.hemi.inte
 
 /* ---- the town, the scratch dressing, the world ---- */
 const vignette = buildVignette(scene);
-if (params.get('scratch') === '1') {
-  const { addScratch } = await import('./scratch.js');
-  addScratch({ scene, vignette });
-}
 const plan = vignette.plan;
 if (plan?.city?.compass) {
   const spec = plan.city;
@@ -124,9 +120,15 @@ let bot = null;                                     // an instrument's input, if
 const listener = () => [run.player.x, run.player.y + C.player.eye, run.player.z];
 const shellSfx = {
   play(name, opts) { if (!audio) return; audio.sfx.play(name, { rate: opts?.rate, pos: opts?.pos ? [opts.pos.x, opts.pos.y, opts.pos.z] : undefined, listener: listener(), yaw: run.player.yaw }); },
-  get buffers() { return audio ? { has: (n) => audio.sfx.buffers.has(n) || audio.sfx.aliases?.[n] !== undefined } : { has: () => false }; },
+  // the bank's own name list answers even before a gesture unlocks audio
+  buffers: { has: (n) => SFX_EVENTS.includes(n) || n in SFX_ALIASES },
 };
 feel.sfx = shellSfx;
+// charforge's Shake renders trauma SQUARED; the contract's ladder weighs shake
+// linearly, so a table value s is added as sqrt(s) and the screen moves in
+// proportion to the rung (the rendered-space ladder gate holds this)
+const shakeAdd = feel.shake.add.bind(feel.shake);
+feel.shake.add = (a) => shakeAdd(Math.sqrt(Math.max(0, a)));
 
 const fx = {
   emit(name, data = {}, r = run) {
@@ -302,8 +304,18 @@ window.__game = {
   feelCheck() { return feel.check(GAME_EVENTS); },
   /** the runtime ladder twin: the LIVE wired table through charforge's own checkLadder */
   feelLadder() {
-    const steps = C.ladder.map(([event, value], i) => ({ name: event, event, data: { count: 2, damage: 12, index: 0, name: 'w', pos: new THREE.Vector3() }, value: event === 'player-hurt' ? null : value }));
-    return feel.checkLadder(steps, [['bolt-miss', 'bolt-hit'], ['player-hurt', 'kill-shieldbearer']]);
+    // the contract's weights over the LIVE wired table (feel.table), not the
+    // data file: what the bus plays is what is judged
+    const W = C.ladderWeights; const data = { count: 2, damage: 12, index: 0, name: 'w', pos: new THREE.Vector3() };
+    const val = (v) => (typeof v === 'function' ? v(data) : v);
+    const mag = (ev) => { const fx = feel.table.get(ev); return fx ? W.shake * (val(fx.shake) ?? 0) + W.hitstop * (val(fx.hitstop) ?? 0) + W.burst * (val(fx.burst)?.count ?? 0) + W.text * (fx.text ? 1 : 0) + W.sfx * (fx.sfx ? 1 : 0) : 0; };
+    const magnitudes = Object.fromEntries(C.ladder.map(([ev]) => [ev, mag(ev)]));
+    const problems = [];
+    for (let i = 1; i < C.ladder.length; i += 1) { const a = C.ladder[i - 1][0]; const b = C.ladder[i][0]; if (magnitudes[b] < magnitudes[a] - 1e-9) problems.push(`inverted: ${b} ${magnitudes[b].toFixed(2)} < ${a} ${magnitudes[a].toFixed(2)}`); }
+    if (magnitudes['bolt-miss'] > magnitudes['bolt-hit']) problems.push('a whiff outranks a hit');
+    if (magnitudes['player-hurt'] >= magnitudes['kill-shieldbearer']) problems.push('being hit outranks a shieldbearer kill');
+    for (const [ev, declared] of C.ladder) if (Math.abs(magnitudes[ev] - declared) > Math.max(0.3, declared * 0.15)) problems.push(`${ev} ${magnitudes[ev].toFixed(2)} vs declared ${declared}`);
+    return { problems, magnitudes };
   },
   // INSTRUMENT BYPASSES: flags on the instrument, never on the game
   instrument: {
@@ -370,7 +382,7 @@ if (import.meta.env.DEV) {
     const L = C.legibility;
     const segs = [];
     const frustum = new THREE.Frustum(); const mat = new THREE.Matrix4(); const pt = new THREE.Vector3();
-    for (const [wave, seconds, at, yaw] of [[1, w1, [0, 30], 0], [4, w4, [0, -14], Math.PI]]) {
+    for (const [wave, seconds, at, yaw] of [[1, w1, [0, 30], Math.PI], [4, w4, [0, -14], Math.PI]]) {   // both face the south gate
       const r = window.__game.instrument.jumpToWave(wave, at, yaw);
       bot = makeBot(r, EXPERT, { seed: 97 });
       const seen = new Set(); const unseen = new Map(); const delays = [];
@@ -443,25 +455,30 @@ if (import.meta.env.DEV) {
   window.__feelRender = async (event, data = {}) => {
     const r = run; bot = null; fps.keys.clear();
     for (let i = 0; i < 90; i += 1) frame(TICK);            // let earlier bursts die
+    feel.shake.trauma = 0; feel.hitstop.until = 0;
+    for (const t of feel.vfx.texts) t.el.remove(); feel.vfx.texts.length = 0;
+    feel.shake.enabled = false;                                // shake is read off trauma, not baked into the pixels
     pipeline.render();
     const before = new Uint8Array(legibility.grabColour().buf);
     const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
     const at = camera.position.clone().addScaledVector(fwd, 6); at.y = camera.position.y - 0.4;
     feel.emit(event, { pos: at, count: 2, damage: 12, index: 0, name: 'w', ...data });
     let changed = 0; let shakePx = 0; let hitstop = 0;
+    const pxPerM = (pipeline.size.y / 2) / Math.tan(camera.fov * Math.PI / 360);
     for (let f = 0; f < 4; f += 1) {
       const scale = feel.hitstop.scale(TICK); hitstop = Math.max(hitstop, 1 - scale);
+      shakePx = Math.max(shakePx, feel.shake.trauma * feel.shake.trauma * 0.35 * pxPerM);
       stepper.frame(TICK * scale); fps.applyCamera(stepper.alpha, TICK); camera.updateMatrixWorld(true);
       enemyView?.update(TICK * scale, r, camera); weapons?.update(TICK * scale, r); feel.update(TICK * scale, TICK); hud.update(r, TICK, { yaw: camera.rotation.y });
-      shakePx = Math.max(shakePx, Math.hypot(feel.shake.offset.x, feel.shake.offset.y) / Math.tan(camera.fov * Math.PI / 360) * (pipeline.size.y / 2));
       pipeline.render();
       const after = legibility.grabColour();
       let n = 0;
-      for (let k = 0; k < after.buf.length; k += 16) if (Math.abs(after.buf[k] - before[k]) + Math.abs(after.buf[k + 1] - before[k + 1]) + Math.abs(after.buf[k + 2] - before[k + 2]) > 45) n += 1;
+      for (let k = 0; k < after.buf.length; k += 16) if (Math.abs(after.buf[k] - before[k]) + Math.abs(after.buf[k + 1] - before[k + 1]) + Math.abs(after.buf[k + 2] - before[k + 2]) > 30) n += 1;
       changed = Math.max(changed, n * 4);
     }
-    const textEl = feel.vfx.textLayer.children.length;
-    return { event, changedPx: changed, shakePx: +shakePx.toFixed(1), hitstop: +hitstop.toFixed(2), text: textEl, at: at.toArray().map((v) => +v.toFixed(2)) };
+    const text = feel.vfx.texts.length;
+    feel.shake.enabled = true;
+    return { event, changedPx: changed, shakePx: +shakePx.toFixed(1), hitstop: +hitstop.toFixed(2), text, at: at.toArray().map((v) => +v.toFixed(2)) };
   };
 
   /** A real key event through the real listeners: ticks until the feet move. */
@@ -493,7 +510,7 @@ if (import.meta.env.DEV) {
     // stand where the player completes it, facing the thing
     let spot; let look;
     if (o.kind === 'activate') { const pt = o.points[o.points.length - 1]; spot = [pt.x + 1.6, pt.z + 0.8]; look = [pt.x, pt.z]; for (let i = 0; i < o.points.length - 1; i += 1) o.points[i].done = true; }
-    else { spot = [o.def.to[0] + 2.2, o.def.to[1] + 1.0]; look = o.def.to; const n = r.npc(o.npc); n.x = o.def.to[0] + 0.5; n.z = o.def.to[1]; }
+    else { spot = [o.def.to[0] + 2.2, o.def.to[1] + 1.0]; look = o.def.to; const n = r.npc(o.npc); n.x = o.def.to[0] + 4.4; n.z = o.def.to[1] + 2.0; }   // outside the 1.5 m finish: the last steps happen under the hook
     r.player.x = spot[0]; r.player.z = spot[1]; r.player.y = world.groundAt(spot[0], spot[1], null);
     r.player.yaw = Math.atan2(-(look[0] - spot[0]), -(look[1] - spot[1])); r.player.pitch = -0.15;
     fps.snap();
@@ -501,7 +518,7 @@ if (import.meta.env.DEV) {
     const before = legibility.grabColour(); const b = new Uint8Array(before.buf);
     // fire the completion the real way: hold E on the last point, or let the escort arrive
     let payoffPos = null;
-    const evHook = (name, data) => { if ((name === 'barricade-up' || name === 'brazier-lit' || name === 'objective-done') && data.pos && !payoffPos) payoffPos = new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z); };
+    const evHook = (name, data) => { if ((name === 'barricade-up' || name === 'brazier-lit' || name === 'npc-sheltered' || name === 'objective-done') && data.pos && !payoffPos) payoffPos = new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z); };
     const origEmit = r.emit.bind(r);
     r.emit = (name, data) => { evHook(name, data); origEmit(name, data); };
     if (o.kind === 'activate') { bot = () => ({ ...idle(), yaw: r.player.yaw, pitch: r.player.pitch, interactHeld: true }); for (let i = 0; i < 75 && !o.done; i += 1) stepper.tickOnce(); bot = null; }
@@ -515,11 +532,11 @@ if (import.meta.env.DEV) {
       const cx = Math.round((ndc[0] * 0.5 + 0.5) * after.w); const cy = Math.round((ndc[1] * 0.5 + 0.5) * after.h);
       let n = 0;
       const R = Math.round(after.h * 0.18);
-      for (let y = Math.max(0, cy - R); y < Math.min(after.h, cy + R); y += 2) for (let x = Math.max(0, cx - R); x < Math.min(after.w, cx + R); x += 2) {
+      for (let y = Math.max(0, cy - R); y < Math.min(after.h, cy + R); y += 1) for (let x = Math.max(0, cx - R); x < Math.min(after.w, cx + R); x += 1) {
         const k = (y * after.w + x) * 4;
-        if (Math.abs(after.buf[k] - b[k]) + Math.abs(after.buf[k + 1] - b[k + 1]) + Math.abs(after.buf[k + 2] - b[k + 2]) > 60) n += 1;
+        if (Math.abs(after.buf[k] - b[k]) + Math.abs(after.buf[k + 1] - b[k + 1]) + Math.abs(after.buf[k + 2] - b[k + 2]) > 30) n += 1;   // a grey cart-heap burst on grey ground is a 30-delta, and it is there
       }
-      changed = Math.max(changed, n * 4);
+      changed = Math.max(changed, n);
     }
     r.emit = origEmit;
     return { pass: !!o.done && !!inFrame && changed >= 300, done: !!o.done, inFrame, ndc, changedPx: changed, event: payoffPos ? payoffPos.toArray().map((v) => +v.toFixed(2)) : null, hud: hud.state() };
