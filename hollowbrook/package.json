@@ -14,8 +14,9 @@
     "check:nav": "node scripts/check-nav.mjs",
     "check:city": "node scripts/check-city.mjs",
     "check:game": "node scripts/check-game.mjs",
+    "check:siege-game": "node scripts/check-contract-drift.mjs && node scripts/check-feel.mjs && node scripts/check-feel-ladder.mjs && node scripts/check-reproducibility.mjs && node scripts/simulate-siege.mjs && node scripts/check-music-state.mjs && node scripts/check-npc-soak.mjs && node scripts/check-shell-persistence.mjs && node scripts/check-play.mjs",
     "check": "node scripts/validate-city-plan.mjs && node scripts/check-terrain.mjs && node scripts/check-nav.mjs && node scripts/check-city.mjs",
-    "gates": "for s in validate-city-plan check-terrain check-nav check-city check-cameras check-spatial check-game check-interactions check-arena-visibility check-feel check-feel-ladder check-contract-drift simulate-siege check-music check-npc-soak check-shell-persistence; do echo \"== $s\"; node scripts/$s.mjs > /dev/null 2>&1 && echo PASS || echo FAIL; done"
+    "gates": "for s in validate-city-plan check-terrain check-nav check-city check-cameras check-spatial check-game check-interactions check-arena-visibility check-feel check-feel-ladder check-contract-drift check-reproducibility simulate-siege check-music check-music-state check-npc-soak check-shell-persistence check-play; do echo \"== $s\"; node scripts/$s.mjs > /dev/null 2>&1 && echo PASS || echo FAIL; done"
   },
   "dependencies": {
     "three": "^0.180.0"
