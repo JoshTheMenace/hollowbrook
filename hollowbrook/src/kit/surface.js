@@ -469,9 +469,13 @@ export function applyKitSurfaces(M) {
   const oak = oakTex();
   for (const m of [M.oak, M.oakDark, M.oakSilver, M.timberFrame, M.timberDark]) setMap(m, oak);
   const granite = graniteTex();
-  for (const m of [M.granite, M.graniteWarm, M.graniteDark, M.rubble]) setMap(m, granite);
+  /* the curtain takes the same masons' joint-and-lichen map: a wall with no
+   * micro-texture is 5 x 100 m of ONE flat value, which is precisely the
+   * thing this whole layer exists to prevent, and it is the biggest single
+   * surface in Hollowbrook. */
+  for (const m of [M.granite, M.graniteWarm, M.graniteDark, M.rubble, M.curtain, M.curtainDark, M.coping]) setMap(m, granite);
   const canvas = canvasTex();
-  for (const m of [M.canvas, M.canvasWorn, M.hessian]) setMap(m, canvas);
+  for (const m of [M.canvas, M.canvasWorn, M.hessian, M.canvasCompany]) setMap(m, canvas);
   const ground = groundTex();
   for (const m of [M.ground, M.paving, M.turf, M.earth, M.gravel]) setMap(m, ground);
   setMap(M.lit, litGlassTex());

@@ -477,6 +477,125 @@ export const DEVICES = {
     c.globalCompositeOperation = 'source-over';
     done();
   },
+
+  /* ---- APPENDED FOR HOLLOWBROOK ------------------------------------- *
+   * The three tables in this file are APPEND-ONLY.  Every `device:`,
+   * `tenant:` and `notice:` in the town is a key into them and every
+   * `variant:` is an index, so renaming one silently re-letters a sign
+   * somewhere else.
+   * ------------------------------------------------------------------- */
+
+  /**
+   * A PLOUGH AND A HANGING LANTERN — the inn on the row.
+   *
+   * Same rule as the mare: four bold features and nothing under a twentieth
+   * of the box.  A plough at forty pixels is the SHARE (a fat wedge), the
+   * beam and one handle; the mouldboard, the coulter and the second handle
+   * are noise at that size and turn the whole device into a smudge with a
+   * lamp over it.
+   */
+  ploughAndLantern(c, x, y, s, ink) {
+    const done = unit(c, x, y, s);
+    c.fillStyle = col(ink);
+    c.strokeStyle = col(ink);
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    // the share: a fat wedge biting along the bottom
+    c.beginPath();
+    c.moveTo(0.10, 0.86);
+    c.lineTo(0.46, 0.74);
+    c.lineTo(0.46, 0.90);
+    c.closePath();
+    c.fill();
+    // the beam, and ONE handle standing off the back of it
+    c.lineWidth = 0.075;
+    c.beginPath();
+    c.moveTo(0.30, 0.80);
+    c.lineTo(0.78, 0.62);
+    c.stroke();
+    c.beginPath();
+    c.moveTo(0.60, 0.68);
+    c.lineTo(0.86, 0.44);
+    c.stroke();
+    // the lantern, hung well clear above the beam
+    c.lineWidth = 0.05;
+    c.beginPath();
+    c.moveTo(0.42, 0.05);
+    c.lineTo(0.42, 0.16);
+    c.stroke();
+    c.beginPath();                       // the crown
+    c.moveTo(0.28, 0.24);
+    c.lineTo(0.56, 0.24);
+    c.lineTo(0.48, 0.16);
+    c.lineTo(0.36, 0.16);
+    c.closePath();
+    c.fill();
+    c.fillRect(0.29, 0.24, 0.26, 0.04);
+    c.lineWidth = 0.045;                 // the glazed body, drawn as a frame
+    c.strokeRect(0.315, 0.30, 0.19, 0.20);
+    c.fillRect(0.28, 0.50, 0.26, 0.045);
+    done();
+  },
+
+  /**
+   * A DOG, for the lost-dog notice.  THE PEOPLE RULE IS ABSOLUTE — nothing
+   * in this town's signage carries a human figure — so a lost notice is a
+   * lost animal, and the animal has to read as a dog and not as the cat two
+   * entries above it.  What separates them at forty pixels is the
+   * SILHOUETTE: a dog is long in the muzzle, deep in the chest, straight in
+   * the tail and level in the back; the cat is round-headed, high-haunched
+   * and curl-tailed.  Round the head here and you have redrawn the familiar.
+   */
+  dog(c, x, y, s, ink) {
+    const done = unit(c, x, y, s);
+    c.fillStyle = col(ink);
+    c.strokeStyle = col(ink);
+    c.lineCap = 'round';
+    // the tail: straight and up, which the cat's never is
+    c.lineWidth = 0.07;
+    c.beginPath();
+    c.moveTo(0.24, 0.56);
+    c.lineTo(0.13, 0.34);
+    c.stroke();
+    // the body: level back, deep chest, tucked belly
+    c.beginPath();
+    c.moveTo(0.26, 0.56);
+    c.bezierCurveTo(0.42, 0.46, 0.60, 0.46, 0.70, 0.52);
+    c.bezierCurveTo(0.74, 0.62, 0.70, 0.72, 0.62, 0.74);
+    c.bezierCurveTo(0.48, 0.78, 0.36, 0.74, 0.27, 0.70);
+    c.closePath();
+    c.fill();
+    // four legs, and they are STRAIGHT
+    c.lineWidth = 0.062;
+    for (const [lx, tilt] of [[0.32, -0.03], [0.40, 0.02], [0.62, -0.02], [0.69, 0.03]]) {
+      c.beginPath();
+      c.moveTo(lx, 0.70);
+      c.lineTo(lx + tilt, 0.93);
+      c.stroke();
+    }
+    // the head: a long muzzle off a shallow skull, and a fold-over ear
+    c.beginPath();
+    c.moveTo(0.66, 0.52);
+    c.bezierCurveTo(0.74, 0.42, 0.82, 0.40, 0.86, 0.44);
+    c.lineTo(0.95, 0.47);
+    c.lineTo(0.95, 0.55);
+    c.lineTo(0.84, 0.57);
+    c.bezierCurveTo(0.78, 0.60, 0.72, 0.60, 0.68, 0.58);
+    c.closePath();
+    c.fill();
+    c.beginPath();                       // the ear, hanging
+    c.moveTo(0.76, 0.42);
+    c.lineTo(0.72, 0.56);
+    c.lineTo(0.82, 0.50);
+    c.closePath();
+    c.fill();
+    c.globalCompositeOperation = 'destination-out';
+    c.beginPath();
+    c.arc(0.845, 0.485, 0.022, 0, Math.PI * 2);
+    c.fill();
+    c.globalCompositeOperation = 'source-over';
+    done();
+  },
 };
 
 /* ---- the town's tenants -------------------------------------------------
@@ -500,6 +619,25 @@ export const TENANTS = Object.freeze({
   emberwright: { title: 'N. EMBERWRIGHT', sub: 'SMITH & FARRIER', device: 'hammerAndAnvil', bg: JOINERY.pitch, ink: JOINERY.bone, district: 'lowrow' },
   mill: { title: 'THISTLEDOWN MILL', sub: 'CORN GROUND DAILY', device: 'millSails', bg: PAL.oakDark, ink: JOINERY.bone, district: 'millward' },
   wardens: { title: 'WARDENS OF THE GATE', sub: 'ALL WAGGONS DECLARE', device: 'portcullis', bg: JOINERY.doveGrey, ink: PAL.ink, district: 'gateward' },
+
+  /* ---- HOLLOWBROOK, APPENDED ---------------------------------------- *
+   * `city-plan.json -> shared_kit.signage_tenants`, verbatim, with an
+   * owning district each.  Thistledown's eight above are kept because the
+   * forked kit's defaults and its showcase name them by key; nothing in
+   * Hollowbrook uses them.  APPEND ONLY — a key here is baked into every
+   * fascia that has already gone up.
+   *
+   * Note again what is NOT here: no board wears a district accent.  The
+   * plough-and-lantern's own lamp is drawn in the board's ink, and the
+   * inn's accent is passed IN by wardrow. */
+  reeveHall: { title: "THE REEVE'S HALL", sub: 'GUILD OF HOLLOWBROOK', device: 'bell', bg: JOINERY.plumWash, ink: JOINERY.bone, district: 'marketlow' },
+  chandlers: { title: 'HOLLOWBROOK CHANDLERS', sub: 'TALLOW — WAX — CORD', device: 'mortarAndPestle', bg: JOINERY.pitch, ink: JOINERY.bone, district: 'marketlow' },
+  stanhope: { title: 'A. STANHOPE', sub: 'SMITH', device: 'hammerAndAnvil', bg: JOINERY.pitch, ink: JOINERY.bone, district: 'wardrow' },
+  ploughLantern: { title: 'THE PLOUGH & LANTERN', sub: 'ALE — BEDS — STABLING', device: 'ploughAndLantern', bg: JOINERY.oakStain, ink: JOINERY.bone, district: 'wardrow' },
+  hollowbrookMill: { title: 'HOLLOWBROOK MILL', sub: 'CORN GROUND DAILY', device: 'millSails', bg: PAL.oakDark, ink: JOINERY.bone, district: 'millreach' },
+  tannery: { title: 'THE TANNERY', sub: 'HIDES — HORN — GLUE', device: 'sheaf', bg: JOINERY.barnRust, ink: JOINERY.bone, district: 'millreach' },
+  stWenna: { title: "ST. WENNA'S", sub: 'THE CHAPEL OF THE CLOSE', device: 'bell', bg: JOINERY.doveGrey, ink: PAL.ink, district: 'chapelclose' },
+  wardensHollowbrook: { title: 'WARDENS OF HOLLOWBROOK', sub: 'ALL WAGGONS DECLARE', device: 'portcullis', bg: JOINERY.doveGrey, ink: PAL.ink, district: 'southgate' },
 });
 
 /** Resolve `tenant` — a key, or an object of the same shape. */
@@ -552,6 +690,48 @@ export const NOTICES = Object.freeze({
   toll: {
     head: 'TOLLS',
     lines: ['FOOT       FREE', 'HORSE      1 d.', 'WAGGON     3 d.', 'FAIR DAY — ALL FREE'],
+  },
+
+  /* ---- HOLLOWBROOK, APPENDED ---------------------------------------- *
+   * The plan's list, and every one of them is TEN MINUTES AGO: this is a
+   * town that has been told, this afternoon, that the Company is coming.
+   * The muster bill is the newest thing on the board and the lost dog is
+   * the oldest — which is the whole point of pinning them side by side. */
+  muster: {
+    head: 'MUSTER',
+    lines: ['ALL ABLE HANDS TO THE GATES', 'BILLS AND BOWS FROM THE HALL', 'AT THE BELL — NOT BEFORE', 'BY ORDER OF THE REEVE'],
+    device: 'bell',
+    stamp: 'TONIGHT',
+  },
+  rota: {
+    head: 'THE WATCH',
+    lines: ['SOUTH GATE — TWO', 'EAST GATE — TWO', 'THE WALL — FOUR, WALKING', 'RELIEF AT THE BELL'],
+    device: 'portcullis',
+    hand: true,
+  },
+  lostdog: {
+    /* NO PEOPLE, EVER — so the lost notice is a lost DOG, drawn.  It is
+     * also the one thing on the board that is not about the raid, and it
+     * is there for exactly that reason. */
+    head: 'LOST',
+    lines: ['ONE BROWN DOG', 'ANSWERS TO BARLEY', 'LAST SEEN AT THE MILL', 'REWARD — A LOAF'],
+    device: 'dog',
+    hand: true,
+  },
+  gatetoll: {
+    head: 'TOLLS',
+    lines: ['FOOT       FREE', 'HORSE      1 d.', 'WAGGON     3 d.', 'GATES SHUT AT DUSK'],
+    device: 'portcullis',
+  },
+  bells: {
+    head: 'THE BELL',
+    lines: ['DAWN — AND AT NOON', 'DUSK — AND FOR THE MUSTER', 'THRICE FOR FIRE', 'WITHOUT CEASING FOR THE WALL'],
+    device: 'bell',
+  },
+  flourprices: {
+    head: 'MILL PRICES',
+    lines: ['WHEATEN   4 d. THE PECK', 'BARLEY    3 d.', 'GRINDING  1 d. IN TWELVE', 'NO CREDIT THIS WEEK'],
+    hand: true,
   },
 });
 

@@ -119,6 +119,18 @@ export const PAL = Object.freeze({
   graniteDark: 0x7a7a84,
   rubble: 0x968f8d,
 
+  /* --- the curtain wall (siege kit) ------------------------------------
+   * A DEFENCE IS NOT A HOUSE.  The town's granite is the masons' warm
+   * ashlar; the curtain is older, colder and coarser, and it has to read as
+   * one continuous mass at 60 m with the whole town in front of it — so it
+   * sits a step DARKER and a step BLUER than `granite`, and its dressed
+   * stone (`coping`) is the one part that is pale, because a coping is the
+   * only thing on a wall the last of the sun still touches.  Three tones,
+   * not one: a wall in one tone is a grey card. */
+  curtain: 0x93949e,
+  curtainDark: 0x6e6f7c,
+  coping: 0xb2ada6,
+
   // --- timber: silvered oak -------------------------------------------
   oak: 0x8e8474,
   oakDark: 0x625948,
@@ -150,6 +162,7 @@ export const PAL = Object.freeze({
   // --- metal, glass, cloth ---------------------------------------------
   iron: 0x565064,
   ironDark: 0x433e52,
+  ironRust: 0x7a5344,     // siege iron that has stood out a winter: strapping, a portcullis, a chain
   brass: 0xa98d55,
   copper: 0x8c745a,
   glass: 0x7f92a6,
@@ -163,6 +176,14 @@ export const PAL = Object.freeze({
   // --- light: everything warm except one -------------------------------
   warmLight: 0xffc57a,
   ember: 0xe3823f,
+  /* The HEART of a big fire — a beacon, a brazier's bed of coals, a camp
+   * fire seen from the wall.  `ember` is the flame; this is what is under
+   * it, and a fire drawn in one tone is a paper cut-out. */
+  emberDeep: 0xbe5423,
+  /* The Ashen Company's canvas: `ACCENT.companyRust` knocked back to a
+   * cloth value, so a camp of tents reads as THEIRS at 60 m without any
+   * one tent being as loud as a raider's sash. */
+  companyCanvas: 0x91503d,
   tealGlow: 0x62ead8,     // CHAPELCLOSE ONLY — the one cool emissive
   lanternPaper: 0xd9ccb0,
 

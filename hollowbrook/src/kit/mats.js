@@ -60,6 +60,16 @@ export const M = {
   graniteDark: solid(PAL.graniteDark),
   rubble: solid(PAL.rubble),
 
+  /* --- the curtain (siege kit) ---
+   * `curtain` is soft3 for the same reason limewash is: the outer face of
+   * the east and north walls is in shade for the whole scene and it is the
+   * largest single surface in the town.  `coping` is soft3 too and is the
+   * PALEST stone here — it is the line along the top of the wall that says
+   * where the wall is. */
+  curtain: pale(PAL.curtain),
+  curtainDark: solid(PAL.curtainDark),
+  coping: pale(PAL.coping),
+
   // --- timber ---
   oak: solid(PAL.oak),
   oakDark: solid(PAL.oakDark),
@@ -95,12 +105,20 @@ export const M = {
   // dark half, and the turn between them is the whole of its roundness
   iron: solid(PAL.iron),
   ironDark: solid(PAL.ironDark),
+  ironRust: solid(PAL.ironRust),   // strapping, a portcullis, a chain across a lane
   brass: metal(PAL.brass),
   copper: metal(PAL.copper),
   glass: solid(PAL.glass),
   glassDark: solid(PAL.glassDark),
   canvas: pale(PAL.canvas),
   canvasWorn: pale(PAL.canvasWorn),
+  /* THE ENEMY'S CLOTH, and the one place in the kit that a district is
+   * allowed to see the Company's colour: the camp outside the gates is
+   * built by southgate (the surrounds' owner) and by nobody else.  It is
+   * `ACCENT.companyRust` knocked back to a canvas value on purpose — the
+   * raiders' own sash is the saturated one, and it only reads because the
+   * tents behind them do not. */
+  canvasCompany: pale(PAL.companyCanvas),
   rope: solid(PAL.rope),
   hessian: solid(PAL.hessian),
   wicker: solid(PAL.wicker),
@@ -110,6 +128,7 @@ export const M = {
   lanternPaper: pale(PAL.lanternPaper), // an UNLIT fair lantern
   lit: flat(PAL.warmLight),             // a lit one, and every lit window
   ember: flat(PAL.ember),               // fire, brazier, banked forge
+  emberDeep: flat(PAL.emberDeep),       // the bed of coals UNDER it
   // SPELLWARD ONLY. Do not use this outside the alchemists' quarter: it is
   // the one cool emissive in Thistledown and it only reads because nothing
   // else is cool.
