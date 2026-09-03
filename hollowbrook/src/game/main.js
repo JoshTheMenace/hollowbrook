@@ -40,6 +40,8 @@ import { intensityOf, intentFor, measuredPressure } from './music.js';
 import { readSave, writeSave, clearSave } from './save.js';
 import { makeBot, EXPERT } from './bots.js';
 import { checkLadder } from './ladder.js';
+import { createDayNight } from './daynight.js';
+import { applyPolish } from '../polish.js';
 
 const params = new URLSearchParams(location.search);
 const canvas = document.querySelector('#view');
@@ -78,7 +80,7 @@ sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.035;
 scene.add(sun, sun.target);
 const fillL = new THREE.DirectionalLight(RIG.fill.color, RIG.fill.intensity); fillL.position.fromArray(RIG.fill.position); scene.add(fillL, fillL.target);
 const bounce = new THREE.DirectionalLight(RIG.bounce.color, RIG.bounce.intensity); bounce.position.fromArray(RIG.bounce.position); scene.add(bounce, bounce.target);
-scene.add(new THREE.HemisphereLight(RIG.hemi.sky, RIG.hemi.ground, RIG.hemi.intensity));
+const hemi = new THREE.HemisphereLight(RIG.hemi.sky, RIG.hemi.ground, RIG.hemi.intensity); scene.add(hemi);
 
 /* ---- the town, the scratch dressing, the world ---- */
 const vignette = buildVignette(scene);
@@ -96,6 +98,13 @@ if (plan?.city?.compass) {
   sun.shadow.camera.updateProjectionMatrix();
 }
 const world = buildWorld(vignette, plan, { scene });
+/* THE POLISH PASS (src/polish.js), after the plan's rig and before the
+ * views.  Additive: it registers no collider, no platform and no
+ * interactable, so `world`, the nav grid and every rule read the same town
+ * with it on and off.  It owns the fog RANGE only — `daynight.js` owns the
+ * fog COLOUR as the waves go on and the two must not fight.  `?polish=off`
+ * for the blockout underneath. */
+const polish = applyPolish({ scene, ctx: vignette.ctx, plan, vignette, camera, renderer, mode: 'game' });
 const pipeline = new Pipeline(renderer, scene, camera, {
   ink: { color: PAL.ink, fadeStart: 30, fadeEnd: 80, skyDepth: 105 },
   grade: { shadowTint: PAL.gradeShadow, lightTint: PAL.gradeLight },
@@ -109,6 +118,7 @@ const hud = createHUD(hudRoot);
 let dialogueUI = null;
 let cast = null;
 let enemyView = null;
+let daynight = null;                                // dusk -> dark as the waves go on (daynight.js)
 let weapons = null;
 
 /* ---- the run: restore through the shell's own save path ---- */
@@ -191,6 +201,8 @@ async function boot() {
   stepper = new Stepper(run, { input: () => (bot ? bot() : fps.input()), onTick: () => fps.afterTick() });
   weapons = createWeaponsView({ scene, camera, cel, flat });
   setTownLight(run.lights);
+  daynight = createDayNight({ scene, sun, fill: fillL, hemi, fog: scene.fog, run });
+  daynight.update(run);
   try {
     const { createEnemyView } = await import('./enemies.js');
     enemyView = await createEnemyView({ scene, cel, world });
@@ -262,6 +274,7 @@ function frame(dt) {
   enemyView?.update(vdt, run, camera);
   cast?.update(vdt, run, camera, eye);
   weapons?.update(vdt, run);
+  daynight?.update(run);
   vignette.update(vdt, camera.position);
   feel.update(vdt, dt);
   dialogueUI?.update(dt);
@@ -292,7 +305,7 @@ const legibility = createLegibility({ renderer, scene, camera });
 
 window.__game = {
   get run() { return run; }, get stepper() { return stepper; }, get fps() { return fps; }, world, feel, hud, scene, camera, renderer, pipeline, THREE,
-  get enemyView() { return enemyView; }, get cast() { return cast; }, get audio() { return audio; },
+  get enemyView() { return enemyView; }, get cast() { return cast; }, get audio() { return audio; }, get daynight() { return daynight; }, polish,
   save: () => readSave(), checkpointState: () => run.checkpointState(),
   intensity: () => ({ sent: intensityOf(run), intent: intentFor(run), measured: measuredPressure(run) }),
   ladder: () => checkLadder(),
@@ -382,6 +395,12 @@ if (import.meta.env.DEV) {
     const L = C.legibility;
     const segs = [];
     const frustum = new THREE.Frustum(); const mat = new THREE.Matrix4(); const pt = new THREE.Vector3();
+    /* the population floor per segment: wave 1 is twelve bodies in knots of
+     * three killed at 12 m, so "frames with >= 3 within 20 m" sampled 0
+     * frames of a 90 s segment and reported visibleFrac 0 (integration);
+     * the first rush is judged on frames with >= 2 near, the probe on >= 3,
+     * and a segment with under 10 sampled frames says so instead of 0 */
+    const NEAR_FLOOR = { 1: 2, 4: 3 };
     for (const [wave, seconds, at, yaw] of [[1, w1, [0, 30], Math.PI], [4, w4, [0, -14], Math.PI]]) {   // both face the south gate
       const r = window.__game.instrument.jumpToWave(wave, at, yaw);
       bot = makeBot(r, EXPERT, { seed: 97 });
@@ -402,11 +421,14 @@ if (import.meta.env.DEV) {
           const d = Math.hypot(e.x - r.player.x, e.z - r.player.z);
           const inF = frustum.containsPoint(pt.set(e.x, e.y + 0.8, e.z));
           if (inF && d <= L.combatRange) inView += 1;
-          if (inF) { if (!seen.has(e.id)) { seen.add(e.id); if (unseen.has(e.id)) delays.push(i - unseen.get(e.id)); unseen.delete(e.id); } }
-          else if (!seen.has(e.id) && !unseen.has(e.id)) unseen.set(e.id, i);
+          // spawn -> FIRST sight for EVERY body: one seen at its spawn tick is a
+          // 0 s sighting, not a non-event (the first cut only counted bodies
+          // that had first been off-screen, so facing the gate LOWERED the count)
+          if (!seen.has(e.id) && !unseen.has(e.id)) unseen.set(e.id, i);
+          if (inF && !seen.has(e.id)) { seen.add(e.id); delays.push(i - unseen.get(e.id)); unseen.delete(e.id); }
         }
         const near = r.enemies.filter((e) => e.state !== 'dead' && Math.hypot(e.x - r.player.x, e.z - r.player.z) <= L.combatRange).length;
-        if (near >= 3 && i > 120) vis.push(inView / near);
+        if (near >= NEAR_FLOOR[wave] && i > 120) vis.push(inView / near);
         if (i > 120 && i % 15 === 0 && enemyView) {
           pipeline.render();
           legibility.grabColour();
@@ -427,7 +449,7 @@ if (import.meta.env.DEV) {
       const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
       const sorted = vis.slice().sort((a, b) => a - b);
       segs.push({
-        wave, seconds, frames: vis.length, visibleFrac: +mean(vis).toFixed(3), p10Frac: +(sorted[Math.floor(sorted.length * 0.1)] ?? 0).toFixed(3),
+        wave, seconds, frames: vis.length, nearFloor: NEAR_FLOOR[wave], visibleFrac: vis.length >= 10 ? +mean(vis).toFixed(3) : null, p10Frac: +(sorted[Math.floor(sorted.length * 0.1)] ?? 0).toFixed(3),
         p90FirstSightSec: +((delays.sort((a, b) => a - b)[Math.floor(delays.length * 0.9)] ?? 0) * TICK).toFixed(2), sightings: delays.length,
         legSamples: leg.length, legibleFrac: +mean(leg).toFixed(3),
         eliteFrames, eliteLegibleFrac: eliteFrames ? +(eliteLeg / eliteFrames).toFixed(3) : null,

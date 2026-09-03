@@ -62,6 +62,13 @@ export function buildVignette(scene, { only = null, showcase = null, terrainOnly
   const spawn = plan.game?.player?.spawn ?? [0, 30];
   return {
     root, plan, city,
+    /* The builder itself.  An ADDITIVE layer built after every district —
+     * the polish pass, src/polish.js — has to register its per-frame step
+     * on the same `ctx.update` list everything else uses, because
+     * `vignette.update(dt, eye)` is the one thing a headless page steps by
+     * hand and nothing in this project animates on its own.  A district
+     * never sees this: composeCity hands each one its own wrapped ctx. */
+    ctx,
     colliders: ctx.colliders,
     platforms: ctx.platforms,
     interactables: ctx.interactables,

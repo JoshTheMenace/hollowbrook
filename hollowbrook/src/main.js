@@ -9,6 +9,7 @@ import { setOutlineResolution } from './core/outline.js';
 import { createCameraCheck } from './core/camcheck.js';
 import { createLegibilityCheck } from './core/legibility.js';
 import { createSpatialCheck } from './core/spatialcheck.js';
+import { applyPolish, POLISH_FOG } from './polish.js';
 import { skyTexture } from './textures.js';
 import './style.css';
 
@@ -124,9 +125,9 @@ const legibility = createLegibilityCheck({
 const raycaster = new THREE.Raycaster();
 raycaster.far = 3;
 let unpolishedFog = null;
-// polish.js's p4 asserts these on its first tick; named here so the
-// legibility gate can put them back after measuring a vista unhazed.
-const POLISH_FOG = { near: 40, far: 190 };
+// POLISH_FOG is polish.js's — p4 asserts it on its first tick and
+// `__polish.setHaze` / `setPolishHaze` below put the plan's own range back
+// so the legibility gate can measure a vista unhazed.
 // A city plan owns the compass and the sun; derive the rig from it rather
 // than leaving a hand-placed light to contradict the plan's own prose.
 if (vignette.plan?.city?.compass) {
@@ -152,6 +153,12 @@ if (vignette.plan?.city?.compass) {
   sun.shadow.camera.far = Math.max(160, r * 4);
   sun.shadow.camera.updateProjectionMatrix();
 }
+
+/* THE POLISH PASS, after the plan's rig — p4 reads the fog range this block
+ * just derived and the cloud ring reads the far plane it just set, so it
+ * cannot run before them.  `?polish=off` is the honest blockout underneath;
+ * `?polish=<list>` is one mechanism at a time.  See src/polish.js. */
+const polish = applyPolish({ scene, ctx: vignette.ctx, plan: vignette.plan, vignette, camera, renderer, mode: 'town' });
 
 const hitboxes = vignette.interactables.map((entry) => entry.hitbox);
 const reviewName = new URLSearchParams(location.search).get('review');
@@ -316,6 +323,9 @@ window.__vignette = {
     scene.fog.near = on ? POLISH_FOG.near : unpolishedFog.near;
     scene.fog.far = on ? POLISH_FOG.far : unpolishedFog.far;
   },
+  // the whole polish layer's handle: audits, per-mechanism state, stats.
+  // `window.__polish` is the same object.
+  polish,
   // spatial audit: measured ground contact / overlap / seam checks — a
   // floating or embedded prop renders as a plausible frame, so measure it
   checkSpatial: createSpatialCheck({

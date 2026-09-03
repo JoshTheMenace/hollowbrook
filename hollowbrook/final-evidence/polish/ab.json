@@ -1,0 +1,570 @@
+{
+ "legibility": {
+  "off": [
+   {
+    "name": "from-the-road",
+    "ok": true,
+    "sky": 48.31,
+    "edge": 44.89,
+    "share": 0.279,
+    "failures": []
+   },
+   {
+    "name": "over-the-market",
+    "ok": true,
+    "sky": 66.26,
+    "edge": 18.22,
+    "share": 0.907,
+    "failures": []
+   },
+   {
+    "name": "from-the-keep",
+    "ok": true,
+    "sky": 69.31,
+    "edge": 54.51,
+    "share": 0.058,
+    "failures": []
+   },
+   {
+    "name": "down-the-row",
+    "ok": true,
+    "sky": 65.83,
+    "edge": 60.4,
+    "share": 1.768,
+    "failures": []
+   },
+   {
+    "name": "along-the-wall",
+    "ok": true,
+    "sky": 56.45,
+    "edge": 44.68,
+    "share": 12.911,
+    "failures": []
+   },
+   {
+    "name": "the-close",
+    "ok": true,
+    "sky": 59.72,
+    "edge": 56.32,
+    "share": 4.588,
+    "failures": []
+   }
+  ],
+  "on": [
+   {
+    "name": "from-the-road",
+    "ok": true,
+    "sky": 45.88,
+    "edge": 42.34,
+    "share": 0.279,
+    "failures": []
+   },
+   {
+    "name": "over-the-market",
+    "ok": true,
+    "sky": 66.12,
+    "edge": 18.24,
+    "share": 0.907,
+    "failures": []
+   },
+   {
+    "name": "from-the-keep",
+    "ok": true,
+    "sky": 66.11,
+    "edge": 53.35,
+    "share": 0.058,
+    "failures": []
+   },
+   {
+    "name": "down-the-row",
+    "ok": true,
+    "sky": 65.83,
+    "edge": 60.4,
+    "share": 1.768,
+    "failures": []
+   },
+   {
+    "name": "along-the-wall",
+    "ok": true,
+    "sky": 56.91,
+    "edge": 47.04,
+    "share": 12.91,
+    "failures": []
+   },
+   {
+    "name": "the-close",
+    "ok": true,
+    "sky": 59.8,
+    "edge": 56.49,
+    "share": 4.588,
+    "failures": []
+   }
+  ]
+ },
+ "calls": {
+  "off": {
+   "from-the-road": 3350,
+   "over-the-market": 2593,
+   "from-the-keep": 2981,
+   "down-the-row": 2053,
+   "along-the-wall": 2303,
+   "the-close": 1931,
+   "gate-square": 2854,
+   "row-lane": 1963
+  },
+  "on": {
+   "from-the-road": 3358,
+   "over-the-market": 2601,
+   "from-the-keep": 2989,
+   "down-the-row": 2061,
+   "along-the-wall": 2311,
+   "the-close": 1939,
+   "gate-square": 2862,
+   "row-lane": 1971
+  }
+ },
+ "perMech": {
+  "sky": {
+   "from-the-road": 2,
+   "over-the-market": 2,
+   "from-the-keep": 2,
+   "down-the-row": 2,
+   "along-the-wall": 2,
+   "the-close": 2,
+   "gate-square": 2,
+   "row-lane": 2
+  },
+  "ash": {
+   "from-the-road": 1,
+   "over-the-market": 1,
+   "from-the-keep": 1,
+   "down-the-row": 1,
+   "along-the-wall": 1,
+   "the-close": 1,
+   "gate-square": 1,
+   "row-lane": 1
+  },
+  "lanes": {
+   "from-the-road": 5,
+   "over-the-market": 5,
+   "from-the-keep": 5,
+   "down-the-row": 5,
+   "along-the-wall": 5,
+   "the-close": 5,
+   "gate-square": 5,
+   "row-lane": 5
+  },
+  "haze": {
+   "from-the-road": 0,
+   "over-the-market": 0,
+   "from-the-keep": 0,
+   "down-the-row": 0,
+   "along-the-wall": 0,
+   "the-close": 0,
+   "gate-square": 0,
+   "row-lane": 0
+  }
+ },
+ "audits": {
+  "surfaces": {
+   "mapped": 33,
+   "unmapped": 176,
+   "gaps": [],
+   "top": [
+    {
+     "color": "#93949e",
+     "type": "MeshToonMaterial",
+     "map": "th-granite",
+     "pxPerM": 85,
+     "meshes": 58,
+     "tris": 17884,
+     "framePct": 9.752,
+     "sample": "southgate:curtain-s--18:pool-2"
+    },
+    {
+     "color": "#b7b0ab",
+     "type": "MeshToonMaterial",
+     "map": "th-ground",
+     "pxPerM": 11,
+     "meshes": 2,
+     "tris": 76628,
+     "framePct": 4.927,
+     "sample": "terrain:paving"
+    },
+    {
+     "color": "#b2ada6",
+     "type": "MeshToonMaterial",
+     "map": "th-granite",
+     "pxPerM": 85,
+     "meshes": 102,
+     "tris": 15796,
+     "framePct": 4.263,
+     "sample": "southgate:curtain-s--18:pool-3"
+    },
+    {
+     "color": "#9fa0a6",
+     "type": "MeshToonMaterial",
+     "map": "th-granite",
+     "pxPerM": 85,
+     "meshes": 91,
+     "tris": 6754,
+     "framePct": 3.478,
+     "sample": "southgate:gatehouse:pool-1"
+    },
+    {
+     "color": "#8f9a7c",
+     "type": "MeshToonMaterial",
+     "map": "th-ground",
+     "pxPerM": 11,
+     "meshes": 8,
+     "tris": 201022,
+     "framePct": 2.637,
+     "sample": "terrain:ground"
+    },
+    {
+     "color": "#a9a394",
+     "type": "MeshToonMaterial",
+     "map": "th-ground",
+     "pxPerM": 11,
+     "meshes": 10,
+     "tris": 4716,
+     "framePct": 2.514,
+     "sample": "southgate:ground-wear:pool-1"
+    },
+    {
+     "color": "#8e8474",
+     "type": "MeshToonMaterial",
+     "map": "th-oak",
+     "pxPerM": 85,
+     "meshes": 109,
+     "tris": 14384,
+     "framePct": 2.084,
+     "sample": "southgate:curtain-s--18:pool-5"
+    },
+    {
+     "color": "#b09a68",
+     "type": "MeshToonMaterial",
+     "map": "th-thatch",
+     "pxPerM": 89,
+     "meshes": 6,
+     "tris": 4932,
+     "framePct": 1.904,
+     "sample": "marketlow:chandlers-roof:pool-6"
+    },
+    {
+     "color": "#6f7c64",
+     "type": "MeshToonMaterial",
+     "map": "th-shingle",
+     "pxPerM": 51,
+     "meshes": 15,
+     "tris": 1872,
+     "framePct": 1.815,
+     "sample": "southgate:wardens-lodge:0"
+    },
+    {
+     "color": "#625948",
+     "type": "MeshToonMaterial",
+     "map": "th-oak",
+     "pxPerM": 85,
+     "meshes": 257,
+     "tris": 41108,
+     "framePct": 1.668,
+     "sample": "southgate:curtain-s--18:pool-6"
+    },
+    {
+     "color": "#5f7654",
+     "type": "MeshToonMaterial",
+     "map": null,
+     "pxPerM": null,
+     "meshes": 8,
+     "tris": 3324,
+     "framePct": 1.25,
+     "sample": "marketlow:reeve-garden:pool-2"
+    },
+    {
+     "color": "#60665a",
+     "type": "MeshToonMaterial",
+     "map": "th-shingle",
+     "pxPerM": 51,
+     "meshes": 26,
+     "tris": 5436,
+     "framePct": 1.236,
+     "sample": "southgate:gate-drum-w:pool-5"
+    },
+    {
+     "color": "#aaa69e",
+     "type": "MeshToonMaterial",
+     "map": "th-granite",
+     "pxPerM": 85,
+     "meshes": 45,
+     "tris": 5360,
+     "framePct": 1.179,
+     "sample": "southgate:curtain-s--18:pool-1"
+    },
+    {
+     "color": "#6e6f7c",
+     "type": "MeshToonMaterial",
+     "map": "th-granite",
+     "pxPerM": 85,
+     "meshes": 34,
+     "tris": 13724,
+     "framePct": 1.142,
+     "sample": "southgate:curtain-s--18:pool-0"
+    }
+   ]
+  },
+  "accents": {
+   "ok": true,
+   "hits": 15,
+   "fails": [],
+   "warns": []
+  },
+  "practicals": {
+   "ok": true,
+   "totals": {
+    "practicals": 48,
+    "lit": 32,
+    "pools": 48,
+    "litWithPool": 32
+   },
+   "missing": [],
+   "byDistrict": {
+    "southgate": {
+     "practicals": 10,
+     "lit": 7,
+     "pools": 10,
+     "litWithPool": 7
+    },
+    "marketlow": {
+     "practicals": 7,
+     "lit": 1,
+     "pools": 7,
+     "litWithPool": 1
+    },
+    "keephill": {
+     "practicals": 8,
+     "lit": 6,
+     "pools": 8,
+     "litWithPool": 6
+    },
+    "millreach": {
+     "practicals": 10,
+     "lit": 8,
+     "pools": 10,
+     "litWithPool": 8
+    },
+    "chapelclose": {
+     "practicals": 7,
+     "lit": 4,
+     "pools": 7,
+     "litWithPool": 4
+    },
+    "wardrow": {
+     "practicals": 6,
+     "lit": 6,
+     "pools": 6,
+     "litWithPool": 6
+    }
+   }
+  },
+  "stats": {
+   "mechanisms": [
+    "surfaces",
+    "sky",
+    "ash",
+    "haze",
+    "lanes",
+    "accents",
+    "practicals"
+   ],
+   "meshes": 8,
+   "names": [
+    "polish:lane-wear:0",
+    "polish:lane-wear:1",
+    "polish:lane-wear:2",
+    "polish:lane-wear:3",
+    "polish:lane-wear:4",
+    "polish:sky-clouds",
+    "polish:camp-smoke",
+    "polish:ash"
+   ],
+   "clouds": 14,
+   "smokeColumns": 2,
+   "ash": 380,
+   "laneWear": {
+    "stations": 476,
+    "laid": 191,
+    "skippedWorn": 232,
+    "skippedCollider": 24,
+    "skippedFall": 29,
+    "byLane": {
+     "south-gate-passage": 5,
+     "east-gate-passage": 37,
+     "the-mill-approach": 82,
+     "the-close-approach": 12,
+     "the-keep-approach": 0,
+     "the-row-lane": 51,
+     "market-axis": 4
+    },
+    "meshes": 5
+   }
+  },
+  "report": "[polish] mechanisms: surfaces, sky, ash, haze, lanes, accents, practicals — 8 added meshes\n[polish] p1 surfaces: 33 pooled materials mapped, 176 not; no unmapped material covers 2 % of a vista frame\n[polish] p2 sky: 14 clouds, 2 smoke column(s) over 3 camp fire(s) (2 lit, all at the SOUTH gate)\n[polish] p3 ash: 380 quads in one instanced mesh\n[polish] p4 haze: 92.4..330.0 -> 45..460\n[polish] p5 lanes: 191 patches in 5 merged meshes (232 stations already worn by a district, 24 blocked, 29 on a grade)\n[polish] p6 accents: PASS — 15 accent meshes, 0 warning(s)\n[polish] p7 practicals: PASS — 48 practicals, 32 lit, 32 of those with a light pool\n[polish] overhead: 13 strung run(s) already hung by districts; this layer adds none",
+  "fires": [
+   {
+    "name": "district:southgate:company-fire-a",
+    "at": [
+     -4,
+     58.2
+    ],
+    "lit": true
+   },
+   {
+    "name": "district:southgate:company-fire-b",
+    "at": [
+     6.6,
+     62.2
+    ],
+    "lit": true
+   },
+   {
+    "name": "district:southgate:company-fire-c",
+    "at": [
+     -0.4,
+     61
+    ],
+    "lit": false
+   }
+  ],
+  "overhead": 13
+ },
+ "cameras": {
+  "from-the-road": {
+   "name": "from-the-road",
+   "position": [
+    -8,
+    8.5,
+    64
+   ],
+   "target": [
+    4,
+    12,
+    -30
+   ],
+   "fov": 50,
+   "subject": "district:keephill:bell-tower",
+   "owner": "southgate",
+   "$owner_comment": "southgate owns it: the camera stands on the siege road in the surrounds southgate owns, the gatehouse is the framing element and the Company's camp fires are the foreground. The subject is keephill's bell tower over the gate — 8.5 m up because the gatehouse parapet at 9 m stands 14 m out and the tower 94 m out; below y 7.25 the gate hides the tower (derived, not guessed)."
+  },
+  "over-the-market": {
+   "name": "over-the-market",
+   "position": [
+    0,
+    2.4,
+    14
+   ],
+   "target": [
+    2,
+    8,
+    -40
+   ],
+   "fov": 52,
+   "subject": "district:keephill:wardens-hall",
+   "owner": "marketlow",
+   "$owner_comment": "marketlow owns it: standing on its own south rim, everything in the lower two thirds — the sunk square, the stalls, the well, the north steps — is marketlow's. The hall on the keep clears it all by construction (5.2 + its own height against a -1.4 floor)."
+  },
+  "from-the-keep": {
+   "name": "from-the-keep",
+   "position": [
+    2,
+    7,
+    -33
+   ],
+   "target": [
+    0,
+    6,
+    50
+   ],
+   "fov": 54,
+   "subject": "district:southgate:gatehouse",
+   "owner": "keephill",
+   "$owner_comment": "keephill owns it: the camera stands on the keep platform and the foreground is its own parapet and the ward below. The gatehouse is southgate's and the whole town lies between; the gate-sees-keep corridor is this same axis reversed and keeps the middle clear."
+  },
+  "down-the-row": {
+   "name": "down-the-row",
+   "position": [
+    15,
+    1.6,
+    4
+   ],
+   "target": [
+    50,
+    4,
+    22
+   ],
+   "fov": 52,
+   "subject": "district:wardrow:eastgate",
+   "owner": "wardrow",
+   "$owner_comment": "wardrow owns it: the camera stands at the market's east stair head looking east down the row lane, and every mass between it and the East Gate is wardrow's. The gate must read as a gate at the end of a lane, because wave 3 arrives through it."
+  },
+  "along-the-wall": {
+   "name": "along-the-wall",
+   "position": [
+    -50,
+    6.6,
+    0
+   ],
+   "target": [
+    -42,
+    8,
+    26
+   ],
+   "fov": 52,
+   "subject": "district:millreach:mill",
+   "owner": "millreach",
+   "$owner_comment": "millreach owns it: standing on the west wall-walk, the parapet is the foreground, the mill and its yard below are the subject and the SW tower closes the walk. This is the frame that says the wall is a place you stand on, not a boundary."
+  },
+  "the-close": {
+   "name": "the-close",
+   "position": [
+    -22,
+    6.6,
+    -50
+   ],
+   "target": [
+    -44,
+    10,
+    -40
+   ],
+   "fov": 52,
+   "subject": "district:chapelclose:wizard-tower",
+   "owner": "chapelclose",
+   "$owner_comment": "chapelclose owns it: the camera stands on chapelclose's own north wall-walk at its east end and looks west along the parapet at the wizard's tower with its ward-glow — the town's only cool light — and the chapel roof and graveyard yews below."
+  },
+  "gate-square": {
+   "position": [
+    0,
+    1.66,
+    30
+   ],
+   "target": [
+    0,
+    2.2,
+    4
+   ]
+  },
+  "row-lane": {
+   "position": [
+    24,
+    1.66,
+    22
+   ],
+   "target": [
+    46,
+    3,
+    22
+   ]
+  }
+ },
+ "game": null
+}

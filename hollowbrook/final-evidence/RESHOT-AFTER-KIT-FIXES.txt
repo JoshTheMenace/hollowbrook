@@ -1,0 +1,202 @@
+RESHOT AFTER THE LEDGER-C KIT FIXES (609b2a5)
+=============================================
+The three fixes under test:
+  1. brazier()      — the ember and core cones were cyl(rTop, rBottom) written
+                      the wrong way round, so the fire was a funnel standing on
+                      its point.  Now wide at the coals, narrow at the sky.
+  2. bracketLantern()/postLantern() — the pane is its own switchable mesh and
+                      the pool is always built (hidden when dark).  The RENDER
+                      is supposed to be unchanged; that is asserted below.
+  3. barricade({ kind: 'carts' }) — wheel rim and spokes go oakSilver with a
+                      dark hub disc proud of them.
+
+HOW THESE WERE TAKEN
+  Dev server on port 5223.  Headless system Chrome via puppeteer-core
+  (--use-angle=metal --enable-gpu), driving window.__shot in the page.
+  Every capture below is `?only=<district>&polish=off` at the frame's own
+  committed pixel size — established by re-shooting keephill's
+  vista-from-the-keep both ways and diffing against the committed file:
+  with the polish layer ON the frame gained pale cloud bands the committed
+  frame does not have; with `polish=off` it matched the committed frame
+  everywhere except the brazier.  So the committed evidence was captured
+  without src/polish.js and the replacements are too.
+
+  Every candidate was diffed against its committed file pixel-for-pixel
+  (threshold 24/765 on RGB sum) so the change could be attributed before
+  anything was overwritten.
+
+REPLACED — 2
+------------
+keephill/vista-from-the-keep.jpg          1440 x 810, ?only=keephill&polish=off
+  camera: the plan's vista camera, `__shot(..., { review: 'from-the-keep' })`
+          = pos [2, 7, -33] -> target [0, 6, 50], fov 54
+          (final-evidence/keephill/README.md, "The contracted cameras")
+  changed: 0.110 % of the frame, and the differing pixels are a single
+          43 x 53 box on district:keephill:ward-brazier.  Nothing else in
+          the frame moved.  The flame was an orange bucket — flat wide disc
+          at the top, apex buried in the coals; it is now a cone that
+          narrows toward the sky off a wide ember base.  This is the
+          cleanest isolation of fix 1 in the whole evidence set.
+
+keephill/ward-from-walk.jpg               1400 x 790, ?only=keephill&polish=off
+  camera: E(20, -49.6) -> [-2, 3, -32], where E(x,z) = [x, groundAt(x,z)+1.62, z]
+          (final-evidence/keephill/README.md, "The brief's own list")
+  changed: district:keephill:walk-brazier stands 6.1 m from the lens at the
+          right-hand frame edge and its flame is now the right way up —
+          confirmed on a 5x crop of both files side by side.
+  *** CAUTION: this frame is NOT a clean isolation.  It differs from the
+      committed file by 2.9 %, and most of that is concurrent uncommitted
+      work in src/districts/keephill.js by another agent, not the kit fix —
+      see CONTAMINATION below. ***
+
+SKIPPED — camera not recoverable (the instruction was not to guess one)
+----------------------------------------------------------------------
+The only frames in this town whose camera is written down anywhere are:
+  - the six plan vista cameras in city-plan.json (`{ review: <name> }`),
+  - the plan's two interior cameras,
+  - the table in final-evidence/keephill/README.md, which is the only
+    district that recorded a position AND a target per frame,
+  - marketlow/README.md's two contracted cameras.
+Everything else is prose ("the square -> west", "the gate mouth", "the SW
+inside corner, north up the lane") or a position with no target (millreach's
+FRAMES.txt waypoints, keephill's wp1..wp7, southgate's wp-1..wp-5).  No
+district source file carries a `__shot` line; `grep -n "__shot" src/districts/*.js`
+returns one hit and it is a comment about interior culling.
+
+  southgate    int-B-brazier-before / int-B-brazier-after   "the gate mouth"
+               play-08-muster-ground                        "the square -> west"
+               play-12-the-company-camp                     "the spawn ring"
+               play-01..07, 09..13, wp-1..5, socket-*, free-orbit-*
+               (NOTES.md gives intent, not coordinates; the four free-orbit
+               frames say "23 m up, 48 m out, 90 deg steps" with no centre)
+  millreach    mr-34-mill-yard-and-warden-post, mr-17-barricade-wall-lane,
+               mr-13-corner-and-barricade, mr-28-wall-lane-south,
+               mr-29-wall-lane-north, mr-02..mr-07 (position only, no target)
+  chapelclose  every frame except the vista — MEASUREMENTS.txt records
+               measurements, not cameras; there is no README/FRAMES list
+  marketlow    mk-50..mk-55 (the bell and the hall lanterns lit), mk-02..mk-49
+               — README.md names only the two contracted cameras
+  wardrow      wr-gate-deck, wr-gatehouse-deck-over-lane,
+               wr-gatehouse-deck-embrasure, wr-barricade-lane-UP/DOWN,
+               wr-barricade-keep-UP/DOWN, wr-barricade-inn-UP/DOWN, and the
+               rest — GATE-east-gate.txt names the frames but records no
+               camera, and there is no other wardrow evidence note.
+               (For the record: only wr-barricade-lane is `kind: 'carts'`.
+               barricade-keep is 'stakes' and barricade-inn is 'doors', so
+               fix 3 could not have touched those four frames anyway.)
+
+SKIPPED — camera recoverable, but the fix does not show
+------------------------------------------------------
+southgate/vista-from-the-road.jpg    review 'from-the-road', 1280x720
+    diff 0.067 %.  Both southgate braziers are UNLIT by default, so the
+    flame is not drawn at all and fix 1 cannot appear; the east barricade
+    and the gate brazier are behind the curtain wall from this camera.  The
+    differing pixels sit exactly on the NEW unlit district:southgate:
+    relight-brazier at ndc (-0.34, -0.55) — i.e. concurrent work in
+    src/districts/southgate.js, not a kit fix.  Not overwritten.
+
+chapelclose/frames/cc-vista-the-close.jpg   review 'the-close', 1280x720
+    diff 0.011 %, a 16 x 14 patch that lands exactly on the new unlit
+    district:chapelclose:relight-brazier (ndc -0.22, -0.35) — again
+    concurrent district work.  The sexton's brazier is not in this view.
+    Not overwritten.
+
+wardrow/wr-vista-down-the-row.jpg     review 'down-the-row', 1280x720
+    diff 0.002 % — a 10 x 13 patch, the gate brazier's flame at 40 m.  Too
+    small to read as evidence of anything.  The three barricades are all
+    behind cottages from this camera (rays stop on wardrow:h1 and
+    wardrow:h3 at 18–26 m), and the lane barricade is DOWN by default.
+    Not overwritten.
+
+millreach/mr-01-vista-along-the-wall.jpg   review 'along-the-wall', 1400x790
+    diff 9.1 % and dominated by concurrent uncommitted work in
+    src/districts/millreach.js.  The only lit braziers in this view
+    (yard-brazier, lane-brazier) are occluded by the mill and the west
+    curtain; the relight brazier is unlit.  Not overwritten.
+
+keephill/ward-yard.jpg                 diff 0.29 % — all of it the animated
+    banner (nothing was stepped identically).  The orange flame in this
+    frame is a `torch`, not a `brazier`; see UNFIXED below.  No brazier in
+    frame.  Not overwritten.
+keephill/muster.jpg                    diff 0.000 % — byte-for-byte the same
+    picture.  Its "felled cart" is felledCart(), not barricade({carts}).
+keephill/climb2-cutting.jpg            diff 0.001 %.  Brazier occluded by
+    climb2-rail-e at 2.4 m.
+keephill/ward-up-at-curtain.jpg        diff 0.003 %, at the frame edge.
+keephill/gate-axis.jpg                 diff 0.055 %; all three braziers are
+    occluded (ward-revetment-s at 16.4 m, marketlow's massing stub at 9 m).
+    The differing strip is concurrent keephill work.
+keephill/rope.jpg                      diff 0.075 %; brazier occluded by the
+    tower buttresses at 4.2 m.
+keephill/climb1-foot.jpg   1.95 %  |  keephill/walk-down-into-ward.jpg  1.29 %
+keephill/tower-low.jpg     1.22 %  |  keephill/allure.jpg               1.17 %
+    All four: brazier occluded, and the whole diff is concurrent keephill
+    work (allure's is a new dark slab laid on the wall-walk).
+keephill/hall-out.jpg                  diff 56.9 % — an interior frame; the
+    dressing is distance-culled from the PLAYER and the README's own
+    pre-step was not applied, and the ward brazier is behind a shut door
+    leaf 1.8 m from the lens.  Nothing to attribute.  Not overwritten.
+keephill/orbit-S/N/E/W.jpg             the braziers are unoccluded here but
+    11–21 px tall for the whole prop, so the flame is 3–4 px; and the
+    README gives the four positions as "[4 +- 62, 34, -36 +- 62]" without
+    saying which label is which sign.  Not re-shot.
+marketlow/mk-01-vista-over-the-market, mk-12-guildhall-interior
+    Neither contains a brazier, a bracket lantern or a post lantern (the
+    watch brazier falls just under the bottom edge at ndc y ~ -1.05, and
+    the hall's own hall-lantern-* are kind 'lantern', a different builder).
+
+FIX 2 (the lantern pane) — CONFIRMED RENDER-IDENTICAL
+-----------------------------------------------------
+Not by argument, by measurement.  wr-vista-down-the-row carries
+district:wardrow:lane-lamp-1 (post lantern, 24 m, 117 px), h3-lamp and
+inn-arcade-lamp (bracket lanterns, 24 and 40 m); its whole-frame diff after
+the refactor is 0.002 %, and those pixels are the gate brazier's flame, not
+a lamp.  cc-vista-the-close carries tower-door-lamp and close-lamp-2 and its
+only diff is the new relight brazier.  vista-from-the-road carries three lit
+post lanterns and its only diff is the same.  The pane-as-its-own-mesh
+change and the always-built hidden pools do not alter a rendered frame.
+
+FIX 3 (the cart wheels) — CONFIRMED, BUT IN NO EVIDENCE FRAME
+-------------------------------------------------------------
+No frame with a recoverable camera shows a cart barricade, so nothing was
+replaced for it.  Verified out-of-band instead (scratch frames, .shots/,
+not evidence): fired "the lane barricade" in ?only=wardrow, stepped 900
+frames to fully raised, and read the group's meshes —
+district:wardrow:barricade-lane now has an oakSilver pool (a39b8c) of 948
+triangles alongside the oakDark one (625948).  In .shots/CHK-carts-close.jpg
+the two wheels read as pale rims with a dark hub disc standing proud of
+them.  The fix is in; it is the evidence that cannot reach it.
+
+CONTAMINATION — READ THIS BEFORE TRUSTING ANY NEW FRAME
+--------------------------------------------------------
+Other agents were editing the tree while these were captured.  At capture
+time `git status` showed uncommitted modifications to src/districts/
+{chapelclose,keephill,marketlow,millreach,southgate}.js, src/main.js,
+src/scene.js and src/game/*, plus two untracked new files (src/polish.js,
+src/game/daynight.js).  Consequences that are visible in the frames:
+
+  - every district has gained a new UNLIT `relight-brazier` (an integration
+    point for the game layer).  It is what the southgate, chapelclose and
+    keephill gate-axis diffs above actually are.
+  - keephill has gained a lean-to on the skyline, a changed keep-tower
+    silhouette and two window slits in the hall's east wall.  Those are in
+    the replaced ward-from-walk.jpg.  They are not mine and they are not
+    the kit fix.
+  - src/polish.js is now imported by src/main.js, so a default-URL capture
+    carries a haze/cloud layer the committed evidence does not.  Hence
+    `polish=off` on everything here.
+
+Nothing in this pass edited a source file, a gate, or city-plan.json.
+
+DEFECTS SEEN IN THE NEW FRAMES, NOT FIXED (out of scope)
+---------------------------------------------------------
+1. THE SAME UPSIDE-DOWN FLAME IS STILL IN FOUR OTHER PROPS.  Ledger C fixed
+   `brazier` and nothing else.  Still written wide-at-the-sky:
+       src/kit/props.js:429-430   torch()        cyl(0.085, 0.02, ...)
+       src/kit/siege.js:1128-1129 wall torch     cyl(0.085, 0.02, ...)
+       src/kit/siege.js:1186-1187                cyl(R*1.0, R*0.2, ...)
+       src/kit/siege.js:1664-1665                cyl(R*0.4, R*0.09, ...)
+   It is plainly visible in keephill/ward-yard.jpg (the wall torch on the
+   post, an orange funnel apex-down) and in every frame with a wall torch
+   in it — which is most of the town's gate frames.  Same bug, same shape,
+   three or four more props.
