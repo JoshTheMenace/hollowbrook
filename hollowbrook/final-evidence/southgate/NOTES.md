@@ -24,6 +24,7 @@ is a neighbour's `massing` stub, not a building.
 | `play-09-shooting-stage-on-it` | ON the stage, 0.86 m | the arena's own high ground, looking at the gate it covers |
 | `play-10-stable-yard` | the square → east | the stable, the rick, the carrier's cart, the barrels |
 | `play-13-the-wardens-lodge` | the square → the lodge | the fascia, THE WATCH notice and the well — and the reason the lodge is east of the lane (below) |
+| `play-14-relight-brazier-unlit` / `play-15-...-lit` | the wall-walk, west of the gate | the `o3-relight-wall` brazier at (−10, 50.4), before and after `setLit(true)` |
 | `play-11-low-at-the-towers` | the road, eye 0.45 | the roofline, low |
 | `play-12-the-company-camp` | the spawn ring | the enemy's camp, and the only `ACCENT.companyRust` in the world |
 | `wp-1`…`wp-5` | the plan's five waypoints | each reached by the flood fill (see `GATE-check-city-southgate.txt`) |
@@ -106,3 +107,22 @@ and why none of them is fixable from inside this district:
    the west drum stands on the terrain's stair, and set back into the
    square it fills the bowman's gallery. Coordinator's call if the strip
    must be continuous — the drums would then have to go.
+
+
+## The `o3-relight-wall` brazier (integration edit, verified here)
+
+A later integration pass added a brazier to this district's file for the
+plan's `o3-relight-wall` point at (−10, 50) — the game lights "braziers with
+`setLit` within 3 m" of it (`src/game/INTERFACES.md`) and no district had put
+one on this stretch of walk. Measured after the edit, not assumed:
+
+- the point reads `groundAt(−10, 50, fromY 5) = 5.00` and **no collider
+  covers it** — it stays standable, which is what the objective needs;
+- the brazier stands 0.40 m from it, its `userData.setLit` is a function and
+  `setLit(true)` renders (`play-14` / `play-15`);
+- it is seated on the walk, not floating: bbox min y **4.99** against a walk
+  surface of 5.00;
+- it carries **no collider** on purpose. The walk's free band is 1.71 m and a
+  boxed brazier would wall the one route round the town;
+- `check-city --district southgate` **PASS** (368/400 meshes) and
+  `check-spatial` reports **no southgate rows**.

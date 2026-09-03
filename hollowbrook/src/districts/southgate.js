@@ -402,6 +402,18 @@ export const southgate = defineDistrict({
      * 18.  A pier at any of those four is a pier standing in somebody
      * else's wall.
      * ================================================================ */
+    /* INTEGRATION: the plan's `o3-relight-wall` point at (-10, 50.4) — the game
+     * lights "braziers with setLit within 3 m" of it (src/game/INTERFACES.md)
+     * and no district had put one there.  Built UNLIT against the outer
+     * parapet, no collider (keephill's walk-brazier call: the walk's free band
+     * is 1.71 m and a boxed brazier would wall it), so the point stays
+     * standable and the relight beat has something to light. */
+    {
+      const rb = brazier({ seed: 'sg-relight-brazier', r: 0.36, h: 0.66, lit: false, ctx });
+      rb.position.set(-10, 5.0, 50.4);
+      ctx.add(rb, 'relight-brazier');
+    }
+
     curtainWall({ from: -18, to: -3.5, side: 's', ctx, plan, seed: 'sg-curtain-w', endCaps: ['none', 'none'] });
     curtainWall({ from: 3.5, to: 18, side: 's', ctx, plan, seed: 'sg-curtain-e', endCaps: ['none', 'none'] });
 
