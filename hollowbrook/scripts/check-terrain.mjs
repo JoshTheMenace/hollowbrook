@@ -34,7 +34,8 @@ try {
   /* ---- 1. anchors ---- */
   for (const d of plan.districts) {
     for (const a of d.anchors ?? []) {
-      const y = groundAt(a.x, a.z);
+      // asserted FROM the promised height, as composeCity does (core/district.js)
+      const y = groundAt(a.x, a.z, a.expect_top);
       check(`anchor:${d.id}:(${a.x},${a.z})`, Math.abs(y - a.expect_top) <= (a.tol ?? 0.05), `expected ${a.expect_top}, ground ${r2(y)}`);
     }
   }
@@ -61,7 +62,7 @@ try {
       const x = alongX ? a : cx;
       const z = alongX ? cz : a;
       samples += 1;
-      const y = groundAt(x, z);
+      const y = vignette.surfaceTopAt(x, z);
       if (Math.abs(y - WALK_Y) > 0.01) off.push(`(${r2(x)}, ${r2(z)}) reads ${r2(y)} in ${s.in}`);
     }
   }
@@ -69,9 +70,12 @@ try {
   for (const [id, g] of Object.entries(plan.siege?.gates ?? {})) {
     const gx = (g.gap.x0 + g.gap.x1) / 2;
     const gz = (g.gap.z0 + g.gap.z1) / 2;
-    const y = groundAt(gx, gz);
+    // the ground layer: on the built town the kit's deck stands over this
+    // point at WALK_Y and the passage under it must still read the street
+    const y = vignette.groundLayerAt(gx, gz);
+    const deck = vignette.surfaceTopAt(gx, gz);
     const level = plan.terrain.levels.find((l) => l.id === g.district).y;
-    check(`walk:gap:${id}`, Math.abs(y - level) < 0.01, `gap centre (${gx}, ${gz}) reads ${r2(y)} — the passage is open until the kit's gatehouse bridges it at ${WALK_Y}`);
+    check(`walk:gap:${id}`, Math.abs(y - level) < 0.01, `gap centre (${gx}, ${gz}) reads ${r2(y)} on the ground layer (street ${level}); the highest surface there is ${r2(deck)} — ${Math.abs(deck - WALK_Y) < 0.01 ? 'the gatehouse deck bridges it' : 'no deck bridges it yet'}`);
   }
   // connectivity: a walker's fill along the walk (same numbers as check-city)
   const { buildNavGrid, reachableFrom } = await import('../src/game/nav.js');
@@ -130,8 +134,9 @@ try {
     ['keep lower ward', -10, -30, 2.6], ['keep platform', 4, -36, 5.2], ['keep platform east', 12, -30, 5.2],
   ];
   for (const [name, x, z, want] of exact) {
-    const y = groundAt(x, z);
-    check(`flat:${name}`, Math.abs(y - want) < 0.005, `(${x}, ${z}) reads ${r2(y)} (promised ${want})`);
+    // a district may dress a flat with up to an anchor tolerance of paving
+    const y = vignette.surfaceTopAt(x, z);
+    check(`flat:${name}`, Math.abs(y - want) <= 0.05, `(${x}, ${z}) reads ${r2(y)} (promised ${want}, dressing up to 0.05 allowed)`);
   }
   // the mound is EXACTLY zero on the shelves (moundAt is exported for this)
   let lifted = 0;
@@ -163,7 +168,7 @@ try {
     check('surrounds:coverage', holes.length === 0, holes.length ? `${holes.length}/${n} samples over the footprint have no ground (first at ${holes[0]})` : `${n} samples at ${GRID} m over x ${r2(rect.x0)}..${r2(rect.x1)}, z ${r2(rect.z0)}..${r2(rect.z1)} all find ground`);
     // the moor outside the walls sits BELOW the wall-walk by the full curtain height
     const outside = [[0, 53.5], [53.5, 0], [-53.5, 0], [0, -53.5]];
-    const drops = outside.map(([x, z]) => r2(WALK_Y - groundAt(x, z)));
+    const drops = outside.map(([x, z]) => r2(WALK_Y - vignette.groundLayerAt(x, z)));
     check('surrounds:curtain-height', drops.every((d) => d >= 4.9), `outer scarp drops ${drops.join(' / ')} m at the four outer edges`);
   }
 

@@ -253,7 +253,7 @@ try {
   const cj = (z) => Math.round((z - fillRect.z0) / CELL);
   const W = ci(fillRect.x1) + 1;
   const D = cj(fillRect.z1) + 1;
-  if (blocked(seed[0], seed[1], groundAt(seed[0], seed[1]))) {
+  if (blocked(seed[0], seed[1], vignette.groundLayerAt(seed[0], seed[1]))) {
     FAIL(`the fill seed (${seed.join(', ')}) — "${seedWp.name}" — is inside a collider`);
   } else {
     // visited keyed on (cell, height bucket): one bit per cell cannot verify
@@ -261,7 +261,7 @@ try {
     // then refuses to revisit them at the climb's height
     const seen = new Set();
     const reachable = new Map(); // cell -> best height reached
-    const startY = groundAt(seed[0], seed[1]);
+    const startY = vignette.groundLayerAt(seed[0], seed[1]);   // the seed stands on the terrain layer
     const queue = [[ci(seed[0]), cj(seed[1]), startY]];
     seen.add(`${queue[0][0]},${queue[0][1]},${Math.round(startY / 0.3)}`);
     reachable.set(queue[0][0] * 100000 + queue[0][1], startY);
@@ -612,7 +612,8 @@ try {
           /* sample points: that district's own waypoints, at eye height.
            * "Must read from the row" is a claim about standing in the row,
            * and its waypoints are the places the plan says you stand. */
-          const pts = src.waypoints.map((w) => V(w.x, vignette.groundAt(w.x, w.z) + 1.7, w.z));
+          // the ground layer: "under the east gate" is the passage, not its deck
+          const pts = src.waypoints.map((w) => V(w.x, vignette.groundLayerAt(w.x, w.z) + 1.7, w.z));
           const seenFrom = [];
           const blindAt = [];
           for (const [i, p] of pts.entries()) {
@@ -808,7 +809,7 @@ try {
           for (const f of FAN) {
             const ox = sx + tang[0] * f * s.width;
             const oz = sz + tang[1] * f * s.width;
-            const y = vignette.groundAt(ox, oz) + EYE_M;
+            const y = vignette.groundLayerAt(ox, oz) + EYE_M;
             const origin = V(ox, y, oz);
             const aim = V(ox + axis[0] * dir * REACH_M, y, oz + axis[1] * dir * REACH_M);
             const hit = shootVisible(origin, aim);

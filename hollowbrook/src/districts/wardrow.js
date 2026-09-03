@@ -126,9 +126,12 @@ import { hollowShell } from '../builders.js';
  * ------------------------------------------------------------------
  * TRAPS THIS FILE PAID FOR (append as they are found):
  *
- *  - THE GATE ANCHOR AND THE GATEHOUSE DECK ARE IN DIRECT CONFLICT.  See
- *    the long note at the deck platform below; it is a plan/kit issue and
- *    is flagged for the coordinator.
+ *  - THE GATE ANCHOR AND THE GATEHOUSE DECK WERE IN DIRECT CONFLICT, and
+ *    the first cut shipped a 40 mm hole in the deck to satisfy two
+ *    height-blind gates.  Resolved at integration by making the gates
+ *    height-aware (see the note at the deck below); the deck is one
+ *    platform again.  A gate that cannot express two levels at one point
+ *    will be satisfied with a hole, and nobody will see it.
  *  - The vista's diagonal is not the lane.  Three cottages were sited on
  *    the north side of the row lane before anyone plotted where the
  *    `down-the-row` ray actually goes; all three sat squarely on it and
@@ -405,65 +408,31 @@ export const wardrow = defineDistrict({
       ctx.collide(46.6 + fp.x0, tz + fp.z0, 46.6 + fp.x1, tz + fp.z1);
     }
 
-    /* ---- THE ANCHOR AT (50, 22), AND WHY THE DECK HAS A PLINTH ON IT --
+    /* ---- THE ANCHOR AT (50, 22): THE SLOT IS CLOSED (integration) -----
      *
      * The plan promises `(50, 22) expect_top 0` — the gate passage's own
      * floor — and `gatehouse` registers its deck as ONE platform at 5.0
-     * spanning the whole passage, which it must, because that platform is
-     * the only thing that makes the wall-walk one ring instead of two
-     * arcs.  composeCity asserts anchors with the TWO-argument groundAt
-     * (a max over platforms), so the two contracts are in direct conflict
-     * and the build THROWS, measured:
+     * spanning the whole passage, which it must: that platform is what
+     * makes the wall-walk one ring instead of two arcs.  This district
+     * first shipped with the deck split into two rects and a 40 mm SLOT
+     * between them at x 49.98..50.02, because composeCity asserted anchors
+     * with the two-argument `groundAt` (a max over platforms, 5.000 here)
+     * and check-game's passage test was height-blind — the two contracts
+     * together demanded a point on the deck with no platform and no
+     * collider, i.e. a hole a walker's centre could drop 5 m through.
      *
-     *   ANCHOR FAILED in district "wardrow" at (50, 22): expected ground
-     *   top 0 +-0.05, groundAt returned 5.000 (off by 5.000 m)
+     * Both gates are height-aware now (core/district.js asserts an anchor
+     * FROM the height it promises, `groundAt(x, z, expect_top)`; check-game
+     * tests the passage at the feet of whoever walks it), the plan carries a
+     * second anchor at (50, 22) expecting the DECK at 5.0, and the kit's
+     * single deck platform stands as registered.  Verified by check-city's
+     * fill, check-siege's walk-only fill, and a 5 mm trace across both
+     * decks at feet height (scripts/probe-decks.mjs).
      *
-     * southgate does not hit this: its gate anchor is at (0, 53), 0.6 m
-     * OUTSIDE its passage rect.  wardrow's is dead centre of the opening.
-     *
-     * *** COORDINATOR: this is a plan/kit conflict, not a district bug.
-     * The fix belongs upstream — move the anchor to the passage's inward
-     * mouth (50, 27), or have composeCity's anchor check pass
-     * `fromY: expect_top`, which is the whole reason `fromY` exists and
-     * is exactly what the route fill already does. ***
-     *
-     * And a SOLID object over the void is not a way out either, because
-     * `check-game`'s own passage test is HEIGHT-BLIND:
-     *
-     *   const blockedBy = (x, z) => colliders.find((c) => x > c.x0 - R ...)
-     *
-     * — no `feetY`, so a collider five metres up over (50, 22) reads as a
-     * sealed gate.  A stone plinth with a brazier on it was built there
-     * first and failed exactly that check.  So the two contracts together
-     * demand a point on the deck with NO platform and NO collider, which
-     * is a hole, and the only variable left is how big it is.
-     *
-     * It is 40 mm.  The deck platform is re-registered as two rects, both
-     * running the full length of the walk so the ring is continuous, with
-     * a 0.04 m slot between them at x 49.98..50.02.  The kit's deck slab
-     * is drawn across it, so nothing is visible, and the fill's 0.35 m
-     * cells step over it.  A walker whose own centre lands inside 40 mm
-     * of the deck's mid-line drops to the passage floor: a real defect,
-     * kept as small as the arithmetic allows, and it goes away the moment
-     * the plan or composeCity moves.
-     *
-     * The gate's signal brazier is off the mid-line as a result, against
-     * the outer parapet at x 51.4 where its collider clears (50, 22) by
-     * 0.42 m — measured against check-game's 0.34 m radius. */
+     * The gate's signal brazier stays against the outer parapet at x 51.4,
+     * where it was put to clear the mid-line: a brazier in the middle of a
+     * 2.4 m walk is a brazier you cannot walk past. */
     {
-      const i = ctx.platforms.findIndex((p) => p.owner === 'wardrow'
-        && Math.abs(p.top - 5) < 1e-6
-        && Math.abs(p.x0 - 47.6) < 0.05 && Math.abs(p.x1 - 52.4) < 0.05
-        && Math.abs(p.z0 - 18.2) < 0.05 && Math.abs(p.z1 - 25.8) < 0.05);
-      if (i < 0) {
-        throw new Error('[wardrow] the gatehouse deck platform is not where it was measured '
-          + '(x 47.6..52.4, z 18.2..25.8, top 5) — the kit has changed and the anchor workaround '
-          + 'at (50, 22) is now wrong. Re-measure before editing.');
-      }
-      ctx.platforms.splice(i, 1);
-      ctx.platform(47.6, 18.2, 49.98, 25.8, 5.0);
-      ctx.platform(50.02, 18.2, 52.4, 25.8, 5.0);
-
       const bzr = villageProps.brazier({ seed: 'wr-gate-brazier', r: 0.34, h: 0.58, lit: true, ctx });
       bzr.position.set(51.4, 5.0, 22.0);
       ctx.add(bzr, 'gate-brazier');
@@ -1218,6 +1187,17 @@ export const wardrow = defineDistrict({
       door: DOOR[1], shutter: JOINERY.doveGrey, litWindows: 4, dormers: 2,
     });
     place(ctx, inn, { x: 33.2, z: 43.4, yaw: Math.PI, name: 'plough-lantern' });
+
+    /* INTEGRATION: one of the town's THREE LIGHTS (src/game/INTERFACES.md):
+     * `userData.townLight = 1` on the building whose windows go dark for
+     * good when a light is lost.  The lit panes are the pooled `M.lit`
+     * meshes inside the generator's group; `setLit(false)` hides them. */
+    {
+      const panes = [];
+      inn.traverse((o) => { if (o.isMesh && o.material === M.lit) panes.push(o); });
+      inn.userData.townLight = 1;
+      inn.userData.setLit = (on) => { for (const m of panes) m.visible = !!on; };
+    }
 
     {
       /* the gallery stair.  Its top platform (z 41.04) stops CLEAR of the

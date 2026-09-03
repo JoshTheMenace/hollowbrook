@@ -24,7 +24,7 @@ import { buildShowcase, SHOWCASE_CAMERAS } from './kit/_showcase.js';
  * other as its plan `massing` stub — what a district agent sees mid-build.
  * The game layer (src/game/) is additive over this and never edits it.
  */
-export function buildVignette(scene, { only = null, showcase = null } = {}) {
+export function buildVignette(scene, { only = null, showcase = null, terrainOnly = false } = {}) {
   if (only === null && typeof location !== 'undefined') {
     only = new URLSearchParams(location.search).get('only');
   }
@@ -47,10 +47,11 @@ export function buildVignette(scene, { only = null, showcase = null } = {}) {
   const MODULES = [southgate, marketlow, keephill, millreach, chapelclose, wardrow];
   const city = composeCity({
     plan,
-    districts: only ? MODULES.filter((m) => m.id === only) : MODULES,
+    districts: terrainOnly ? [] : only ? MODULES.filter((m) => m.id === only) : MODULES,
     ctx,
     terrainMaterials: TERRAIN_TONES(),
     only,
+    terrainOnly,
   });
 
   const footprint = plan.districts.reduce((acc, d) => ({
@@ -65,6 +66,11 @@ export function buildVignette(scene, { only = null, showcase = null } = {}) {
     platforms: ctx.platforms,
     interactables: ctx.interactables,
     groundAt: ctx.groundAt,
+    // the two NAMED height queries the gates use (core/district.js): the
+    // terrain layer a walker stands on, and the highest walkable surface
+    groundLayerAt: ctx.groundLayerAt,
+    surfaceTopAt: ctx.surfaceTopAt,
+    terrainAt: ctx.terrainAt,
     spawn: [spawn[0], 0, spawn[1]],
     update: (dt, eye) => ctx.step(dt, eye),
     interiorFloors: ctx.interiorFloors,

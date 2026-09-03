@@ -215,7 +215,14 @@ function buildMassingStub({ entry, ctx, groundAt, material }) {
  *        edges compose against something instead of against nothing
  * @returns {{ order, stats, warnings, terrain, only }}
  */
-export function composeCity({ plan, districts, ctx, terrainMaterials = null, only = null }) {
+/**
+ * @param {boolean} [args.terrainOnly] build the terrain and EVERY district as
+ *        its massing stub, no modules at all — what the kit-stage gate
+ *        (check-siege) stands its perimeter up in.  Before this existed it
+ *        booted the finished town and built a second gatehouse on top of the
+ *        first, so both decks read y 10 and the ring "failed" (integration).
+ */
+export function composeCity({ plan, districts, ctx, terrainMaterials = null, only = null, terrainOnly = false }) {
   if (!plan || !Array.isArray(plan.districts) || plan.districts.length === 0) {
     throw new Error('composeCity: plan.districts is missing or empty');
   }
@@ -267,12 +274,25 @@ export function composeCity({ plan, districts, ctx, terrainMaterials = null, onl
     return y;
   };
   ctx.groundAt = groundAt;
+  /* THE TWO NAMED QUERIES EVERY GATE MUST USE, so no gate is left calling
+   * the height-blind two-argument form by accident.  `groundLayerAt` is
+   * where a walker standing on the TERRAIN is: it refuses any district
+   * platform more than a step over the terrain (a gatehouse deck over a
+   * passage, a gallery over a lane).  `surfaceTopAt` is the highest
+   * walkable surface — the prop-seating answer, named so the intent is
+   * visible at the call site.  Integration finding: check-game's passage
+   * test, check-arena-visibility's approach points and composeCity's own
+   * anchor check all read the deck as the ground of the east gate, and
+   * wardrow shipped a 30 mm hole in that deck to satisfy them. */
+  ctx.groundLayerAt = (x, z) => groundAt(x, z, terrain.terrainHeightAt(x, z));
+  ctx.surfaceTopAt = (x, z) => groundAt(x, z, null);
+  ctx.terrainAt = (x, z) => terrain.terrainHeightAt(x, z);
 
   // Both directions, and both are fatal.  A plan district with no module is
   // a hole in the city; a module with no plan entry has no contract at all.
   // In `only` mode the absent modules are the POINT, so only the named one
   // has to be registered.
-  const unbuilt = [...entries.keys()].filter((id) => !modules.has(id) && (only === null || id === only));
+  const unbuilt = terrainOnly ? [] : [...entries.keys()].filter((id) => !modules.has(id) && (only === null || id === only));
   const unplanned = [...modules.keys()].filter((id) => !entries.has(id));
   if (unbuilt.length || unplanned.length) {
     const lines = [];
@@ -283,7 +303,7 @@ export function composeCity({ plan, districts, ctx, terrainMaterials = null, onl
 
   // `after` edges: union of the plan's (the contract) and the module's (what
   // the code actually leans on) — either one alone can under-declare.
-  const buildIds = only === null ? [...entries.keys()] : [only];
+  const buildIds = terrainOnly ? [] : only === null ? [...entries.keys()] : [only];
   const edges = new Map();
   for (const id of buildIds) {
     const entry = entries.get(id);
@@ -304,7 +324,10 @@ export function composeCity({ plan, districts, ctx, terrainMaterials = null, onl
   /* the neighbours, as rough massing, BEFORE the district that has to
    * compose against them — so its own frames contain them */
   const stubs = [];
-  if (only !== null) {
+  /* terrainOnly builds NO stubs either: a massing block is a solid with a
+   * collider, and the plan's gatehouse and corner-tower blocks seal the very
+   * passages and walk corners the kit-stage gate exists to prove open. */
+  if (only !== null && !terrainOnly) {
     for (const [id, entry] of entries) {
       if (id === only) continue;
       const g = buildMassingStub({ entry, ctx, groundAt, material: terrainMaterials?.stub });
@@ -430,9 +453,15 @@ export function composeCity({ plan, districts, ctx, terrainMaterials = null, onl
     // Anchor asserts, plan's plus the module's own — the moment the district
     // lands, not at the end: a later district built on a broken handoff
     // would bury the cause under its own geometry.
+    /* An anchor is asserted FROM the height it promises: `groundAt(x, z,
+     * expect_top)` only offers a platform within a step of that height, so
+     * a passage floor at 0 under a gatehouse deck at 5 reads 0, and a
+     * second anchor at the same point promising 5 reads the deck.  The
+     * two-argument form was a max over every platform and made the plan's
+     * `(50, 22) expect_top 0` unsatisfiable under a deck — wardrow's slot. */
     for (const anchor of [...(entry.anchors ?? []), ...module.anchors]) {
       const tol = anchor.tol ?? 0.05;
-      const actual = ctx.groundAt(anchor.x, anchor.z);
+      const actual = ctx.groundAt(anchor.x, anchor.z, anchor.expect_top);
       if (Math.abs(actual - anchor.expect_top) > tol) {
         const error = new Error(
           `composeCity: ANCHOR FAILED in district "${id}" at (${anchor.x}, ${anchor.z}): ` +

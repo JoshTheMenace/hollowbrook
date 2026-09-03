@@ -40,7 +40,12 @@ const r2 = (v) => Math.round(v * 100) / 100;
 const { check, finish } = makeChecker();
 
 try {
-  const { vignette, plan } = await bootCity();
+  /* TERRAIN + STUBS, never the finished town: this gate stands the KIT's
+   * perimeter up on the terrain.  Booted over the built districts it laid a
+   * second gatehouse on each of the real ones and both decks read y 10 —
+   * the "walk:south-gate deck NOT REACHED" row in southgate's evidence was
+   * that, a harness artefact, not the wall (integration finding). */
+  const { vignette, plan } = await bootCity({ terrainOnly: true });
   const { colliderBlocks } = await import('../src/builders.js');
   const { curtainWall, gatehouse, stairTurret, barricade, roundTower, place } = await import('../src/kit/index.js');
   const { wallWalkShelves, landingShelves } = await import('../src/terrain.js');
@@ -166,7 +171,7 @@ try {
   const D = cj(RECT.z1) + 1;
 
   function fill(seedX, seedZ, { floorY = -Infinity } = {}) {
-    const y0 = groundAt(seedX, seedZ);
+    const y0 = vignette.surfaceTopAt(seedX, seedZ);   // a walk seed stands on the walk
     if (y0 < floorY) throw new Error(`fill seed (${seedX}, ${seedZ}) is at y ${r2(y0)}, under the floor ${floorY}`);
     const seen = new Set();
     const best = new Map();
@@ -221,7 +226,7 @@ try {
   for (const [nm, x, z] of walkTargets) {
     const ok = walk.reached(x, z);
     if (!ok) walkFails += 1;
-    check(`walk:${nm}`, ok, `(${x}, ${z}) at y ${r2(groundAt(x, z))} — ${ok ? 'reached along the walk' : 'NOT REACHED without leaving the wall'}`);
+    check(`walk:${nm}`, ok, `(${x}, ${z}) at y ${r2(vignette.surfaceTopAt(x, z))} — ${ok ? 'reached along the walk' : 'NOT REACHED without leaving the wall'}`);
   }
   check('walk:ring', walkFails === 0, walkFails === 0
     ? 'the wall-walk is ONE RING: every corner, both gate decks and all five landings from one seed, never dropping below 4.5 m'
@@ -292,9 +297,24 @@ try {
   const outer = [];
   for (let x = -46; x <= 46; x += 2) outer.push([x, 52.6], [x, -52.6]);
   for (let z = -46; z <= 46; z += 2) outer.push([52.6, z], [-52.6, z]);
-  for (const [x, z] of outer) if (blocked(x, z, groundAt(x, z, 0))) outerSealed += 1;
-  check('surrounds:under-wall', outerSealed === 0,
-    `${outer.length} samples of the moor 1.4 m outside the curtain: ${outerSealed} blocked at feet height`);
+  /* Declared exceptions (plan `siege.under_wall_exceptions`, amendment A1):
+   * southgate's two mural drums stand OUTSIDE the wall by design — the kit's
+   * own turrets stood on the terrain's stair — and a drum is a building in
+   * the ditch.  A sealed sample inside a declared rect is counted and named;
+   * one outside any rect still fails. */
+  const exceptions = plan.siege?.under_wall_exceptions ?? [];
+  const inExc = (x, z) => exceptions.find((e) => x >= e.rect.x0 && x <= e.rect.x1 && z >= e.rect.z0 && z <= e.rect.z1);
+  let declaredSealed = 0;
+  const sealedOut = [];
+  for (const [x, z] of outer) {
+    if (!blocked(x, z, groundAt(x, z, 0))) continue;
+    outerSealed += 1;
+    if (inExc(x, z)) declaredSealed += 1; else sealedOut.push(`(${x}, ${z})`);
+  }
+  check('surrounds:under-wall', sealedOut.length === 0,
+    `${outer.length} samples of the moor 1.4 m outside the curtain: ${outerSealed} blocked at feet height, ` +
+    `${declaredSealed} of them inside a declared exception (${exceptions.map((e) => e.reason).join('; ') || 'none declared'})` +
+    `${sealedOut.length ? ` — UNDECLARED: ${sealedOut.join(' ')}` : ''}`);
 
   /* ---- Q4: a raised barricade leaves 1.8 m ---------------------------- */
   {

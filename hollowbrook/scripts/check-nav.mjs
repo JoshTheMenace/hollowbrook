@@ -23,7 +23,7 @@ const { check, finish } = makeChecker();
 
 try {
   const { vignette, plan } = await bootCity();
-  const { buildNavGrid, reachableFrom, flowToward } = await import('../src/game/nav.js');
+  const { buildNavGrid, reachableFrom, flowToward, nearestOpen } = await import('../src/game/nav.js');
   const game = plan.game;
   if (!game) { check('game:block', false, 'plan has no game block'); finish(); }
   const fp = vignette.footprint;
@@ -55,8 +55,14 @@ try {
   }
 
   for (const a of game.arenas ?? []) {
-    const cx = (a.rect.x0 + a.rect.x1) / 2;
-    const cz = (a.rect.z0 + a.rect.z1) / 2;
+    /* the rect's centre may be a well (the market) or a curtain's ledge
+     * (the keep): the target is the nearest open cell within 2 m of it,
+     * which is what a wave standing "at the centre" actually stands on */
+    const c0 = [(a.rect.x0 + a.rect.x1) / 2, (a.rect.z0 + a.rect.z1) / 2];
+    const nc = nearestOpen(grid, c0[0], c0[1], 2);
+    const [cx, cz] = nc ? grid.toWorld(nc[0], nc[1]) : c0;
+    if (!nc) check(`arena:${a.id}:centre`, false, `no open cell within 2 m of the rect centre (${c0})`);
+    else if (Math.hypot(cx - c0[0], cz - c0[1]) > 0.5) console.log(`  arena ${a.id}: centre (${c0}) is not open ground; measuring at (${cx.toFixed(2)}, ${cz.toFixed(2)})`);
     for (const [gid, mask] of rings) {
       let open = 0;
       let reached = 0;
@@ -90,8 +96,9 @@ try {
   // the directed flow field agrees with the forward fill
   const keep = (game.arenas ?? []).find((a) => a.id === 'the-keep');
   if (keep) {
-    const kx = (keep.rect.x0 + keep.rect.x1) / 2;
-    const kz = (keep.rect.z0 + keep.rect.z1) / 2;
+    const k0 = [(keep.rect.x0 + keep.rect.x1) / 2, (keep.rect.z0 + keep.rect.z1) / 2];
+    const kc = nearestOpen(grid, k0[0], k0[1], 2);
+    const [kx, kz] = kc ? grid.toWorld(kc[0], kc[1]) : k0;
     const flow = flowToward(grid, kx, kz);
     for (const g of game.gates ?? []) {
       const [i, j] = grid.toCell(g.spawn_ring.centre[0], g.spawn_ring.centre[1]);

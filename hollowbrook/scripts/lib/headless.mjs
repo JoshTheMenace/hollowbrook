@@ -27,12 +27,19 @@ export function installDomStub() {
   globalThis.self ??= globalThis;
 }
 
-export async function bootCity({ only = null } = {}) {
+/* Installed at IMPORT, not only in bootCity(): every gate imports this
+ * module first, and a kit module that draws a canvas texture at its own
+ * import (kit/mats.js applies the surface maps when it loads) would
+ * otherwise throw "document is not defined" from any import chain that
+ * reaches it before bootCity runs (integration finding). */
+installDomStub();
+
+export async function bootCity({ only = null, terrainOnly = false } = {}) {
   installDomStub();
   const THREE = await import('three');
   const { buildVignette } = await import('../../src/scene.js');
   const scene = new THREE.Scene();
-  const vignette = buildVignette(scene, { only });
+  const vignette = buildVignette(scene, { only, terrainOnly });
   scene.updateMatrixWorld(true);
   return { THREE, scene, vignette, plan: vignette.plan };
 }
