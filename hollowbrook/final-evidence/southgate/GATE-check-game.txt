@@ -19,9 +19,9 @@ PASS arena:the-market:landmarks — 0/0 district landmarks read from the arena c
 PASS arena:the-market:approach — approached from south-gate
 PASS arena:the-row:district — district wardrow
 PASS arena:the-row:in-envelope — rect {"x0":20,"z0":-16,"x1":47,"z1":47} inside wardrow
-PASS arena:the-row:cover — 52 cover colliders fully inside (need >= 6)
+PASS arena:the-row:cover — 53 cover colliders fully inside (need >= 6)
 PASS arena:the-row:elevation — 14 samples stand > 0.3 m over the district level 0 (need >= 6)
-FAIL arena:the-row:landmarks — 0/1 district landmarks read from the arena centre (need >= 1)
+PASS arena:the-row:landmarks — 1/1 district landmarks read from the arena centre (need >= 1)
 PASS arena:the-row:approach — approached from east-gate
 PASS arena:the-mill:district — district millreach
 PASS arena:the-mill:in-envelope — rect {"x0":-47,"z0":-10,"x1":-20,"z1":47} inside millreach
@@ -72,4 +72,4 @@ PASS objective:o3-relight-wall — 4 of 4 points, 120 s
 PASS objective:o4-escort-reeve — escort reeve from (-13.2,5.2) to (2,-34), leash 8 m, 120 s
 PASS objective:o5-hold-keep — hold the-keep for 240 s
 PASS objective:o6-ring-the-bell — "the bell rope" at (8.5,-41) in keephill, 3 s channel
-RESULT: FAIL (8)
+RESULT: FAIL (7)

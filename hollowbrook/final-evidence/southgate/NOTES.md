@@ -22,7 +22,8 @@ is a neighbour's `massing` stub, not a building.
 | `play-07-wallwalk-onto-the-arena` | (−6, 50) → down | the walk down onto the arena |
 | `play-08-muster-ground` | the square → west | the west cover cluster: mantlet, gabions, spear rack, trough, the shooting stage |
 | `play-09-shooting-stage-on-it` | ON the stage, 0.86 m | the arena's own high ground, looking at the gate it covers |
-| `play-10-stable-yard` | the square → east | the east cover cluster: the carrier's cart, the well, the barrels, the rick |
+| `play-10-stable-yard` | the square → east | the stable, the rick, the carrier's cart, the barrels |
+| `play-13-the-wardens-lodge` | the square → the lodge | the fascia, THE WATCH notice and the well — and the reason the lodge is east of the lane (below) |
 | `play-11-low-at-the-towers` | the road, eye 0.45 | the roofline, low |
 | `play-12-the-company-camp` | the spawn ring | the enemy's camp, and the only `ACCENT.companyRust` in the world |
 | `wp-1`…`wp-5` | the plan's five waypoints | each reached by the flood fill (see `GATE-check-city-southgate.txt`) |
@@ -71,7 +72,34 @@ and why none of them is fixable from inside this district:
    `passage:south-gate:width 5.05 m`), and so do `check-game`'s
    `gate:south-gate:passage-open` and check-city's fill.
 
-5. **`GATE-check-siege.txt`: `surrounds:under-wall — 4 of 188 blocked`.**
+5. **`the-mill`'s visibility was 25.7 % and the cause was in THIS district.**
+   millreach's arena is approached from `south-gate`, so
+   `check-arena-visibility` rays every open cell of its rect at the gate's
+   three approach points — and of the three, only (0, 40) is reachable
+   from inside the town at all: (0, 58) is behind the curtain wall, and
+   (0, 50) sits at **y 6.00** because that gate samples `groundAt(x, z)`
+   with two arguments and the gatehouse deck is a platform. So the whole
+   number turns on how much of this square stands between the mill and one
+   point. Measured by hiding one group's MESHES at a time (hiding the
+   GROUP does nothing — the gate filters on `hit.object.visible`, and a
+   group's flag does not reach its children; the first isolation run
+   reported every candidate as worth zero):
+
+   | | cells | |
+   |---|---|---|
+   | baseline | 75/292 | 25.7 % |
+   | minus the shooting stage | 80/292 | 27.4 % |
+   | **minus the wardens' lodge** | **173/292** | **59.2 %** |
+   | minus every other southgate mass | 75/292 | 25.7 % |
+   | with (0, 50) at street level | 77/292 | 26.4 % |
+
+   The lodge was 98 of the 100 cells. Nothing at x > 0 can block a ray
+   from the mill (every source x ≤ −20) to (0, 40), so the lodge crossed
+   the lane to (9.6, 35.4) and the muster ground became what its name
+   says. `arena:the-mill:visibility` now reads **175/292 = 60 %**, and
+   `arena:gate-square` is unchanged at 84 %.
+
+6. **`GATE-check-siege.txt`: `surrounds:under-wall — 4 of 188 blocked`.**
    The two mural drums flanking the gate project into the ditch, so the
    1.4 m strip at the wall's foot is closed where they stand. That is what
    a mural tower does, and the alternatives were measured: inside the wall

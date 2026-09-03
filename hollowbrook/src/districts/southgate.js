@@ -541,16 +541,44 @@ export const southgate = defineDistrict({
      *    lane between them left alone.
      * ================================================================ */
     /* the wardens' lodge.  Two storeys of granite under shingle, front
-     * (authored +z) turned to +x by yaw PI/2 so its door and its fascia
-     * address the muster ground and the lane — a shelter's door faces the
-     * arena.  Rotated footprint: x -15.0..-9.0, z 21.6..28.8. */
+     * (authored +z) turned to -x by yaw -PI/2 so its door and its fascia
+     * address the lane and the arch — a shelter's door faces the arena.
+     * Rotated footprint: x 6.6..12.6, z 31.8..39.0.
+     *
+     * IT STOOD AT (-12.0, 25.2) — the plan's own massing — AND THAT IS
+     * WHERE IT BROKE ANOTHER DISTRICT'S ARENA.  `the-mill`'s approach is
+     * `south-gate`, so `check-arena-visibility` rays every open cell of
+     * millreach's rect (x -47..-20, z -10..47) at the gate's three
+     * approach points; the only one of the three that is reachable from
+     * inside the town is (0, 40), in this square.  A 6 x 7.2 m block
+     * standing 19 m short of that point casts a shadow across a third of
+     * the mill.  Measured, by hiding one group's MESHES at a time:
+     *
+     *     baseline                     75/292  25.7 %   (floor is 40)
+     *     minus the shooting stage     80/292  27.4 %
+     *     minus the wardens' lodge    173/292  59.2 %
+     *     minus every other mass      unchanged
+     *
+     * Nothing at x > 0 can block a ray from the mill to (0, 40), because
+     * every source is at x <= -20 and the target is at 0.  So the lodge
+     * crosses the lane and the muster ground stays what its name says:
+     * open ground with the stage, the mantlet and the racks on it.
+     *
+     * TWO THINGS THIS COST TWO RUNS TO LEARN.  A group's `visible = false`
+     * does NOT hide its meshes, and the gate filters on `hit.object.
+     * visible` — so the first isolation run reported every candidate as
+     * worth exactly zero cells.  And the (0, 50) approach point sits at
+     * y 6.00 because `check-game`/`check-arena-visibility` sample
+     * `groundAt(x, z)` with two arguments and the gatehouse deck is a
+     * platform: that is a real bug, but it is worth 2 cells here, not 98.
+     * The lodge was the whole of it. */
     const lodge = cottage({
       seed: 'wardens-lodge', w: 7.2, d: 6.0, storeys: 2, groundH: 2.5, upperH: 2.2,
       wall: 'granite', roof: 'shingle', ridgeAxis: 'x', crook: 0.5,
       door: JOINERY.oakStain, shutter: JOINERY.doveGrey, shutters: 'mixed',
       chimney: true, litWindows: 2, jetty: 0,
     });
-    place(ctx, lodge, { x: -12.0, z: 25.2, yaw: Math.PI / 2, name: 'wardens-lodge' });
+    place(ctx, lodge, { x: 9.6, z: 35.4, yaw: -Math.PI / 2, name: 'wardens-lodge' });
 
     /* the stable.  Long and low, front turned to -x so it opens onto its
      * own yard and the lane.  Rotated footprint: x 8.8..14.4, z 18.5..27.5. */
@@ -610,8 +638,11 @@ export const southgate = defineDistrict({
       { box: boxAt(4.8, 32.8, 0.75, 0.6) });
     put(sackStack({ seed: 'carrier-sacks', n: 5 }), 8.2, 30.6, 'carrier-sacks',
       { box: boxAt(8.2, 30.6, 0.4, 0.4) });
-    put(wellHead({ seed: 'gate-well', r: 0.85, h: 0.76, roof: true, bucket: true }), 8.4, 34.8, 'gate-well',
-      { box: boxAt(8.4, 34.8, 1.1, 1.1) });
+    /* the well is at 39.8 and not 36.6: at 36.6 its roof stood squarely in
+     * front of the lodge's fascia from every spot in the square you would
+     * read the sign from. */
+    put(wellHead({ seed: 'gate-well', r: 0.85, h: 0.76, roof: true, bucket: true }), 4.8, 39.8, 'gate-well',
+      { box: boxAt(4.8, 39.8, 1.1, 1.1) });
     put(barrelStack({ seed: 'stable-barrels-a', rows: 3 }), 4.9, 24.2, 'stable-barrels-a',
       { ry: Math.PI / 2, box: boxAt(4.9, 24.2, 0.62, 1.0) });
     put(barrelStack({ seed: 'stable-barrels-b', rows: 2 }), 6.4, 20.6, 'stable-barrels-b',
@@ -655,10 +686,10 @@ export const southgate = defineDistrict({
      * player driven off the lane has cover on BOTH sides of it. */
     put(barrelStack({ seed: 'gate-barrels-a', rows: 3 }), 6.8, 41.5, 'gate-barrels-a',
       { ry: Math.PI / 2, box: boxAt(6.8, 41.5, 0.62, 1.0) });
-    put(barrelStack({ seed: 'gate-barrels-b', rows: 2 }), 8.0, 39.6, 'gate-barrels-b',
-      { box: boxAt(8.0, 39.6, 1.0, 0.62) });
+    put(barrelStack({ seed: 'gate-barrels-b', rows: 2 }), 8.6, 41.2, 'gate-barrels-b',
+      { box: boxAt(8.6, 41.2, 1.0, 0.62) });
     placeCover(ctx, siegeProps.felledCart({ seed: 'gate-felled-cart' }),
-      { x: 13.0, z: 39.2, yaw: Math.PI / 2, name: 'gate-felled-cart' });
+      { x: 13.4, z: 41.6, yaw: Math.PI / 2, name: 'gate-felled-cart' });
 
     /* -- ten minutes ago: the wardens were barring the gate.  The draw bar
      *    is out of its sockets and leaning on the west pier, with the crow
@@ -765,18 +796,18 @@ export const southgate = defineDistrict({
      *    gates, and the bell drawn on it is a bell.
      * ================================================================ */
     {
-      const faceX = -9.0;   // the lodge's +x elevation, after its yaw
+      const faceX = 6.6;    // the lodge's -x elevation, after its yaw
       const board = signKit.fasciaBoard({
         tenant: 'wardensHollowbrook', w: 3.4, h: 0.68, seed: 'wardens-fascia', corbels: true,
       });
-      board.position.set(faceX + 0.02, G(faceX, 25.2) + 2.74, 25.2);
-      board.rotation.y = Math.PI / 2;
+      board.position.set(faceX - 0.02, G(faceX, 35.4) + 2.74, 35.4);
+      board.rotation.y = -Math.PI / 2;
       board.userData.airborne = true;
       ctx.add(board, 'wardens-fascia');
 
       const note = signKit.wallNotice({ notice: 'rota', w: 0.62, h: 0.82, seed: 'wardens-rota' });
-      note.position.set(faceX + 0.02, G(faceX, 27.4) + 1.62, 27.4);
-      note.rotation.y = Math.PI / 2;
+      note.position.set(faceX - 0.02, G(faceX, 37.6) + 1.62, 37.6);
+      note.rotation.y = -Math.PI / 2;
       note.userData.airborne = true;
       ctx.add(note, 'wardens-rota');
 
@@ -787,7 +818,7 @@ export const southgate = defineDistrict({
       put(stand, -7.2, 28.4, 'gate-notices', { ry: Math.PI / 2, box: boxAt(-7.2, 28.4, 0.24, 0.78) });
     }
     // the square's two lamps, lit — one each side of the lane, well off it
-    for (const [tag, x, z] of [['w', -4.9, 31.4], ['e', 4.9, 36.8]]) {
+    for (const [tag, x, z] of [['w', -4.9, 31.4], ['e', 4.4, 31.2]]) {
       put(postLantern({ seed: `square-lamp-${tag}`, h: 2.8, lit: true, arm: true }), x, z, `square-lamp-${tag}`,
         { box: boxAt(x, z, 0.22, 0.22) });
     }

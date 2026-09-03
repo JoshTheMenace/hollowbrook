@@ -4,9 +4,9 @@ dressing added 88 colliders and 6 platforms
 
 wall-walk fill (ground >= 4.5 only): 5769 cells from (-40, 50), 5769 visits
 
-ground fill: 105919 cells from the player spawn (0,30)
+ground fill: 105925 cells from the player spawn (0,30)
 
-whole perimeter dressed: 2496 meshes, 819138 triangles in the scene (terrain + stubs + siege kit)
+whole perimeter dressed: 2517 meshes, 822744 triangles in the scene (terrain + stubs + siege kit)
 PASS curtain:runs — 11 curtain runs dressed over 11 wall-walk shelves
 PASS gatehouse:built — 2 gatehouses: south-gate clear 5.7 m (walkable 5.02); east-gate clear 5.7 m (walkable 5.02)
 PASS gatehouse:south-gate:clear — passage clear 5.7 m (contract >= 5.0), walkable 5.02 m

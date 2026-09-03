@@ -41,5 +41,5 @@ PASS interact:the lane barricade:effect — 7 objects changed within 8 m of the 
 PASS interact:the keep-lane barricade:placed — registered at (35.3, 12.0) in wardrow
 PASS interact:the keep-lane barricade:effect — 8 objects changed within 8 m of the prompt site
 PASS interact:the inn-lane barricade:placed — registered at (28.0, 36.3) in wardrow
-PASS interact:the inn-lane barricade:effect — 7 objects changed within 8 m of the prompt site
+PASS interact:the inn-lane barricade:effect — 10 objects changed within 8 m of the prompt site
 RESULT: PASS
