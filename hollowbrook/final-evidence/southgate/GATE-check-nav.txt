@@ -1,0 +1,40 @@
+== node scripts/check-nav.mjs
+nav grid 378×378 at 0.35 m over x -66..66, z -66..66: 122868 open cells, 469 colliders, built in 6688 ms
+PASS ring:south-gate:open — spawn ring centre (0,60) is open ground
+PASS ring:south-gate:approach — 3 approach points open
+PASS ring:east-gate:open — spawn ring centre (60,22) is open ground
+PASS ring:east-gate:approach — 3 approach points open
+PASS arena:gate-square:from:south-gate — centre reached, 623/629 open cells (99 %) reachable from south-gate
+PASS arena:gate-square:from:east-gate — centre reached, 623/629 open cells (99 %) reachable from east-gate
+FAIL arena:the-market:from:south-gate — centre NOT reached, 788/790 open cells (100 %) reachable from south-gate
+FAIL arena:the-market:from:east-gate — centre NOT reached, 788/790 open cells (100 %) reachable from east-gate
+PASS arena:the-row:from:south-gate — centre reached, 1270/1270 open cells (100 %) reachable from south-gate
+PASS arena:the-row:from:east-gate — centre reached, 1270/1270 open cells (100 %) reachable from east-gate
+PASS arena:the-mill:from:south-gate — centre reached, 1246/1246 open cells (100 %) reachable from south-gate
+PASS arena:the-mill:from:east-gate — centre reached, 1246/1246 open cells (100 %) reachable from east-gate
+PASS arena:the-close:from:south-gate — centre reached, 627/671 open cells (93 %) reachable from south-gate
+PASS arena:the-close:from:east-gate — centre reached, 627/671 open cells (93 %) reachable from east-gate
+FAIL arena:the-keep:from:south-gate — centre NOT reached, 1244/1275 open cells (98 %) reachable from south-gate
+FAIL arena:the-keep:from:east-gate — centre NOT reached, 1244/1275 open cells (98 %) reachable from east-gate
+PASS waypoints:southgate — 5 waypoints reachable from the spawn (0,30)
+PASS waypoints:marketlow — 5 waypoints reachable from the spawn (0,30)
+PASS waypoints:keephill — 7 waypoints reachable from the spawn (0,30)
+PASS waypoints:millreach — 5 waypoints reachable from the spawn (0,30)
+PASS waypoints:chapelclose — 5 waypoints reachable from the spawn (0,30)
+PASS waypoints:wardrow — 6 waypoints reachable from the spawn (0,30)
+PASS post:reeve — (-13.2,5.2) reachable from the spawn
+PASS post:runner — (3,27) reachable from the spawn
+PASS post:bowman — (8,50) reachable from the spawn
+PASS post:smith — (33,-4.2) reachable from the spawn
+PASS post:millwarden — (-32.5,22) reachable from the spawn
+PASS post:hedgewizard — (-40,-34) reachable from the spawn
+PASS post:vixen — (27,-34) reachable from the spawn
+PASS objective:o1-escort-runner:reachable — 2 points reachable
+PASS objective:o2-barricades:reachable — 3 points reachable
+PASS objective:o3-relight-wall:reachable — 4 points reachable
+PASS objective:o4-escort-reeve:reachable — 2 points reachable
+FAIL flow:south-gate->keep — the reverse BFS does not reach the ring
+FAIL route:south-gate->keep:through-passage — the ring-to-keep route never crosses a gate passage at street level
+FAIL flow:east-gate->keep — the reverse BFS does not reach the ring
+FAIL route:east-gate->keep:through-passage — the ring-to-keep route never crosses a gate passage at street level
+RESULT: FAIL (8)

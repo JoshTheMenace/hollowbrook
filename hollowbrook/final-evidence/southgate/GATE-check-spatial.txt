@@ -1,0 +1,3 @@
+== node scripts/check-spatial.mjs (whole city)
+spatial audit: 451 units (451 tagged, 0 pooled clusters, 66 runs, 13 of them raked), 746206 triangles, 40717 seam samples (5939 inside colliders skipped, 786 inside 5 registered interiors)
+PASS — every unit grounded, no interpenetration, no ground holes

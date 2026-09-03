@@ -1,0 +1,94 @@
+== node scripts/check-city.mjs --district southgate
+
+== plan ==
+PASS plan valid — 6 districts
+
+== build (composeCity anchors assert during it) ==
+PASS built in order: southgate
+WARN [southgate] LAYING-GROUND: platform x -3.8..3.8, z 47.6..52.4 is 36 m² (limit 30) at top 5 — you are laying ground, which is the terrain's job. A district plate stops at the envelope and nothing owns what lies between or beyond it: that is the floating-slab defect. Set the level in plan.terrain.levels and DRESS this surface instead (paving, kerbs, steps laid on it) — or, if it really is one made surface, say so here.
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:siege-road" centered (-0.49, 59.10) is 5.10 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-fire-a" centered (-4.00, 58.20) is 4.20 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-fire-b" centered (6.60, 62.20) is 8.20 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-fire-c" centered (-0.40, 61.00) is 7.00 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-tent-a" centered (-7.69, 59.00) is 5.00 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-tent-b" centered (7.69, 58.59) is 4.59 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-tent-c" centered (2.80, 63.49) is 9.49 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-tent-d" centered (-3.20, 64.11) is 10.11 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-banner" centered (3.60, 57.40) is 3.40 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-ladder-a" centered (-10.27, 57.03) is 3.03 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-ladder-b" centered (10.03, 56.50) is 2.50 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-pots" centered (-5.60, 56.21) is 2.21 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree--28-63" centered (-27.77, 63.07) is 13.33 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree--21-65" centered (-21.70, 64.72) is 11.34 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree--15-63" centered (-14.85, 63.49) is 9.49 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree--9-66" centered (-9.01, 65.62) is 11.62 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree-9-66" centered (8.87, 65.57) is 11.57 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree-15-63" centered (15.16, 63.39) is 9.39 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree-22-65" centered (21.38, 64.87) is 11.38 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree-28-63" centered (27.94, 63.45) is 13.71 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+
+== seams ==
+seam check: 5 socket pairs involving southgate
+PASS gate-road <> market-road-s [road] at (0, 16) — southgate <-> marketlow
+PASS sg-w-lane <> mr-e-lane [path] at (-18, 34) — southgate <-> millreach
+PASS sg-e-lane <> wr-w-lane [path] at (18, 36) — southgate <-> wardrow
+PASS sg-walk-w <> mr-walk-s [path] at (-18, 50) — southgate <-> millreach
+PASS sg-walk-e <> wr-walk-s [path] at (18, 50) — southgate <-> wardrow
+PASS — ground continuous and corridors clear at every socket
+
+== spatial audit (southgate) ==
+spatial audit: 62 units (62 tagged, 0 pooled clusters, 4 runs, 0 of them raked), 380664 triangles, 4482 seam samples (990 inside colliders skipped)
+PASS no spatial defects inside southgate
+
+== flood fill (southgate) ==
+fill: 26964 cells reachable from "the gate square" (0, 30) over x -30..30, z 4..66 at 0.35 m, radius 0.34, step 0.38 — 27080 visits, 87 colliders
+PASS [southgate] the gate square (0, 30)
+PASS [southgate] under the arch (0, 50)
+PASS [southgate] the south wall-walk (-10, 50)
+PASS [southgate] the stair-head turret (-16.5, 47.3)
+PASS [southgate] the siege road (0, 58)
+
+== budgets ==
+PASS [southgate] 362 meshes / 400, 71448 triangles / 150000, 65 colliders, 8 platforms
+
+== enterable interiors ==
+no enterable buildings declared in southgate — most buildings are not enterable, and that is correct
+0 interiors registered in the scene, 0 declared in the plan
+
+== surrounds coverage (the whole footprint, not the parcels) ==
+sampled 7744 points at 1.5 m over x -66..66, z -66..66 (footprint_m 132×132); floor threshold y -4.4
+PASS ground everywhere in the footprint — nothing ends in a cut, surrounds owner "southgate"
+
+== sight corridors ==
+PASS gate-sees-keep — 72 m clear at y 8.5 across ±3 m [crosses southgate, marketlow, keephill]
+
+== landmark contracts ==
+PASS [southgate] "district:southgate:gatehouse" reads from vista "from-the-keep"
+PASS [southgate] "district:southgate:gatehouse" reads from 4/5 points in "marketlow" (the well, the north steps, the east stair head, the ramp foot)
+
+== interactions ==
+PASS [southgate] 2 interactables registered for 2 declared
+
+== boundary features (declared vs. built) ==
+skipped — "southgate" is composed against stub massing, so a shared edge has no real neighbour on it
+
+== terminating sight lines (what closes each view — advisory) ==
+  [southgate] gate-road looking +z from (0, 16) -> 4/5 rays land on "gatehouse" [owner: southgate], the 4 that hit average 32.76 m
+  [southgate] gate-road looking -z from (0, 16) -> 3/5 rays land on "terrain:treads" [owner: terrain], the 5 that hit average 38.41 m
+  [southgate] sg-w-lane looking +x from (-18, 34) -> 4/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 1 that hit average 25.6 m
+WARN TERMINUS [southgate] "sg-w-lane" looking +x: 4/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [southgate] sg-w-lane looking -x from (-18, 34) -> 5/5 rays land on "terrain:ground" [owner: terrain], the 5 that hit average 30.16 m
+WARN TERMINUS [southgate] "sg-w-lane" looking -x: 5/5 rays land on bare terrain 30.16 m out. A ground plate is not a subject; the view along this axis ends on nothing built.
+  [southgate] sg-e-lane looking +x from (18, 36) -> 5/5 rays land on "district:wardrow:massing-3" [owner: wardrow], the 5 that hit average 23 m
+WARN TERMINUS [southgate] "sg-e-lane" looking +x: 5/5 rays land on "district:wardrow:massing-3" [owner: wardrow], which carries no userData.kind — it is an untagged mesh, not a composed subject. What closes a view should be something a kit generator made on purpose.
+  [southgate] sg-e-lane looking -x from (18, 36) -> 5/5 rays land on "(nothing — open sky or fog)" [owner: nobody], nothing within 45 m
+WARN TERMINUS [southgate] "sg-e-lane" looking -x: 5/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [southgate] sg-walk-w looking +x from (-18, 50) -> 2/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 3 that hit average 13.52 m
+  [southgate] sg-walk-w looking -x from (-18, 50) -> 4/5 rays land on "district:millreach:massing-2" [owner: millreach], the 4 that hit average 29.5 m
+WARN TERMINUS [southgate] "sg-walk-w" looking -x: 4/5 rays land on "district:millreach:massing-2" [owner: millreach], which carries no userData.kind — it is an untagged mesh, not a composed subject. What closes a view should be something a kit generator made on purpose.
+  [southgate] sg-walk-e looking +x from (18, 50) -> 4/5 rays land on "district:wardrow:massing-5" [owner: wardrow], the 4 that hit average 29.5 m
+WARN TERMINUS [southgate] "sg-walk-e" looking +x: 4/5 rays land on "district:wardrow:massing-5" [owner: wardrow], which carries no userData.kind — it is an untagged mesh, not a composed subject. What closes a view should be something a kit generator made on purpose.
+  [southgate] sg-walk-e looking -x from (18, 50) -> 2/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 3 that hit average 13.5 m
+10 terminating sight lines walked at 1.7 m eye, 5-ray fan across each socket's width, 45 m reach. The rule is editorial and is stated in references/city-scale.md: every terminating sight line must land on a subject somebody composed.
+
+RESULT: PASS — plan, anchors, seams, spatial audit, routes, budgets, surrounds, sight corridors, landmarks and interactions all green

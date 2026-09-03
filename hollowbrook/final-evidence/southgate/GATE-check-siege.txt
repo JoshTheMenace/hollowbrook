@@ -1,0 +1,60 @@
+== node scripts/check-siege.mjs  (the KIT's own perimeter harness — see NOTES.md)
+dressing added 88 colliders and 6 platforms
+  of them 145 carry `bottom` (parapets) and 11 carry `top` (gatehouse piers)
+
+wall-walk fill (ground >= 4.5 only): 5769 cells from (-40, 50), 5769 visits
+
+ground fill: 105919 cells from the player spawn (0,30)
+
+whole perimeter dressed: 2496 meshes, 819138 triangles in the scene (terrain + stubs + siege kit)
+PASS curtain:runs — 11 curtain runs dressed over 11 wall-walk shelves
+PASS gatehouse:built — 2 gatehouses: south-gate clear 5.7 m (walkable 5.02); east-gate clear 5.7 m (walkable 5.02)
+PASS gatehouse:south-gate:clear — passage clear 5.7 m (contract >= 5.0), walkable 5.02 m
+PASS gatehouse:east-gate:clear — passage clear 5.7 m (contract >= 5.0), walkable 5.02 m
+PASS turret:built — 5 stair turrets on 5 landings
+PASS walk:corner sw — (-49.6, 49.6) at y 5 — reached along the walk
+PASS walk:corner nw — (-49.6, -49.6) at y 5 — reached along the walk
+PASS walk:corner ne — (49.6, -49.6) at y 5 — reached along the walk
+PASS walk:corner se — (49.6, 49.6) at y 5 — reached along the walk
+FAIL walk:south-gate deck — (0, 50) at y 10 — NOT REACHED without leaving the wall
+PASS walk:east-gate deck — (50, 22) at y 5 — reached along the walk
+PASS walk:landing southgate — (-16.5, 47.3) at y 5 — reached along the walk
+PASS walk:landing keephill — (41.5, -47.3) at y 5 — reached along the walk
+PASS walk:landing millreach — (-47.3, 31.5) at y 5 — reached along the walk
+PASS walk:landing chapelclose — (-31.5, -47.3) at y 5 — reached along the walk
+PASS walk:landing wardrow — (47.3, 41.5) at y 5 — reached along the walk
+PASS walk:north walk mid — (0, -50) at y 5 — reached along the walk
+PASS walk:west walk mid — (-50, 0) at y 5 — reached along the walk
+PASS walk:east walk n — (50, -30) at y 5 — reached along the walk
+FAIL walk:ring — 1 points off the ring
+PASS passage:south-gate:through — the gate is open both ways — inside (0, 46.4) reached, outside (0, 53.6) reached
+PASS passage:south-gate:width — scan line across the throat at the passage floor (y 0): 5.05 m of walkable ground (contract >= 5.0)
+PASS passage:east-gate:through — the gate is open both ways — inside (46.4, 22) reached, outside (53.6, 22) reached
+PASS passage:east-gate:width — scan line across the throat at the passage floor (y 0): 5.05 m of walkable ground (contract >= 5.0)
+PASS surrounds:reachable — the moor outside both gates is reachable from the spawn — (0, 58) true, (58, 22) true
+PASS street:under-wall — 147 street samples 1.2 m inside the curtain: 19 blocked, 0 of them by a parapet (a parapet without `bottom` seals every one of them; the rest are the gatehouses' own turrets, which are buildings)
+      (-30, -47.6) by a solid mass x -30.09..-21.51 z -47.99..-43.31
+      (-28, -47.6) by a solid mass x -30.09..-21.51 z -47.99..-43.31
+      (-26, -47.6) by a solid mass x -30.09..-21.51 z -47.99..-43.31
+      (-24, -47.6) by a solid mass x -30.09..-21.51 z -47.99..-43.31
+      (-22, -47.6) by a solid mass x -30.09..-21.51 z -47.99..-43.31
+      (-6, 47.6) by a solid mass x -7.36..-3.84 z 44.84..48.36
+      (-4, 47.6) by a solid mass x -7.36..-3.84 z 44.84..48.36
+      (4, 47.6) by a solid mass x 3.9..4.5 z 46.6..48
+      (6, 47.6) by a solid mass x 3.84..7.36 z 44.84..48.36
+      (16, -47.6) by a solid mass x 16.03..16.53 z -48.02..-44.08
+      (-47.6, -16) by a solid mass x -48.07..-43.4 z -16..-15.6
+      (-47.6, 4) by a solid mass x -47.72..-46.88 z 2.75..5.25
+      (-47.6, 12) by a solid mass x -47.7..-46.7 z 11.1..12.1
+      (47.6, 16) by a solid mass x 44.84..48.36 z 14.64..18.16
+      (47.6, 18) by a solid mass x 44.84..48.36 z 14.64..18.16
+      (47.6, 26) by a solid mass x 44.84..48.36 z 25.84..29.36
+      (47.6, 28) by a solid mass x 44.84..48.36 z 25.84..29.36
+      (-47.6, 36) by a solid mass x -48.08..-46.72 z 34.52..35.88
+      (-47.6, 44) by a solid mass x -48.8..-46.5 z 42.85..43.95
+FAIL surrounds:under-wall — 188 samples of the moor 1.4 m outside the curtain: 4 blocked at feet height
+PASS barricade:registers — raise() registered 1 collider and the state is "up"
+PASS barricade:gap — raised, the clear end is 1.8 m face to face (contract 1.8) and 1.46 m walkable — barrier x -3.2..-1.8 in a lane ending at 0
+PASS barricade:lower — lower() removed the collider again and the lane is clear
+PASS barricade:cover — tagged cover at 1.35 m (the referee's "behind cover" test reads that tag)
+SIEGE: FAIL (3)
