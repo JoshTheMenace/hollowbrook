@@ -61,5 +61,9 @@ export default defineConfig({
     fs: { allow: [process.cwd(), FORGE, FORGE_PUBLIC, MIRA] },
   },
   preview: { host: '127.0.0.1', port: 5221 },
-  build: { target: 'es2020', assetsInlineLimit: 0 },
+  build: {
+    target: 'es2022', assetsInlineLimit: 0,   // es2022: the game entry uses top-level await
+    // Multi-page: the town walker (index) AND the game (game.html) both ship.
+    rollupOptions: { input: { main: path.resolve(process.cwd(), 'index.html'), game: path.resolve(process.cwd(), 'game.html') } },
+  },
 });
