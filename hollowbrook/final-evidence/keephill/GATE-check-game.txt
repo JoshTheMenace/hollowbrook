@@ -1,0 +1,74 @@
+PASS gate:south-gate:district — in southgate
+PASS gate:south-gate:passage-open — passage open at (0, 50)
+PASS gate:south-gate:spawn-ring — ring 3..8 m at (0,60)
+PASS gate:east-gate:district — in wardrow
+PASS gate:east-gate:passage-open — passage open at (50, 22)
+PASS gate:east-gate:spawn-ring — ring 3..8 m at (60,22)
+PASS arena:gate-square:district — district southgate
+PASS arena:gate-square:in-envelope — rect {"x0":-16,"z0":18,"x1":16,"z1":47} inside southgate
+PASS arena:gate-square:cover — 35 cover colliders fully inside (need >= 6)
+PASS arena:gate-square:elevation — 10 samples stand > 0.3 m over the district level 0 (need >= 6)
+PASS arena:gate-square:landmarks — 1/1 district landmarks read from the arena centre (need >= 1)
+PASS arena:gate-square:approach — approached from south-gate
+PASS arena:the-market:district — district marketlow
+PASS arena:the-market:in-envelope — rect {"x0":-17,"z0":-17,"x1":17,"z1":15} inside marketlow
+PASS arena:the-market:cover — 70 cover colliders fully inside (need >= 8)
+PASS arena:the-market:elevation — 158 samples stand > 0.3 m over the district level -1.4 (need >= 20)
+PASS arena:the-market:landmarks — 0/0 district landmarks read from the arena centre (need >= 0)
+PASS arena:the-market:approach — approached from south-gate
+PASS arena:the-row:district — district wardrow
+PASS arena:the-row:in-envelope — rect {"x0":20,"z0":-16,"x1":47,"z1":47} inside wardrow
+PASS arena:the-row:cover — 52 cover colliders fully inside (need >= 6)
+PASS arena:the-row:elevation — 14 samples stand > 0.3 m over the district level 0 (need >= 6)
+FAIL arena:the-row:landmarks — 0/1 district landmarks read from the arena centre (need >= 1)
+PASS arena:the-row:approach — approached from east-gate
+PASS arena:the-mill:district — district millreach
+PASS arena:the-mill:in-envelope — rect {"x0":-47,"z0":-10,"x1":-20,"z1":47} inside millreach
+PASS arena:the-mill:cover — 50 cover colliders fully inside (need >= 6)
+PASS arena:the-mill:elevation — 12 samples stand > 0.3 m over the district level 0 (need >= 6)
+PASS arena:the-mill:landmarks — 1/1 district landmarks read from the arena centre (need >= 1)
+PASS arena:the-mill:approach — approached from south-gate
+PASS arena:the-close:district — district chapelclose
+PASS arena:the-close:in-envelope — rect {"x0":-47,"z0":-47,"x1":-20,"z1":-14} inside chapelclose
+PASS arena:the-close:cover — 54 cover colliders fully inside (need >= 6)
+PASS arena:the-close:elevation — 24 samples stand > 0.3 m over the district level 0 (need >= 6)
+PASS arena:the-close:landmarks — 1/1 district landmarks read from the arena centre (need >= 1)
+PASS arena:the-close:approach — approached from east-gate
+PASS arena:the-keep:district — district keephill
+PASS arena:the-keep:in-envelope — rect {"x0":-16,"z0":-47,"x1":46,"z1":-20} inside keephill
+PASS arena:the-keep:cover — 87 cover colliders fully inside (need >= 8)
+PASS arena:the-keep:elevation — 183 samples stand > 0.3 m over the district level 0 (need >= 30)
+PASS arena:the-keep:landmarks — 2/2 district landmarks read from the arena centre (need >= 2)
+PASS arena:the-keep:approach — approached from south-gate
+PASS npc:reeve:ground — standable at (-13.2, 5.2) in marketlow, ground y 0.00
+PASS npc:reeve:facing — facing (1,0)
+PASS npc:reeve:shelter — shelters in "guildhall" (a declared enterable)
+FAIL npc:reeve:present — NO character in the scene graph for post "reeve" — standable ground is not a cast member
+PASS npc:runner:ground — standable at (3, 27) in southgate, ground y 0.00
+PASS npc:runner:facing — facing (0,-1)
+PASS npc:runner:shelter — shelters in "guildhall" (a declared enterable)
+FAIL npc:runner:present — NO character in the scene graph for post "runner" — standable ground is not a cast member
+PASS npc:bowman:ground — standable at (8, 50) in southgate, ground y 5.00
+PASS npc:bowman:facing — facing (0,1)
+FAIL npc:bowman:present — NO character in the scene graph for post "bowman" — standable ground is not a cast member
+PASS npc:smith:ground — standable at (33, -4.2) in wardrow, ground y 0.00
+PASS npc:smith:facing — facing (0,1)
+PASS npc:smith:shelter — shelters in "smithy" (a declared enterable)
+FAIL npc:smith:present — NO character in the scene graph for post "smith" — standable ground is not a cast member
+PASS npc:millwarden:ground — standable at (-32.5, 22) in millreach, ground y 0.00
+PASS npc:millwarden:facing — facing (1,0)
+FAIL npc:millwarden:present — NO character in the scene graph for post "millwarden" — standable ground is not a cast member
+PASS npc:hedgewizard:ground — standable at (-40, -34) in chapelclose, ground y 0.00
+PASS npc:hedgewizard:facing — facing (1,0)
+PASS npc:hedgewizard:shelter — shelters in "chapel" (a declared enterable)
+FAIL npc:hedgewizard:present — NO character in the scene graph for post "hedgewizard" — standable ground is not a cast member
+PASS npc:vixen:ground — standable at (27, -34) in keephill, ground y 0.00
+PASS npc:vixen:facing — facing (-1,0)
+FAIL npc:vixen:present — NO character in the scene graph for post "vixen" — standable ground is not a cast member
+PASS objective:o1-escort-runner — escort runner from (3,27) to (-14.2,5), leash 8 m, 90 s
+PASS objective:o2-barricades — 3 of 3 points, 90 s
+PASS objective:o3-relight-wall — 4 of 4 points, 120 s
+PASS objective:o4-escort-reeve — escort reeve from (-13.2,5.2) to (2,-34), leash 8 m, 120 s
+PASS objective:o5-hold-keep — hold the-keep for 240 s
+PASS objective:o6-ring-the-bell — "the bell rope" at (8.5,-41) in keephill, 3 s channel
+RESULT: FAIL (8)

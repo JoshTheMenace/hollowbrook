@@ -1,0 +1,86 @@
+
+== plan ==
+PASS plan valid — 6 districts
+
+== build (composeCity anchors assert during it) ==
+PASS built in order: keephill
+
+== seams ==
+seam check: 5 socket pairs involving keephill
+PASS market-road-n <> keep-road-s [road] at (0, -18) — marketlow <-> keephill
+PASS keep-lane-w <> cc-lane-e [path] at (-18, -30) — keephill <-> chapelclose
+PASS keep-lane-e <> wr-lane-n [path] at (36, -18) — keephill <-> wardrow
+PASS keep-walk-w <> cc-walk-e [path] at (-18, -50) — keephill <-> chapelclose
+PASS keep-walk-e <> wr-walk-n [path] at (50, -18) — keephill <-> wardrow
+PASS — ground continuous and corridors clear at every socket
+
+== spatial audit (keephill) ==
+spatial audit: 114 units (114 tagged, 0 pooled clusters, 27 runs, 6 of them raked), 398462 triangles, 9266 seam samples (1102 inside colliders skipped, 216 inside 1 registered interior)
+PASS no spatial defects inside keephill
+
+== flood fill (keephill) ==
+fill: 41489 cells reachable from "the keep stair foot" (0, -19.2) over x -30..66, z -66..-6 at 0.35 m, radius 0.34, step 0.38 — 41521 visits, 129 colliders
+PASS [keephill] the keep stair foot (0, -19.2)
+PASS [keephill] the lower ward (-10, -34)
+PASS [keephill] the keep platform (4, -38)
+PASS [keephill] the bell tower foot (8.5, -36.5)
+PASS [keephill] the north wall-walk (30, -50)
+PASS [keephill] the yew close (36, -30)
+PASS [keephill] the east wall-walk, north end (50, -30)
+
+== budgets ==
+PASS [keephill] 448 meshes / 460, 88936 triangles / 170000, 106 colliders, 23 platforms
+
+== enterable interiors ==
+1 interior registered in the scene, 1 declared in the plan
+PASS [keephill] "wardens-hall" interior "wardens-hall" — 15 dressed props, cull radius 25 m
+PASS [keephill] "wardens-hall" doorway 0.9 m of walkable ground through the opening
+PASS [keephill] "wardens-hall" interior waypoint "the warden's hall" (0, -38.5) reached through the doorway
+PASS [keephill] "wardens-hall" interior camera "wardens-hall-interior" shows "wardens-hearth"
+
+== surrounds coverage (the whole footprint, not the parcels) ==
+sampled 7744 points at 1.5 m over x -66..66, z -66..66 (footprint_m 132×132); floor threshold y -4.4
+PASS ground everywhere in the footprint — nothing ends in a cut, surrounds owner "southgate"
+
+== sight corridors ==
+PASS gate-sees-keep — 72 m clear at y 8.5 across ±3 m [crosses southgate, marketlow, keephill]
+FAIL SIGHT CORRIDOR BLOCKED "keep-sees-eastgate" (From the keep platform the East Gate must read, so the player on the high ground can see the second gate open in wave 3 and the Company come through it. Nothing over 7.5 m on this diagonal: the row's cottages stay under it and the smithy's chimney stands clear of it.) — offset -3 m blocked 58.88 m along by "district:wardrow:massing-0" [owner: wardrow] at (47.59, 17)
+
+== landmark contracts ==
+FAIL LANDMARK NOT VISIBLE [keephill] "district:keephill:bell-tower" from vista "from-the-road" at [-8, 8.5, 64] — blocked by "district:southgate:massing-1" [owner: southgate] 11.75 m out
+PASS [keephill] "district:keephill:bell-tower" reads from 4/5 points in "southgate" (the gate square, under the arch, the south wall-walk, the stair-head turret)
+PASS [keephill] "district:keephill:bell-tower" reads from 3/5 points in "marketlow" (the well, the north steps, the ramp foot)
+PASS [keephill] "district:keephill:bell-tower" reads from 3/6 points in "wardrow" (the row lane, under the east gate, the east wall-walk)
+PASS [keephill] "district:keephill:wardens-hall" reads from vista "over-the-market"
+PASS [keephill] "district:keephill:wardens-hall" reads from 2/5 points in "marketlow" (the well, the ramp foot)
+WARN [keephill] "district:keephill:wardens-hall" is hidden from most of "marketlow": "the north steps" (blocked by "keephill:ward-gate:pool-5" [keephill]); "the guild hall porch" (blocked by "district:marketlow:massing-0" [marketlow]); "the east stair head" (blocked by "district:marketlow:massing-1" [marketlow])
+
+== interactions ==
+PASS [keephill] 3 interactables registered for 2 declared
+
+== boundary features (declared vs. built) ==
+skipped — "keephill" is composed against stub massing, so a shared edge has no real neighbour on it
+
+== terminating sight lines (what closes each view — advisory) ==
+  [keephill] keep-road-s looking +z from (0, -18) -> 5/5 rays land on "(nothing — open sky or fog)" [owner: nobody], nothing within 45 m
+WARN TERMINUS [keephill] "keep-road-s" looking +z: 5/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [keephill] keep-road-s looking -z from (0, -18) -> 3/5 rays land on "terrain:treads" [owner: terrain], the 5 that hit average 4.18 m
+WARN TERMINUS [keephill] "keep-road-s" looking -z: the view closes at 4.18 m on "terrain:treads". That is a wall in the face rather than a terminus — check the frame from this socket.
+  [keephill] keep-lane-w looking +x from (-18, -30) -> 5/5 rays land on "keephill:ward-revetment-w:2" [owner: keephill], the 5 that hit average 3.47 m
+WARN TERMINUS [keephill] "keep-lane-w" looking +x: 5/5 rays land on "keephill:ward-revetment-w:2" [owner: keephill], which carries no userData.kind — it is an untagged mesh, not a composed subject. What closes a view should be something a kit generator made on purpose.
+  [keephill] keep-lane-w looking -x from (-18, -30) -> 5/5 rays land on "terrain:ground" [owner: terrain], the 5 that hit average 30.76 m
+WARN TERMINUS [keephill] "keep-lane-w" looking -x: 5/5 rays land on bare terrain 30.76 m out. A ground plate is not a subject; the view along this axis ends on nothing built.
+  [keephill] keep-lane-e looking +z from (36, -18) -> 5/5 rays land on "(nothing — open sky or fog)" [owner: nobody], nothing within 45 m
+WARN TERMINUS [keephill] "keep-lane-e" looking +z: 5/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [keephill] keep-lane-e looking -z from (36, -18) -> 3/5 rays land on "terrain:ground" [owner: terrain], the 5 that hit average 28.3 m
+  [keephill] keep-walk-w looking +x from (-18, -50) -> 4/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 1 that hit average 35.95 m
+WARN TERMINUS [keephill] "keep-walk-w" looking +x: 4/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [keephill] keep-walk-w looking -x from (-18, -50) -> 4/5 rays land on "district:chapelclose:massing-3" [owner: chapelclose], the 4 that hit average 29.5 m
+WARN TERMINUS [keephill] "keep-walk-w" looking -x: 4/5 rays land on "district:chapelclose:massing-3" [owner: chapelclose], which carries no userData.kind — it is an untagged mesh, not a composed subject. What closes a view should be something a kit generator made on purpose.
+  [keephill] keep-walk-e looking +z from (50, -18) -> 5/5 rays land on "district:wardrow:massing-0" [owner: wardrow], the 5 that hit average 35 m
+WARN TERMINUS [keephill] "keep-walk-e" looking +z: 5/5 rays land on "district:wardrow:massing-0" [owner: wardrow], which carries no userData.kind — it is an untagged mesh, not a composed subject. What closes a view should be something a kit generator made on purpose.
+  [keephill] keep-walk-e looking -z from (50, -18) -> 4/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 1 that hit average 29.87 m
+WARN TERMINUS [keephill] "keep-walk-e" looking -z: 4/5 rays leave the city 36 m out and hit nothing at all — this axis runs off the edge of the town. That terminus belongs to the surrounds owner ("southgate"): a treeline, a ridge, a wall, something that says the town stops here on purpose. Otherwise the view ends in fog.
+10 terminating sight lines walked at 1.7 m eye, 5-ray fan across each socket's width, 45 m reach. The rule is editorial and is stated in references/city-scale.md: every terminating sight line must land on a subject somebody composed.
+
+RESULT: FAIL — defects above
