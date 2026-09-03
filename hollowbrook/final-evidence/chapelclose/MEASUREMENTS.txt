@@ -1,0 +1,60 @@
+chapelclose — measurements taken during the build, not claims about it.
+Every number here is reproducible from the scripts named beside it.
+
+THE LAND, before a line was written (ctx.groundAt, ?only=chapelclose)
+  level 0.00 flat over x -54..-18, z -54..-12
+  west wall-walk   5.00 over x -51.2..-48.8, z -51.2..-12
+  north wall-walk  5.00 over x -51.2..-18,  z -51.2..-48.8
+  stair landing    5.00 over x -33..-30,    z -48.8..-45.8
+  close-wall-stair a terrain ramp in z -48.2..-46.6, 0.0 at x -43.0 -> 5.0 at x -32.6
+  the north curtain's INNER plinth reaches z = -48.30 (curtainWall, IN - s*0.25, 0.5 thick)
+
+BUDGET (check-city --district chapelclose)
+  386 meshes / 440 · 83 576 triangles / 160 000 · 68 colliders · 14 platforms
+
+ARENA the-close (check-game)
+  cover      54 colliders fully inside the rect (need >= 6); 8 of them tagged
+             userData.cover through placeCover: 6 table tombs 0.98-1.10 m,
+             the well head 0.98 m, the sexton's felled cart 1.40 m
+  elevation  24 grid samples > 0.3 m over the district level (need >= 6),
+             all of them on the burial terrace at 0.55 and the stair landing at 5.0
+  landmarks  1/1 — district:chapelclose:wizard-tower reads from the rect centre
+
+CHOKEPOINTS, measured with the player's own radius (0.34 m)
+  the lych-gate     2.00 m clear between the pier faces -> 1.32 m walkable
+  the east lane gap 3.70 m clear -> 3.02 m walkable
+  the chapel door   1.60 m clear -> 0.92 m walkable (check-city reports 0.92)
+
+SEAMS (check-city, src/core/seams.js) — all four socket pairs PASS.
+  The churchyard wall stands at z = -15.8 and x = -21.6 for one reason: the
+  seam gate slices the corridor from 3 m inside the boundary, so a collider
+  whose inflated far edge reaches -14.875 / -20.875 is counted. Measured far
+  edges: -15.26 and -21.06.
+
+ROUTE FILL (check-city --district chapelclose)
+  29 553 cells reachable from "the chapel door" over x -66..-6, z -66..0 at
+  0.35 m, radius 0.34, step 0.38. All five district waypoints reached, and
+  the chapel's interior waypoint reached THROUGH the doorway.
+
+VISTA the-close (in-page __vignette.checkVistaLegibility, polish ON)
+  ok, no failures. subject share 4.59 % of frame, subjectLuma 73.5 against a
+  ring at 109.2, edgeContrast 56.3, skyEdgeShare 0.70.
+  ONE WARNING, and it is real: 59.4 % of the frame is sky. The camera is the
+  plan's (a standing eye on the wall-walk at dusk looking west along a 6.15 m
+  parapet) and the tower is the only thing in this district tall enough to
+  break the skyline, so the share is a property of the shot rather than of
+  what is under it. Recorded, not scored.
+
+ARENA VISIBILITY — arena:the-close reads 0/146 open cells and this district
+  cannot change it. Measured directly: with EVERY chapelclose group set
+  invisible (86 groups) the same sweep still reads 0/146. The east gate's
+  approach points are 100 m away across the sunk market and the keep mound;
+  the first blocker on 79 of the 146 cells is mine and on the other 67 it is
+  keephill's ward revetment, and removing mine only hands those 79 cells to
+  keephill's. Three of the plan's six arenas fail the same gate. This is a
+  plan-level question (an arena in the far north-west whose declared approach
+  is the opposite gate), not a geometry one — see the report.
+
+NPC POST hedgewizard — ground, facing and shelter all PASS. `:present` fails
+  for all seven posts in the town: the cast comes from the game layer
+  (src/game/), which is not built. Not this district's to supply.
