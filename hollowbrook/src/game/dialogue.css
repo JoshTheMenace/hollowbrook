@@ -1,0 +1,57 @@
+/* Dialogue UI — the errand's presentation, rebuilt (battery/errand.html is the
+ * reference, deliberately NOT imported: it is another project's page).
+ * Dark violet panel, warm #ffd9a0 accent, left border, bottom centre, and a
+ * `.open` class that fades and lifts it in.  Every rule is scoped under
+ * .hb-dialogue so injecting it into a game shell cannot leak. */
+
+.hb-dialogue {
+  position: fixed;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  width: min(620px, 86vw);
+  background: rgba(22, 17, 36, 0.92);
+  border-left: 3px solid #ffd9a0;
+  border-radius: 4px 12px 12px 4px;
+  padding: 14px 20px 12px;
+  color: #f2ecdf;
+  font-family: ui-rounded, system-ui, sans-serif;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 40;
+}
+
+.hb-dialogue.open {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.hb-dialogue__name {
+  color: #ffd9a0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+/* min-height holds the panel steady while the typewriter fills it: a box that
+ * grows line by line drags the reader's eye down the page instead of across it */
+.hb-dialogue__text {
+  font-size: 15.5px;
+  line-height: 1.5;
+  min-height: 3em;
+}
+
+.hb-dialogue__next {
+  text-align: right;
+  color: #cfc4e8;
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 4px;
+  transition: opacity 0.15s;
+}
+
+/* the continue hint is a lie while the line is still typing */
+.hb-dialogue.typing .hb-dialogue__next { opacity: 0.25; }
