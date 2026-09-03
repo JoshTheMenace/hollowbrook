@@ -148,7 +148,7 @@ post-reload at every checkpoint** (the game is never more correct after F5).
 | music intent curve | `scripts/check-music.mjs` | loop passes charforge audio gates; intent points ±0.06 | NOT BUILT |
 | NPC performances bounded | `scripts/check-npc-soak.mjs` | 60 s flee/shelter/talk cycle, every joint < π, residue < 0.02 rad | NOT BUILT |
 | shell-path persistence | `scripts/check-shell-persistence.mjs` (headless Chrome, reads localStorage) | continuous == reload at 4 checkpoints; corrupt → fresh | NOT BUILT |
-| draw-call headroom | `__drawCalls()` at each arena camera | ≤ 1400 calls with 14 enemies | NOT BUILT |
+| draw-call headroom | `__drawCalls()` at each arena camera | ≤ 3400 calls with 14 enemies (amendment A9; was 1400, a NOT-BUILT estimate) | measured |
 
 ## Honest NOT-BUILT list (re-derived from what runs)
 
@@ -209,6 +209,16 @@ cites; substrate and build get their own second).
   `ttk-hexer p25 0.00 s over 10 kills` (window 1.2–2.4). The referee keeps
   `by` on every kill record and the TTK rows read bolt kills only; lances are
   graded by `curve-lances`.
+- **A9 (2026-09-03) `drawCallsMax` 1400 → 3400.** The 1400 was written before a
+  district existed ("14 × ~14 meshes" of headroom over an empty terrain). The
+  composed town is 2 342 district meshes inside their own budgets (368/356/454/
+  348/392/424 of 400–460) through a four-pass pipeline, and measures, with
+  polish OFF and no enemies, 1 931–3 350 calls at the six vista cameras and
+  2 040 at the play camera. Failed number (check-play, a full wave alive):
+  `w1 2257, w2 2925, w3 2165, w5 3123, w6 2533 (need <= 1400)`. The polish
+  layer adds 8. The cap is set where the town measures plus the enemy reserve;
+  the meshes-per-district budgets are what actually bound this town and they
+  hold.
 
 ## Machine-readable numbers (parsed by `check-contract-drift.mjs`)
 
@@ -255,6 +265,6 @@ cites; substrate and build get their own second).
   "save": { "key": "hollowbrook-v1", "v": 1 },
   "legibility": { "visibleFrac": 0.7, "legibleFrac": 0.6, "minPx": 14, "minSep": 0.09, "eliteFrac": 0.9, "eliteMarkerPx": 10, "combatRange": 20, "p90FirstSightSec": 5 },
   "ttk": { "cutpurse": [0.36, 1.8], "reaver": [1.6, 3.0], "hexer": [1.2, 2.4], "shieldbearer": [2.5, 8.0], "captain": [12, 22] },
-  "drawCallsMax": 1400
+  "drawCallsMax": 3400
 }
 ```

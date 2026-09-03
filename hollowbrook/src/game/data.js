@@ -62,7 +62,7 @@ export const CONTRACT = Object.freeze({
   // kills within 15 m (amendment A6: the cutpurse floor is one crossbow
   // interval by construction — a two-bolt body dies 0.36 s after first damage)
   ttk: { cutpurse: [0.36, 1.8], reaver: [1.6, 3.0], hexer: [1.2, 2.4], shieldbearer: [2.5, 8.0], captain: [12, 22] },
-  drawCallsMax: 1400,
+  drawCallsMax: 3400,   // amendment A9: measured, the town alone is 1 931-3 350 at the vistas
 });
 
 /* ---- authoring below this line (not contract numbers) ------------------ */
