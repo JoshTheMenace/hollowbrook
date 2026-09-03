@@ -1,0 +1,8 @@
+PASS arena:gate-square:visibility — 136/155 open cells (88 %) see an approach point of south-gate (need >= 40 %); 118 see the gate itself
+PASS arena:the-market:visibility — 120/201 open cells (60 %) see an approach point of south-gate (need >= 40 %); 99 see the gate itself
+PASS arena:the-row:visibility — 155/298 open cells (52 %) see an approach point of east-gate (need >= 40 %); 104 see the gate itself
+PASS arena:the-mill:visibility — 235/293 open cells (80 %) see its declared approach ((-19,34) (-30,34) (-46.6,40) (-45.2,30)) from south-gate (need >= 40 %); 56 see the gate itself
+PASS arena:the-close:visibility — 87/146 open cells (60 %) see its declared approach ((-19.5,-30.1) (-21.6,-30.1) (-24,-30.1)) from east-gate (need >= 40 %); 0 see the gate itself
+PASS arena:the-keep:visibility — 54/131 open cells (41 %) see its declared approach ((0,-19.5) (0,-24.7) (4,-27.4) (4,-32.6)) from south-gate (need >= 40 %); 53 see the gate itself
+RESULT: PASS
+exit 0

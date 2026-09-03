@@ -1,0 +1,15 @@
+rules tick 0.01667 s (60 Hz); 150 s of play; checkpoints every 10 s and at every wave start
+tape: 9000 ticks recorded, 16 checkpoints, 11 kills, phase breather wave 1
+PASS replay:30fps — 16 checkpoints byte-identical over 4500 frames
+PASS replay:30fps±35% — 16 checkpoints byte-identical over 4487 frames
+PASS replay:60fps — 16 checkpoints byte-identical over 9000 frames
+PASS replay:60fps±35% — 16 checkpoints byte-identical over 9005 frames
+PASS replay:90fps — 16 checkpoints byte-identical over 13500 frames
+PASS replay:90fps±35% — 16 checkpoints byte-identical over 13479 frames
+PASS replay:144fps — 16 checkpoints byte-identical over 21600 frames
+PASS replay:144fps±35% — 16 checkpoints byte-identical over 21595 frames
+PASS replay:repeat — the same tape on a fresh run twice: identical
+PASS hash:teeth — a different seed (cosmetic scatter) changes the hash: fdc5a3a9 vs fd2b6312
+PASS record==replay — 15 recorded checkpoints match the 60 fps replay
+RESULT: PASS — the shell loop cannot tell 30 fps from 144
+exit 0

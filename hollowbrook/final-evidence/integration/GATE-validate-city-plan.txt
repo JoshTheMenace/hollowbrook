@@ -1,0 +1,3 @@
+city plan: 6 districts, 28 sockets, 0 boundary features, 6 terrain levels, 22 shelves, 1 mounds, 25 crossings (11 internal), 3 sight corridors, 6 vistas, surrounds owned by "southgate", game: 6 arenas / 2 gates / 7 posts / 6 objectives — /Users/joshthemenace/Documents/ChatGPT/animation/hollowbrook/city-plan.json
+PASS — plan is well-formed: envelopes disjoint, sockets paired, terrain levels every district and crosses every socket, boundary features on real shared edges and singly owned, surrounds owned, sight corridors and landmark contracts readable, every district interacts, compass and sun resolvable, no cycles, no placeholder prose
+exit 0

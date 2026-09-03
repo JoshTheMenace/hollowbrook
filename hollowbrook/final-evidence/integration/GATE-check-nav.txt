@@ -1,0 +1,41 @@
+nav grid 378×378 at 0.35 m over x -66..66, z -66..66: 122940 open cells, 470 colliders, built in 6552 ms
+  arena the-market: centre (0,-1) is not open ground; measuring at (-0.55, -0.90)
+PASS ring:south-gate:open — spawn ring centre (0,60) is open ground
+PASS ring:south-gate:approach — 3 approach points open
+PASS ring:east-gate:open — spawn ring centre (60,22) is open ground
+PASS ring:east-gate:approach — 3 approach points open
+PASS arena:gate-square:from:south-gate — centre reached, 621/627 open cells (99 %) reachable from south-gate
+PASS arena:gate-square:from:east-gate — centre reached, 621/627 open cells (99 %) reachable from east-gate
+PASS arena:the-market:from:south-gate — centre reached, 788/790 open cells (100 %) reachable from south-gate
+PASS arena:the-market:from:east-gate — centre reached, 788/790 open cells (100 %) reachable from east-gate
+PASS arena:the-row:from:south-gate — centre reached, 1274/1274 open cells (100 %) reachable from south-gate
+PASS arena:the-row:from:east-gate — centre reached, 1274/1274 open cells (100 %) reachable from east-gate
+PASS arena:the-mill:from:south-gate — centre reached, 1246/1246 open cells (100 %) reachable from south-gate
+PASS arena:the-mill:from:east-gate — centre reached, 1246/1246 open cells (100 %) reachable from east-gate
+PASS arena:the-close:from:south-gate — centre reached, 627/671 open cells (93 %) reachable from south-gate
+PASS arena:the-close:from:east-gate — centre reached, 627/671 open cells (93 %) reachable from east-gate
+PASS arena:the-keep:from:south-gate — centre reached, 534/565 open cells (95 %) reachable from south-gate
+PASS arena:the-keep:from:east-gate — centre reached, 534/565 open cells (95 %) reachable from east-gate
+PASS waypoints:southgate — 5 waypoints reachable from the spawn (0,30)
+PASS waypoints:marketlow — 5 waypoints reachable from the spawn (0,30)
+PASS waypoints:keephill — 7 waypoints reachable from the spawn (0,30)
+PASS waypoints:millreach — 5 waypoints reachable from the spawn (0,30)
+PASS waypoints:chapelclose — 5 waypoints reachable from the spawn (0,30)
+PASS waypoints:wardrow — 6 waypoints reachable from the spawn (0,30)
+PASS post:reeve — (-13.2,5.2) reachable from the spawn
+PASS post:runner — (3,27) reachable from the spawn
+PASS post:bowman — (8,50) reachable from the spawn
+PASS post:smith — (33,-4.2) reachable from the spawn
+PASS post:millwarden — (-32.5,22) reachable from the spawn
+PASS post:hedgewizard — (-40,-34) reachable from the spawn
+PASS post:vixen — (27,-34) reachable from the spawn
+PASS objective:o1-escort-runner:reachable — 2 points reachable
+PASS objective:o2-barricades:reachable — 3 points reachable
+PASS objective:o3-relight-wall:reachable — 4 points reachable
+PASS objective:o4-escort-reeve:reachable — 2 points reachable
+PASS flow:south-gate->keep — 290 steps (102 m of walking) from the ring to the keep's centre
+PASS route:south-gate->keep:through-passage — passes a gate passage cell at (0.1, 52.3) y 0
+PASS flow:east-gate->keep — 338 steps (118 m of walking) from the ring to the keep's centre
+PASS route:east-gate->keep:through-passage — passes a gate passage cell at (52.3, 19.8) y 0
+RESULT: PASS
+exit 0

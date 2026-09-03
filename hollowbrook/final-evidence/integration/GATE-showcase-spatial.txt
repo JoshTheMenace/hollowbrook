@@ -1,0 +1,9 @@
+spatial audit: 167 units (167 tagged, 0 pooled clusters, 37 runs, 5 of them raked), 170592 triangles, 33100 seam samples (1652 inside colliders skipped)
+WARN UNEXPLAINED-MASS ground-flat island @ (0, -1.5)
+  - bare 96×1.2×47 m block, top exposed at 5/5 points with nothing seated on it — may be legitimate, but decide it @ [0, -0.6, -1.5]
+WARN UNEXPLAINED-MASS ground-runs-low island @ (-19, 29.5)
+  - bare 58×1.2×15 m block, top exposed at 3/5 points with nothing seated on it — may be legitimate, but decide it @ [-19, -0.6, 29.5]
+WARN UNEXPLAINED-MASS ground-runs-high island @ (35, 29.5)
+  - bare 26×2.4×15 m block, top exposed at 5/5 points with nothing seated on it — may be legitimate, but decide it @ [35, 0, 29.5]
+PASS — every unit grounded, no interpenetration, no ground holes (3 warnings above for the builder to decide)
+exit 0

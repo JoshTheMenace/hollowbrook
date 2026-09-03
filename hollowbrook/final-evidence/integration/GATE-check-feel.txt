@@ -1,0 +1,3 @@
+feel lint: 36 emitted types, 36 wired consumers, 36 declared
+PASS — every emitted event type has a consumer
+exit 0

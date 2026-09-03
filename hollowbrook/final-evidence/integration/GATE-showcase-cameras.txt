@@ -1,0 +1,49 @@
+PASS buildings
+PASS buildings2
+PASS thatchLow
+PASS thatchLow2
+  WARN subject "cottage-shingle-granite" sits in the outer third of the frame — ndc (-0.03, -0.80), warn past 0.72. The camera is not really aimed at its subject: the camera looks at [-7, 5.6, 1], the subject centres at [-7.0, 2.5, 0.0].
+PASS thatchRidge
+PASS tower
+PASS mill
+PASS millSails
+PASS temple
+PASS oak
+PASS oakUnder
+PASS trees
+PASS props
+PASS props2
+PASS props3
+PASS props4
+PASS runs
+PASS runsBank
+PASS signage
+  WARN subject "notice-fair" sits in the outer third of the frame — ndc (0.67, -0.81), warn past 0.72. The camera is not really aimed at its subject: the camera looks at [-14, 2.7, 30], the subject centres at [-12.4, 1.6, 30.3].
+PASS signage2
+  WARN subject "fascia-emberwright" sits in the outer third of the frame — ndc (-0.81, 0.15), warn past 0.72. The camera is not really aimed at its subject: the camera looks at [-4.5, 2.7, 30], the subject centres at [-6.4, 2.9, 30.3].
+PASS hangsign
+PASS lanterns
+  WARN subject "lantern-string-lit" sits in the outer third of the frame — ndc (-0.66, -0.74), warn past 0.72. The camera is not really aimed at its subject: the camera looks at [-2, 3.5, 26.2], the subject centres at [1.3, 1.8, 26.2].
+PASS wide
+PASS gateOut
+PASS gateIn
+PASS gateUnder
+PASS gateDeck
+PASS curtainOut
+PASS curtainRake
+PASS curtainIn
+PASS walkAlong
+PASS walkParapet
+PASS turretHead
+PASS hoarding
+PASS bellTower
+PASS siegeProps1
+PASS siegeProps2
+PASS siegeProps3
+PASS barricades
+PASS slits
+PASS practicals
+PASS camp
+PASS siegeSigns
+PASS siegeWide
+exit 0

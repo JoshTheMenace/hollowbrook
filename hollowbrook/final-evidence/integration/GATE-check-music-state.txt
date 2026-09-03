@@ -1,0 +1,10 @@
+trace: 942 samples at 1 Hz, lost at wave 4; waves seen 4, breathers 3
+PASS music:tracks-state — the intensity the shell sends: tracking r 0.761, breathers 3 (min depth 0.145, ok true), quiet mean 0.376 over 568
+PASS music:enough-trace — 942 s traced, 3 breathers crossed (need >= 300 s, >= 2)
+null models (each must FAIL the same test):
+PASS null:flat — fails: tracking r 0, breathers 3 (min depth 0, ok false), quiet mean 0.6 over 568
+PASS null:ramp — fails: tracking r 0.249, breathers 3 (min depth -0.064, ok false), quiet mean 0.475 over 568
+PASS null:noise — fails: tracking r -0.051, breathers 3 (min depth 0.512, ok false), quiet mean 0.511 over 568
+PASS null:intent-by-wave — fails: tracking r 0, breathers 3 (min depth 0.28, ok true), quiet mean 0.652 over 568
+RESULT: PASS — the score follows the fight, and nothing else passes the test
+exit 0

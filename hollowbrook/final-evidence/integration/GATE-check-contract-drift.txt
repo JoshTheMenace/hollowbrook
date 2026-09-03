@@ -1,0 +1,13 @@
+source: PASS — code matches the contract leaf for leaf
+PASS realised player.sprint: contract 6.4, delivered 6.399 (tol ±0.128, rules tick 1/60)
+PASS realised player.walk: contract 4.6, delivered 4.600 (tol ±0.092, rules tick 1/60)
+PASS realised player.charging: contract 2.6, delivered 2.599 (tol ±0.052, rules tick 1/60)
+PASS realised crossbow.interval: contract 0.36, delivered 0.367 (tol ±0.017, rules tick 1/60)
+PASS realised crossbow.magazine: contract 6, delivered 6.000 (tol ±0.120, rules tick 1/60)
+PASS realised crossbow.reload: contract 1.4, delivered 1.400 (tol ±0.028, rules tick 1/60)
+PASS realised lance.charge: contract 0.9, delivered 0.900 (tol ±0.018, rules tick 1/60)
+PASS realised lance.speed: contract 22, delivered 22.000 (tol ±0.440, rules tick 1/60)
+PASS realised lance.cooldown: contract 2.4, delivered 2.417 (tol ±0.048, rules tick 1/60)
+PASS realised lance.earlyRelease: contract 0, delivered 0.000 (tol ±0.017, rules tick 1/60)
+RESULT: PASS — source and delivered values match the contract
+exit 0

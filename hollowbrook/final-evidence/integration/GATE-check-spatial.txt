@@ -1,0 +1,3 @@
+spatial audit: 458 units (458 tagged, 0 pooled clusters, 66 runs, 13 of them raked), 751564 triangles, 40718 seam samples (5938 inside colliders skipped, 786 inside 5 registered interiors)
+PASS — every unit grounded, no interpenetration, no ground holes
+exit 0

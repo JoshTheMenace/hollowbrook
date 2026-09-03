@@ -1,0 +1,10 @@
+PASS deck:south-gate:continuous — 5403 samples at 5 mm along the walk over the passage, worst deviation 0.000 m from 5
+PASS deck:south-gate:across — 340 samples across the deck at the passage mid-line all read 5
+PASS passage:south-gate:street — 960 samples through the passage at 5 mm all read the street (0) and none is sealed
+PASS levels:south-gate — gap centre reads 0.000 from the street and 5.000 from the walk
+PASS deck:east-gate:continuous — 5403 samples at 5 mm along the walk over the passage, worst deviation 0.000 m from 5
+PASS deck:east-gate:across — 340 samples across the deck at the passage mid-line all read 5
+PASS passage:east-gate:street — 960 samples through the passage at 5 mm all read the street (0) and none is sealed
+PASS levels:east-gate — gap centre reads 0.000 from the street and 5.000 from the walk
+RESULT: PASS
+exit 0

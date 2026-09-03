@@ -1,0 +1,85 @@
+terrain: 152880 nodes, 150543 cells, 8247 platforms (175 treads), 22 shelves, 1 mounds, 11 internal climbs, 309420 triangles in 6 meshes, tones surrounds/ground/paving/bank/skirt, cell 1.6 m, footprint x -66..66 z -66..66
+nav grid: 321×321 cells at 0.35 m, 82316 cells reachable from the walk seed west of the south gate, 82316 from the seed east of it (two segments until the gatehouses bridge the gaps), 82316 from the spawn
+PASS anchor:southgate:(0,30) — expected 0, ground 0
+PASS anchor:southgate:(-10,50) — expected 5, ground 5
+PASS anchor:southgate:(-16.5,47.3) — expected 5, ground 5
+PASS anchor:southgate:(0,53) — expected 0, ground 0
+PASS anchor:marketlow:(0,0) — expected -1.4, ground -1.4
+PASS anchor:marketlow:(6,-15) — expected 0, ground 0
+PASS anchor:marketlow:(-14.2,6) — expected 0, ground 0
+PASS anchor:marketlow:(15,-8) — expected 0, ground 0
+PASS anchor:keephill:(30,-26) — expected 0, ground 0
+PASS anchor:keephill:(-10,-30) — expected 2.6, ground 2.6
+PASS anchor:keephill:(4,-36) — expected 5.2, ground 5.25
+PASS anchor:keephill:(30,-50) — expected 5, ground 5
+PASS anchor:keephill:(41.5,-47.3) — expected 5, ground 5
+PASS anchor:keephill:(50,-30) — expected 5, ground 5
+PASS anchor:millreach:(-36,20) — expected 0, ground 0
+PASS anchor:millreach:(-50,10) — expected 5, ground 5
+PASS anchor:millreach:(-47.3,31.5) — expected 5, ground 5
+PASS anchor:millreach:(-30,50) — expected 5, ground 5
+PASS anchor:chapelclose:(-36,-30) — expected 0, ground 0
+PASS anchor:chapelclose:(-50,-30) — expected 5, ground 5
+PASS anchor:chapelclose:(-31.5,-47.3) — expected 5, ground 5
+PASS anchor:chapelclose:(-30,-50) — expected 5, ground 5
+PASS anchor:wardrow:(36,20) — expected 0, ground 0
+PASS anchor:wardrow:(50,0) — expected 5, ground 5
+PASS anchor:wardrow:(47.3,41.5) — expected 5, ground 5
+PASS anchor:wardrow:(36,50) — expected 5, ground 5
+PASS anchor:wardrow:(50,22) — expected 0, ground 0
+PASS anchor:wardrow:(50,22) — expected 5, ground 5
+PASS seam:gate-road<>market-road-s — [road] at (0, 16) continuous and clear
+PASS seam:sg-w-lane<>mr-e-lane — [path] at (-18, 34) continuous and clear
+PASS seam:sg-e-lane<>wr-w-lane — [path] at (18, 36) continuous and clear
+PASS seam:sg-walk-w<>mr-walk-s — [path] at (-18, 50) continuous and clear
+PASS seam:sg-walk-e<>wr-walk-s — [path] at (18, 50) continuous and clear
+PASS seam:market-road-n<>keep-road-s — [road] at (0, -18) continuous and clear
+PASS seam:market-lane-w<>mr-market-lane — [path] at (-18, 6) continuous and clear
+PASS seam:market-lane-e<>wr-market-lane — [path] at (18, 4) continuous and clear
+PASS seam:keep-lane-w<>cc-lane-e — [path] at (-18, -30) continuous and clear
+PASS seam:keep-lane-e<>wr-lane-n — [path] at (36, -18) continuous and clear
+PASS seam:keep-walk-w<>cc-walk-e — [path] at (-18, -50) continuous and clear
+PASS seam:keep-walk-e<>wr-walk-n — [path] at (50, -18) continuous and clear
+PASS seam:mr-n-lane<>cc-s-lane — [path] at (-36, -12) continuous and clear
+PASS seam:mr-walk-n<>cc-walk-s — [path] at (-50, -12) continuous and clear
+PASS walk:height — 392 samples along 11 shelves all read 5
+PASS walk:gap:south-gate — gap centre (0, 50) reads 0 on the ground layer (street 0); the highest surface there is 5 — the gatehouse deck bridges it
+PASS walk:gap:east-gate — gap centre (50, 22) reads 0 on the ground layer (street 0); the highest surface there is 5 — the gatehouse deck bridges it
+PASS walk:landing:southgate — stair-head landing (-16.5, 47.3) reached along the walk
+PASS walk:landing:keephill — stair-head landing (41.5, -47.3) reached along the walk
+PASS walk:landing:millreach — stair-head landing (-47.3, 31.5) reached along the walk
+PASS walk:landing:chapelclose — stair-head landing (-31.5, -47.3) reached along the walk
+PASS walk:landing:wardrow — stair-head landing (47.3, 41.5) reached along the walk
+PASS walk:corner:sw-tower — corner (-50, 50) reached along the walk
+PASS walk:corner:nw-tower — corner (-50, -50) reached along the walk
+PASS walk:corner:ne-tower — corner (50, -50) reached along the walk
+PASS walk:corner:se-tower — corner (50, 50) reached along the walk
+PASS walk:from-street:southgate — landing (-16.5, 47.3) reachable from the spawn
+PASS walk:from-street:keephill — landing (41.5, -47.3) reachable from the spawn
+PASS walk:from-street:millreach — landing (-47.3, 31.5) reachable from the spawn
+PASS walk:from-street:chapelclose — landing (-31.5, -47.3) reachable from the spawn
+PASS walk:from-street:wardrow — landing (47.3, 41.5) reachable from the spawn
+PASS climb:south-wall-stair — run 10 m, worst rise 0.2 (limit 0.38), feet end at 5, shelf beyond the head reads 5 (promised 5)
+PASS climb:market-stair-n — run 3.36 m, worst rise 0.18 (limit 0.38), feet end at 0, shelf beyond the head reads 0 (promised 0)
+PASS climb:market-ramp-s — run 7 m, worst rise 0.15 (limit 0.38), feet end at 0, shelf beyond the head reads 0 (promised 0)
+PASS climb:market-stair-w — run 3.36 m, worst rise 0.18 (limit 0.38), feet end at 0, shelf beyond the head reads 0 (promised 0)
+PASS climb:market-stair-e — run 3.36 m, worst rise 0.18 (limit 0.38), feet end at 0, shelf beyond the head reads 0 (promised 0)
+PASS climb:keep-climb-1 — run 5.2 m, worst rise 0.2 (limit 0.38), feet end at 2.6, shelf beyond the head reads 2.6 (promised 2.6)
+PASS climb:keep-climb-2 — run 5.2 m, worst rise 0.2 (limit 0.38), feet end at 5.2, shelf beyond the head reads 5.2 (promised 5.2)
+PASS climb:keep-wall-stair — run 10 m, worst rise 0.2 (limit 0.38), feet end at 5, shelf beyond the head reads 5 (promised 5)
+PASS climb:mill-wall-stair — run 10 m, worst rise 0.2 (limit 0.38), feet end at 5, shelf beyond the head reads 5 (promised 5)
+PASS climb:close-wall-stair — run 10 m, worst rise 0.2 (limit 0.38), feet end at 5, shelf beyond the head reads 5 (promised 5)
+PASS climb:row-wall-stair — run 10 m, worst rise 0.2 (limit 0.38), feet end at 5, shelf beyond the head reads 5 (promised 5)
+PASS flat:market floor — (0, -2) reads -1.4 (promised -1.4, dressing up to 0.05 allowed)
+PASS flat:market north rim — (6, -15) reads 0 (promised 0, dressing up to 0.05 allowed)
+PASS flat:market south rim — (8, 12) reads 0 (promised 0, dressing up to 0.05 allowed)
+PASS flat:market west rim — (-14, -6) reads 0 (promised 0, dressing up to 0.05 allowed)
+PASS flat:market east rim — (15, 0) reads 0 (promised 0, dressing up to 0.05 allowed)
+PASS flat:keep lower ward — (-10, -30) reads 2.6 (promised 2.6, dressing up to 0.05 allowed)
+PASS flat:keep platform — (4, -36) reads 5.25 (promised 5.2, dressing up to 0.05 allowed)
+PASS flat:keep platform east — (12, -30) reads 5.2 (promised 5.2, dressing up to 0.05 allowed)
+PASS mound:zero-on-shelves — no shelf sample moved by the mound
+PASS surrounds:coverage — 4356 samples at 2 m over x -66..66, z -66..66 all find ground
+PASS surrounds:curtain-height — outer scarp drops 5 / 5 / 5 / 5 m at the four outer edges
+RESULT: PASS
+exit 0

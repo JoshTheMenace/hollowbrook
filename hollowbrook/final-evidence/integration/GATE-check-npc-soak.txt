@@ -1,0 +1,28 @@
+WARNING: Multiple instances of Three.js being imported.
+
+NPC SOAK — 60s at 1/60, 7 cast members, rules stepping
+
+actor        character  perf  max|rot|            snap (acting joints)  residue  mixer-skips  clips | verbs
+-------------------------------------------------------------------------------------------------------------------
+reeve        elder      yes   1.969 upperArmR  0.211 upperArmR@29.5s  0.0007   4786         idle,talk,walk | gaze none point shake
+runner       mika       yes   2.478 upperArmR  0.197 upperArmR@20.0s  0.0006   1047         idle,talk,walk | gaze nod none point
+bowman       archer     yes   2.537 upperArmR  0.266 head@45.1s       0.0007   10241        attack,idle | gaze nod none
+smith        brute      yes   1.253 shinL      0.113 upperArmR@50.5s  0.0006   200          idle,walk | gaze none open_hand
+millwarden   golem      yes   0.329 upperArmL  0.000                  0.0006   14878        idle | —
+hedgewizard  mage       yes   0.854 hatTip     0.095 head@12.6s       0.0006   1608         idle,walk | gaze none tilt_left
+vixen        fox        no    2.237 rearShinL  0.089 head@2.0s         n/a     338          idle,startle,walk | —
+
+PASS  every joint of every actor bounded through the soak (< π rad) — worst |rot| 2.537 rad
+PASS  no single-frame snap on an acting joint (lines advanced mid-envelope ×2) — worst 0.266 rad/frame (the r2 defect was 2.20)
+PASS  back at rest vs a control actor (±0.02 rad) — worst residue 0.0007 rad
+PASS  the mixer-skip guard did work (see header, correction 1) — 33098 joint-frames the mixer declined to write and the guard restored
+PASS  NPCs walked the nav grid (shelter, then back to post) — 5 of 7 played a walk clip
+PASS  the bowman looses on the rush — archer attack clip fired
+PASS  the vixen startles when she flees — fox startle clip fired
+PASS  talk clips only on bodies that have one — 2 (elder + mika); the other four act over idle
+PASS  nod tips the head DOWN (head.rotation.x > 0) — Δhead.x 0.455 rad
+PASS  bow folds the torso FORWARD and the head DOWN in world space — Δspine.x 0.655 (charforge alone: -0.655), Δhead.x 0.328, head world-forward y -0.262 → -0.952
+PASS  point raises the right arm FORWARD (upperArmR.x < 0) — ΔupperArmR.x -1.899 rad
+
+RESULT: PASS
+exit 0

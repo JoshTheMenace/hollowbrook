@@ -1,0 +1,20 @@
+PASS cp1:written — fresh page wrote {"v":1,"wave":1,"lights":3,"hp":100,"objectivesDone":[],"lightsLostAt":[],"player":[0,0,30],"yaw":0,"at":"wave-start"}
+PASS cp1:walked — walked 9.04 m after the save (a save mid-wave would be a defect: none written)
+PASS cp1:no-midwave-save — the save did not change while walking mid-wave
+PASS cp1:reload==continuous — after F5: {"wave":1,"lights":3,"objectivesDone":[],"lightsLostAt":[],"player":[0,0,30],"yaw":0} vs {"wave":1,"lights":3,"objectivesDone":[],"lightsLostAt":[],"player":[0,0,30],"yaw":0}; lands at the checkpoint position, not the walked one
+PASS cp2:written — objective 1 done wrote {"v":1,"wave":2,"lights":3,"hp":100,"objectivesDone":["o1-escort-runner"],"lightsLostAt":[],"player":[-13.2,0,6],"yaw":0,"at":"breather-done"}
+PASS cp2:walked — walked 2.66 m after the save
+PASS cp2:reload==continuous — after F5: {"wave":2,"lights":3,"objectivesDone":["o1-escort-runner"],"lightsLostAt":[],"player":[-13.2,0,6],"yaw":0} — lands at wave 2's start with objective 1 done
+PASS cp3:written — wave 2 start wrote {"v":1,"wave":2,"lights":3,"hp":100,"objectivesDone":["o1-escort-runner"],"lightsLostAt":[],"player":[0,0,30],"yaw":0,"at":"wave-start"}
+PASS cp3:reload==continuous — after F5: {"wave":2,"lights":3,"objectivesDone":["o1-escort-runner"],"lightsLostAt":[],"player":[0,0,30],"yaw":0}
+PASS cp4:written — death wrote {"v":1,"wave":2,"lights":2,"hp":100,"objectivesDone":["o1-escort-runner"],"lightsLostAt":["w2"],"player":[0,0,30],"yaw":0,"at":"wave-start"}
+PASS cp4:reload==continuous — after F5: lights 2, hp 100, {"wave":2,"lights":2,"objectivesDone":["o1-escort-runner"],"lightsLostAt":["w2"],"player":[0,0,30],"yaw":0}
+PASS corrupt:garbage — fresh run (wave 1, lights 3), shell live, fresh save written
+PASS corrupt:foreign — fresh run (wave 1, lights 3), shell live, fresh save written
+PASS corrupt:wrong-version — fresh run (wave 1, lights 3), shell live, fresh save written
+PASS corrupt:bad-wave — fresh run (wave 1, lights 3), shell live, fresh save written
+PASS corrupt:bad-player — fresh run (wave 1, lights 3), shell live, fresh save written
+PASS corrupt:inconsistent-lights — fresh run (wave 1, lights 3), shell live, fresh save written
+PASS corrupt:objective-from-the-future — fresh run (wave 1, lights 3), shell live, fresh save written
+RESULT: PASS — continuous play == post-reload at 4 checkpoints; 7 corrupt saves yield a fresh live run
+exit 0

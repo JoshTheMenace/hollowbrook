@@ -1,0 +1,53 @@
+== polish A/B ==
+
+camera                 calls off   calls on   delta   sky-edge off   sky-edge on   drop
+from-the-road               3350       3358       8          48.31         45.88   2.43
+over-the-market             2593       2601       8          66.26         66.12   0.14
+from-the-keep               2981       2989       8          69.31         66.11    3.2
+down-the-row                2053       2061       8          65.83         65.83      0
+along-the-wall              2303       2311       8          56.45         56.97  -0.52
+the-close                   1931       1939       8          59.72          59.8  -0.08
+gate-square                 2854       2862       8             --            --     --
+row-lane                    1963       1971       8             --            --     --
+
+== per-mechanism draw-call delta (against ?polish=off) ==
+camera                     sky    ash  lanes   haze
+from-the-road               2      1      5      0
+over-the-market             2      1      5      0
+from-the-keep               2      1      5      0
+down-the-row                2      1      5      0
+along-the-wall              2      1      5      0
+the-close                   2      1      5      0
+gate-square                 2      1      5      0
+row-lane                    2      1      5      0
+
+[polish] mechanisms: surfaces, sky, ash, haze, lanes, accents, practicals — 8 added meshes
+[polish] p1 surfaces: 33 pooled materials mapped, 176 not; no unmapped material covers 2 % of a vista frame
+[polish] p2 sky: 14 clouds, 2 smoke column(s) over 3 camp fire(s) (2 lit, all at the SOUTH gate)
+[polish] p3 ash: 380 quads in one instanced mesh
+[polish] p4 haze: 92.4..330.0 -> 45..460
+[polish] p5 lanes: 191 patches in 5 merged meshes (232 stations already worn by a district, 24 blocked, 29 on a grade)
+[polish] p6 accents: PASS — 15 accent meshes, 0 warning(s)
+[polish] p7 practicals: PASS — 48 practicals, 32 lit, 32 of those with a light pool
+[polish] overhead: 13 strung run(s) already hung by districts; this layer adds none
+
+PASS legibility:from-the-road — silhouette vs sky 48.31 off -> 45.88 on (-2.43; floor 40, max drop 8)
+PASS legibility:over-the-market — silhouette vs sky 66.26 off -> 66.12 on (-0.14; floor 40, max drop 8)
+PASS legibility:from-the-keep — silhouette vs sky 69.31 off -> 66.11 on (-3.2; floor 40, max drop 8)
+PASS legibility:down-the-row — silhouette vs sky 65.83 off -> 65.83 on (-0; floor 40, max drop 8)
+PASS legibility:along-the-wall — silhouette vs sky 56.45 off -> 56.97 on (+0.52; floor 40, max drop 8)
+PASS legibility:the-close — silhouette vs sky 59.72 off -> 59.8 on (+0.08; floor 40, max drop 8)
+PASS draw-calls:from-the-road — 3350 off -> 3358 on (+8); already over the play cap 1400 without the layer — the town's, not the layer's
+PASS draw-calls:over-the-market — 2593 off -> 2601 on (+8); already over the play cap 1400 without the layer — the town's, not the layer's
+PASS draw-calls:from-the-keep — 2981 off -> 2989 on (+8); already over the play cap 1400 without the layer — the town's, not the layer's
+PASS draw-calls:down-the-row — 2053 off -> 2061 on (+8); already over the play cap 1400 without the layer — the town's, not the layer's
+PASS draw-calls:along-the-wall — 2303 off -> 2311 on (+8); already over the play cap 1400 without the layer — the town's, not the layer's
+PASS draw-calls:the-close — 1931 off -> 1939 on (+8); already over the play cap 1400 without the layer — the town's, not the layer's
+PASS draw-calls:gate-square — 2854 off -> 2862 on (+8); already over the play cap 1400 without the layer — the town's, not the layer's
+PASS draw-calls:row-lane — 1963 off -> 1971 on (+8); already over the play cap 1400 without the layer — the town's, not the layer's
+PASS draw-calls:layer-cost — the polish layer costs at most +8 calls (at from-the-road); budget 120
+PASS p1:surface-maps — 33 pooled materials carry a multiply map; the largest unmapped one is 1.25 % of a vista frame, under the 2 % rule
+PASS p6:accent-discipline — 15 accent meshes, every one on its owner (companyRust on the camp banner only)
+PASS p7:practicals-travel — 32 lit practicals, 32 with a light pool
+RESULT: PASS
+exit 0

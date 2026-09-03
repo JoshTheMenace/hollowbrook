@@ -37,8 +37,8 @@
     "name": "along-the-wall",
     "ok": true,
     "sky": 56.45,
-    "edge": 44.68,
-    "share": 12.911,
+    "edge": 44.64,
+    "share": 12.912,
     "failures": []
    },
    {
@@ -86,8 +86,8 @@
    {
     "name": "along-the-wall",
     "ok": true,
-    "sky": 56.91,
-    "edge": 47.04,
+    "sky": 56.97,
+    "edge": 46.81,
     "share": 12.91,
     "failures": []
    },

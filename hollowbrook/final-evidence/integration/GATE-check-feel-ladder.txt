@@ -1,0 +1,15 @@
+PASS bolt-fired: computed 1.00 vs declared 1
+PASS bolt-miss: computed 1.00 vs declared 1
+PASS bolt-hit: computed 2.00 vs declared 2
+PASS lance-fired: computed 3.00 vs declared 3.1
+PASS kill-cutpurse: computed 5.00 vs declared 5
+PASS player-hurt: computed 6.00 vs declared 6
+PASS kill-hexer: computed 6.00 vs declared 6
+PASS kill-reaver: computed 6.80 vs declared 6.8
+PASS kill-shieldbearer: computed 9.80 vs declared 9.8
+PASS lance-multikill: computed 11.90 vs declared 11.9
+PASS wave-cleared: computed 12.50 vs declared 12.5
+PASS kill-captain: computed 23.60 vs declared 23.6
+PASS bell-rung: computed 32.00 vs declared 32
+RESULT: PASS — ladder monotone
+exit 0

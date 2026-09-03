@@ -1,0 +1,25 @@
+PASS latency — feet move 1 tick(s) after a real keydown (need 1-2)
+PASS ladder:runtime — Feel.checkLadder over the live table: bolt-fired 1.0, bolt-miss 1.0, bolt-hit 2.0, lance-fired 3.0, kill-cutpurse 5.0, player-hurt 6.0, kill-hexer 6.0, kill-reaver 6.8, kill-shieldbearer 9.8, lance-multikill 11.9, wave-cleared 12.5, kill-captain 23.6, bell-rung 32.0
+PASS feel:runtime — every declared event wired on the live bus (sfx names resolve when audio is on)
+rendered: bolt-fired:0px/0sh/0hs/0t bolt-miss:0px/0sh/0hs/0t bolt-hit:124px/0sh/0hs/0t lance-fired:712px/19.4sh/0hs/0t kill-cutpurse:1372px/0sh/0hs/1t player-hurt:1236px/96.9sh/0hs/0t kill-hexer:1176px/77.5sh/0hs/1t kill-reaver:3320px/38.8sh/0hs/1t kill-shieldbearer:1116px/77.5sh/0.88hs/1t lance-multikill:776px/96.9sh/0.88hs/1t wave-cleared:3008px/77.5sh/0.88hs/1t kill-captain:952px/193.8sh/0.88hs/1t bell-rung:948px/232.5sh/0.88hs/1t
+PASS ladder:rendered-monotone — rendered magnitude (changed px + 40·shake px + 800·hitstop + 1500·text) non-decreasing up the ladder (15 % tolerance)
+PASS ladder:rendered-whiff — bolt-miss 0 px vs bolt-hit 124 px
+PASS ladder:rendered-visible — every rung from lance-fired up moves >= 400 px at 1280x720
+PASS ladder:composite — a double lance kill (kill x2 + multikill) renders 9844 vs a single kill 4576
+  segment w1 90s: frames 368 visibleFrac 0.952 p10 1 firstSight p90 1.38s (12) legSamples 23 legibleFrac 0.884 eliteFrames 0 eliteLegible null eliteBodyOnly null xrayMarkers 0 captainSeen 0
+  segment w4 110s: frames 251 visibleFrac 0.608 p10 0.333 firstSight p90 2.2s (25) legSamples 38 legibleFrac 0.763 eliteFrames 31 eliteLegible 0.968 eliteBodyOnly 0.774 xrayMarkers 0 captainSeen 1
+FAIL play:visible — in-frustum fraction (<= 20 m; frames with >= 2 near in w1 [368 frames], >= 3 in w4 [251]) w1 0.952 / w4 0.608 (need >= 0.7, >= 10 frames each)
+PASS play:first-sight — spawn -> first sight p90 1.38 s over 12 sightings (need <= 5 s, >= 6)
+PASS play:legible — legible fraction 0.763 over 38 samples (px >= 14, sep >= 0.09; need >= 0.6)
+PASS play:elite — Captain legible-as-elite 0.968 over 31 frames (marker px >= 10; body-only 0.774; x-ray markers 0); segment crossed the Captain: true
+PASS draw-calls — w1: 2399 calls with 3 alive, w2: 2927 calls with 3 alive, w3: 2449 calls with 3 alive, w5: 2716 calls with 10 alive, w6: 2496 calls with 7 alive (need <= 3400)
+PASS hud:hp-pixels — health bar reads 62 % warm pixels for HP 62 (DOM fill 99 %)
+PASS hud:bolt-pixels — 4 paper-bright pips in the PNG for 4 bolts
+PASS hud:light-pixels — 3 lit lamps in the PNG for 3 lights
+PASS hud:tracker-pixels — tracker shows "wave 2 · the market / hold the market" with 1018 bright text pixels in the PNG
+PASS payoff:o1-escort-runner — done true, payoff at NDC (0.29,0.44) in frame true, 42192 px changed at it; HUD says "Get Mika to the Reeve's Hall — done"; frame .shots/payoff-o1-escort-runner.png
+PASS payoff:o2-barricades — done true, payoff at NDC (-0.02,-0.37) in frame true, 16469 px changed at it; HUD says "Raise the three barricades on the row — done"; frame .shots/payoff-o2-barricades.png
+PASS payoff:o3-relight-wall — done true, payoff at NDC (0.02,-0.41) in frame true, 17007 px changed at it; HUD says "Relight the four wall braziers — done"; frame .shots/payoff-o3-relight-wall.png
+PASS payoff:o4-escort-reeve — done true, payoff at NDC (-0.7,-0.26) in frame true, 36988 px changed at it; HUD says "Bring the Reeve up to the Warden's Hall — done"; frame .shots/payoff-o4-escort-reeve.png
+RESULT: FAIL (1)
+exit 1

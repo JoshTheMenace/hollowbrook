@@ -1,0 +1,206 @@
+
+== plan ==
+PASS plan valid — 6 districts
+
+== build (composeCity anchors assert during it) ==
+PASS built in order: southgate -> marketlow -> keephill -> millreach -> chapelclose -> wardrow
+WARN [southgate] LAYING-GROUND: platform x -3.8..3.8, z 47.6..52.4 is 36 m² (limit 30) at top 5 — you are laying ground, which is the terrain's job. A district plate stops at the envelope and nothing owns what lies between or beyond it: that is the floating-slab defect. Set the level in plan.terrain.levels and DRESS this surface instead (paving, kerbs, steps laid on it) — or, if it really is one made surface, say so here.
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:siege-road" centered (-0.49, 59.10) is 5.10 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-fire-a" centered (-4.00, 58.20) is 4.20 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-fire-b" centered (6.60, 62.20) is 8.20 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-fire-c" centered (-0.40, 61.00) is 7.00 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-tent-a" centered (-7.69, 59.00) is 5.00 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-tent-b" centered (7.69, 58.59) is 4.59 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-tent-c" centered (2.80, 63.49) is 9.49 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-tent-d" centered (-3.20, 64.11) is 10.11 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-banner" centered (3.60, 57.40) is 3.40 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-ladder-a" centered (-10.27, 57.03) is 3.03 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-ladder-b" centered (10.03, 56.50) is 2.50 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:company-pots" centered (-5.60, 56.21) is 2.21 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree--28-63" centered (-27.77, 63.07) is 13.33 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree--21-65" centered (-21.70, 64.72) is 11.34 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree--15-63" centered (-14.85, 63.49) is 9.49 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree--9-66" centered (-9.01, 65.62) is 11.62 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree-9-66" centered (8.87, 65.57) is 11.57 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree-15-63" centered (15.16, 63.39) is 9.39 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree-22-65" centered (21.38, 64.87) is 11.38 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [southgate] OUTSIDE-ENVELOPE: group "district:southgate:far-tree-28-63" centered (27.94, 63.45) is 13.71 m outside envelope x -18..18, z 16..54 (tolerance 2 m)
+WARN [chapelclose] LAYING-GROUND: platform x -47.9..-38.7, z -45.9..-36 is 91 m² (limit 30) at top 0.55 — you are laying ground, which is the terrain's job. A district plate stops at the envelope and nothing owns what lies between or beyond it: that is the floating-slab defect. Set the level in plan.terrain.levels and DRESS this surface instead (paving, kerbs, steps laid on it) — or, if it really is one made surface, say so here.
+WARN [wardrow] LAYING-GROUND: platform x 47.6..52.4, z 18.2..25.8 is 36 m² (limit 30) at top 5 — you are laying ground, which is the terrain's job. A district plate stops at the envelope and nothing owns what lies between or beyond it: that is the floating-slab defect. Set the level in plan.terrain.levels and DRESS this surface instead (paving, kerbs, steps laid on it) — or, if it really is one made surface, say so here.
+
+== seams ==
+seam check: 14 socket pairs
+PASS gate-road <> market-road-s [road] at (0, 16) — southgate <-> marketlow
+PASS sg-w-lane <> mr-e-lane [path] at (-18, 34) — southgate <-> millreach
+PASS sg-e-lane <> wr-w-lane [path] at (18, 36) — southgate <-> wardrow
+PASS sg-walk-w <> mr-walk-s [path] at (-18, 50) — southgate <-> millreach
+PASS sg-walk-e <> wr-walk-s [path] at (18, 50) — southgate <-> wardrow
+PASS market-road-n <> keep-road-s [road] at (0, -18) — marketlow <-> keephill
+PASS market-lane-w <> mr-market-lane [path] at (-18, 6) — marketlow <-> millreach
+PASS market-lane-e <> wr-market-lane [path] at (18, 4) — marketlow <-> wardrow
+PASS keep-lane-w <> cc-lane-e [path] at (-18, -30) — keephill <-> chapelclose
+PASS keep-lane-e <> wr-lane-n [path] at (36, -18) — keephill <-> wardrow
+PASS keep-walk-w <> cc-walk-e [path] at (-18, -50) — keephill <-> chapelclose
+PASS keep-walk-e <> wr-walk-n [path] at (50, -18) — keephill <-> wardrow
+PASS mr-n-lane <> cc-s-lane [path] at (-36, -12) — millreach <-> chapelclose
+PASS mr-walk-n <> cc-walk-s [path] at (-50, -12) — millreach <-> chapelclose
+PASS — ground continuous and corridors clear at every socket
+
+== spatial audit (whole city) ==
+spatial audit: 458 units (458 tagged, 0 pooled clusters, 66 runs, 13 of them raked), 751564 triangles, 40718 seam samples (5938 inside colliders skipped, 786 inside 5 registered interiors)
+PASS no spatial defects
+
+== flood fill (whole city) ==
+fill: 123080 cells reachable from "the gate square" (0, 30) over x -66..66, z -66..66 at 0.35 m, radius 0.34, step 0.38 — 123658 visits, 470 colliders
+PASS [southgate] the gate square (0, 30)
+PASS [southgate] under the arch (0, 50)
+PASS [southgate] the south wall-walk (-10, 50)
+PASS [southgate] the stair-head turret (-16.5, 47.3)
+PASS [southgate] the siege road (0, 58)
+PASS [marketlow] the well (1, -3)
+PASS [marketlow] the north steps (0, -13.5)
+PASS [marketlow] the guild hall porch (-14.2, 5.5)
+PASS [marketlow] the east stair head (15, -2)
+PASS [marketlow] the ramp foot (0, 7)
+PASS [keephill] the keep stair foot (0, -19.2)
+PASS [keephill] the lower ward (-10, -34)
+PASS [keephill] the keep platform (4, -38)
+PASS [keephill] the bell tower foot (8.5, -36.5)
+PASS [keephill] the north wall-walk (30, -50)
+PASS [keephill] the yew close (36, -30)
+PASS [keephill] the east wall-walk, north end (50, -30)
+PASS [millreach] under the mill (-38, 24)
+PASS [millreach] the mill lane (-22, 34)
+PASS [millreach] the west wall-walk (-50, 10)
+PASS [millreach] the SW tower foot (-46, 46)
+PASS [millreach] the tannery yard (-40, -4)
+PASS [chapelclose] the chapel door (-30, -17.5)
+PASS [chapelclose] the graveyard (-28, -40)
+PASS [chapelclose] the wizard's tower foot (-40, -34)
+PASS [chapelclose] the north wall-walk, west run (-30, -50)
+PASS [chapelclose] the west wall-walk, north half (-50, -30)
+PASS [wardrow] the row lane (36, 20)
+PASS [wardrow] under the east gate (50, 22)
+PASS [wardrow] the smithy yard (30, -3)
+PASS [wardrow] the east wall-walk (50, 0)
+PASS [wardrow] the SE tower foot (46, 46)
+PASS [wardrow] the east road (58, 22)
+
+== budgets ==
+PASS [southgate] 368 meshes / 400, 72076 triangles / 150000, 65 colliders, 8 platforms
+PASS [marketlow] 356 meshes / 440, 50500 triangles / 160000, 82 colliders, 2 platforms
+PASS [keephill] 454 meshes / 460, 89260 triangles / 170000, 106 colliders, 23 platforms
+PASS [millreach] 348 meshes / 400, 73734 triangles / 150000, 70 colliders, 26 platforms
+PASS [chapelclose] 392 meshes / 440, 83900 triangles / 160000, 68 colliders, 14 platforms
+PASS [wardrow] 424 meshes / 440, 88662 triangles / 160000, 79 colliders, 18 platforms
+
+== enterable interiors ==
+5 interiors registered in the scene, 4 declared in the plan
+PASS [marketlow] "guildhall" interior "guildhall" — 15 dressed props, cull radius 25 m
+PASS [marketlow] "guildhall" doorway 0.91 m of walkable ground through the opening
+PASS [marketlow] "guildhall" interior waypoint "the guild hall floor" (-14.2, 0) reached through the doorway
+PASS [marketlow] "guildhall" interior camera "guildhall-interior" shows "guildhall-hearth"
+PASS [keephill] "wardens-hall" interior "wardens-hall" — 15 dressed props, cull radius 25 m
+PASS [keephill] "wardens-hall" doorway 0.9 m of walkable ground through the opening
+PASS [keephill] "wardens-hall" interior waypoint "the warden's hall" (0, -38.5) reached through the doorway
+PASS [keephill] "wardens-hall" interior camera "wardens-hall-interior" shows "wardens-hearth"
+PASS [chapelclose] "chapel" interior "chapel-interior" — 10 dressed props, cull radius 25 m
+PASS [chapelclose] "chapel" doorway 0.92 m of walkable ground through the opening
+PASS [chapelclose] "chapel" interior waypoint "the chapel nave" (-30, -22) reached through the doorway
+PASS [chapelclose] "chapel" interior camera "chapel-interior" shows "chapel-altar"
+PASS [wardrow] "smithy" interior "smithy" — 9 dressed props, cull radius 25 m
+PASS [wardrow] "smithy" doorway 0.92 m of walkable ground through the opening
+PASS [wardrow] "smithy" interior waypoint "the forge room" (30, -8) reached through the doorway
+PASS [wardrow] "smithy" interior camera "smithy-interior" shows "smithy-hearth"
+
+== surrounds coverage (the whole footprint, not the parcels) ==
+sampled 7744 points at 1.5 m over x -66..66, z -66..66 (footprint_m 132×132); floor threshold y -4.4
+PASS ground everywhere in the footprint — nothing ends in a cut, surrounds owner "southgate"
+
+== sight corridors ==
+PASS gate-sees-keep — 72 m clear at y 8.5 across ±3 m [crosses southgate, marketlow, keephill]
+PASS keep-sees-eastgate — 60.46 m clear at y 7.5 across ±3 m [crosses keephill, wardrow]
+PASS market-sees-tower — 49.52 m clear at y 9 across ±3 m [crosses marketlow, chapelclose]
+
+== landmark contracts ==
+PASS [southgate] "district:southgate:gatehouse" reads from vista "from-the-keep"
+PASS [southgate] "district:southgate:gatehouse" reads from 4/5 points in "marketlow" (the well, the north steps, the guild hall porch, the ramp foot)
+PASS [keephill] "district:keephill:bell-tower" reads from vista "from-the-road"
+PASS [keephill] "district:keephill:bell-tower" reads from 5/5 points in "southgate" (the gate square, under the arch, the south wall-walk, the stair-head turret, the siege road)
+PASS [keephill] "district:keephill:bell-tower" reads from 3/5 points in "marketlow" (the well, the north steps, the ramp foot)
+PASS [keephill] "district:keephill:bell-tower" reads from 2/6 points in "wardrow" (the row lane, the east wall-walk)
+WARN [keephill] "district:keephill:bell-tower" is hidden from most of "wardrow": "under the east gate" (blocked by "wardrow:eastgate:pool-0" [wardrow]); "the smithy yard" (blocked by "smithy-walls" [wardrow]); "the SE tower foot" (blocked by "wardrow:h4:0" [wardrow]); "the east road" (blocked by "wardrow:curtain-e--18:pool-2" [wardrow])
+PASS [keephill] "district:keephill:wardens-hall" reads from vista "over-the-market"
+PASS [keephill] "district:keephill:wardens-hall" reads from 2/5 points in "marketlow" (the well, the ramp foot)
+WARN [keephill] "district:keephill:wardens-hall" is hidden from most of "marketlow": "the north steps" (blocked by "keephill:ward-gate:pool-5" [keephill]); "the guild hall porch" (blocked by "district:marketlow:hit-guildhall-door" [marketlow]); "the east stair head" (blocked by "marketlow:chandlers-roof:pool-6" [marketlow])
+PASS [millreach] "district:millreach:mill" reads from vista "along-the-wall"
+PASS [millreach] "district:millreach:mill" reads from 3/5 points in "southgate" (the gate square, the south wall-walk, the stair-head turret)
+PASS [chapelclose] "district:chapelclose:wizard-tower" reads from vista "the-close"
+PASS [chapelclose] "district:chapelclose:wizard-tower" reads from 4/5 points in "marketlow" (the well, the north steps, the east stair head, the ramp foot)
+PASS [wardrow] "district:wardrow:eastgate" reads from vista "down-the-row"
+PASS [wardrow] "district:wardrow:eastgate" reads from 3/5 points in "marketlow" (the well, the north steps, the east stair head)
+
+== interactions ==
+PASS [southgate] 2 interactables registered for 2 declared
+PASS [marketlow] 3 interactables registered for 2 declared
+PASS [keephill] 3 interactables registered for 2 declared
+PASS [millreach] 1 interactable registered for 1 declared
+PASS [chapelclose] 2 interactables registered for 1 declared
+PASS [wardrow] 5 interactables registered for 2 declared
+
+== boundary features (declared vs. built) ==
+WARN UNDECLARED BOUNDARY FEATURE: "southgate" and "millreach" both have geometry over 0.5 m tall within 0.5 m of their shared x = -18 edge, overlapping over z 48.3..51.9 (3.6 m). If that is one wall it belongs to ONE of them — add a boundary_features entry { along: "z", at: -18, from: 48.3, to: 51.9, owner, mate }. If it is genuinely two things butted together, declare it anyway and say so: both building it is a double wall, neither is a gap, and no gate can tell those apart from geometry.
+WARN UNDECLARED BOUNDARY FEATURE: "southgate" and "wardrow" both have geometry over 0.5 m tall within 0.5 m of their shared x = 18 edge, overlapping over z 48.3..51.9 (3.6 m). If that is one wall it belongs to ONE of them — add a boundary_features entry { along: "z", at: 18, from: 48.3, to: 51.9, owner, mate }. If it is genuinely two things butted together, declare it anyway and say so: both building it is a double wall, neither is a gap, and no gate can tell those apart from geometry.
+WARN UNDECLARED BOUNDARY FEATURE: "marketlow" and "keephill" both have geometry over 0.5 m tall within 0.5 m of their shared z = -18 edge, overlapping over x 4.82..12.02 (7.19 m). If that is one wall it belongs to ONE of them — add a boundary_features entry { along: "x", at: -18, from: 4.82, to: 12.02, owner, mate }. If it is genuinely two things butted together, declare it anyway and say so: both building it is a double wall, neither is a gap, and no gate can tell those apart from geometry.
+WARN UNDECLARED BOUNDARY FEATURE: "keephill" and "chapelclose" both have geometry over 0.5 m tall within 0.5 m of their shared x = -18 edge, overlapping over z -51.9..-48.3 (3.6 m). If that is one wall it belongs to ONE of them — add a boundary_features entry { along: "z", at: -18, from: -51.9, to: -48.3, owner, mate }. If it is genuinely two things butted together, declare it anyway and say so: both building it is a double wall, neither is a gap, and no gate can tell those apart from geometry.
+WARN UNDECLARED BOUNDARY FEATURE: "keephill" and "wardrow" both have geometry over 0.5 m tall within 0.5 m of their shared z = -18 edge, overlapping over x 48.3..51.9 (3.6 m). If that is one wall it belongs to ONE of them — add a boundary_features entry { along: "x", at: -18, from: 48.3, to: 51.9, owner, mate }. If it is genuinely two things butted together, declare it anyway and say so: both building it is a double wall, neither is a gap, and no gate can tell those apart from geometry.
+WARN UNDECLARED BOUNDARY FEATURE: "millreach" and "chapelclose" both have geometry over 0.5 m tall within 0.5 m of their shared z = -12 edge, overlapping over x -51.9..-48.3 (3.6 m). If that is one wall it belongs to ONE of them — add a boundary_features entry { along: "x", at: -12, from: -51.9, to: -48.3, owner, mate }. If it is genuinely two things butted together, declare it anyway and say so: both building it is a double wall, neither is a gap, and no gate can tell those apart from geometry.
+
+== terminating sight lines (what closes each view — advisory) ==
+  [southgate] gate-road looking +z from (0, 16) -> 4/5 rays land on "gatehouse" [owner: southgate], the 4 that hit average 32.76 m
+  [southgate] gate-road looking -z from (0, 16) -> 3/5 rays land on "terrain:treads" [owner: terrain], the 5 that hit average 38.19 m
+  [southgate] sg-w-lane looking +x from (-18, 34) -> 5/5 rays land on "cottage" [owner: southgate], the 5 that hit average 24.58 m
+  [southgate] sg-w-lane looking -x from (-18, 34) -> 3/5 rays land on "curtain-wall" [owner: millreach], the 5 that hit average 25.72 m
+  [southgate] sg-e-lane looking +x from (18, 36) -> 3/5 rays land on "terrain:ground" [owner: terrain], the 5 that hit average 28.3 m
+  [southgate] sg-e-lane looking -x from (18, 36) -> 5/5 rays land on "cottage" [owner: southgate], the 5 that hit average 5.36 m
+WARN TERMINUS [southgate] "sg-e-lane" looking -x: the view closes at 5.36 m on "cottage". That is a wall in the face rather than a terminus — check the frame from this socket.
+  [southgate] sg-walk-w looking +x from (-18, 50) -> 3/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 2 that hit average 12.59 m
+WARN TERMINUS [southgate] "sg-walk-w" looking +x: 3/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [southgate] sg-walk-w looking -x from (-18, 50) -> 4/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 1 that hit average 33.2 m
+WARN TERMINUS [southgate] "sg-walk-w" looking -x: 4/5 rays leave the city 36 m out and hit nothing at all — this axis runs off the edge of the town. That terminus belongs to the surrounds owner ("southgate"): a treeline, a ridge, a wall, something that says the town stops here on purpose. Otherwise the view ends in fog.
+  [southgate] sg-walk-e looking +x from (18, 50) -> 4/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 1 that hit average 33.2 m
+WARN TERMINUS [southgate] "sg-walk-e" looking +x: 4/5 rays leave the city 36 m out and hit nothing at all — this axis runs off the edge of the town. That terminus belongs to the surrounds owner ("southgate"): a treeline, a ridge, a wall, something that says the town stops here on purpose. Otherwise the view ends in fog.
+  [southgate] sg-walk-e looking -x from (18, 50) -> 3/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 2 that hit average 12.57 m
+WARN TERMINUS [southgate] "sg-walk-e" looking -x: 3/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [marketlow] market-road-n looking +z from (0, -18) -> 5/5 rays land on "(nothing — open sky or fog)" [owner: nobody], nothing within 45 m
+WARN TERMINUS [marketlow] "market-road-n" looking +z: 5/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [marketlow] market-road-n looking -z from (0, -18) -> 3/5 rays land on "terrain:treads" [owner: terrain], the 5 that hit average 4.18 m
+WARN TERMINUS [marketlow] "market-road-n" looking -z: the view closes at 4.18 m on "terrain:treads". That is a wall in the face rather than a terminus — check the frame from this socket.
+  [marketlow] market-lane-w looking +x from (-18, 6) -> 2/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 3 that hit average 31.56 m
+  [marketlow] market-lane-w looking -x from (-18, 6) -> 5/5 rays land on "curtain-wall" [owner: millreach], the 5 that hit average 30.48 m
+  [marketlow] market-lane-e looking +x from (18, 4) -> 3/5 rays land on "cottage" [owner: wardrow], the 5 that hit average 20.21 m
+  [marketlow] market-lane-e looking -x from (18, 4) -> 4/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 1 that hit average 28.8 m
+WARN TERMINUS [marketlow] "market-lane-e" looking -x: 4/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [keephill] keep-lane-w looking +x from (-18, -30) -> 5/5 rays land on "revetment" [owner: keephill], the 5 that hit average 3.47 m
+WARN TERMINUS [keephill] "keep-lane-w" looking +x: the view closes at 3.47 m on "revetment". That is a wall in the face rather than a terminus — check the frame from this socket.
+  [keephill] keep-lane-w looking -x from (-18, -30) -> 4/5 rays land on "yew-trees" [owner: chapelclose], the 5 that hit average 12.82 m
+  [keephill] keep-lane-e looking +z from (36, -18) -> 5/5 rays land on "cottage" [owner: wardrow], the 5 that hit average 43.66 m
+  [keephill] keep-lane-e looking -z from (36, -18) -> 3/5 rays land on "terrain:ground" [owner: terrain], the 5 that hit average 28.3 m
+  [keephill] keep-walk-w looking +x from (-18, -50) -> 4/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 1 that hit average 35.95 m
+WARN TERMINUS [keephill] "keep-walk-w" looking +x: 4/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [keephill] keep-walk-w looking -x from (-18, -50) -> 3/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 2 that hit average 22.56 m
+WARN TERMINUS [keephill] "keep-walk-w" looking -x: 3/5 rays leave the city 36 m out and hit nothing at all — this axis runs off the edge of the town. That terminus belongs to the surrounds owner ("southgate"): a treeline, a ridge, a wall, something that says the town stops here on purpose. Otherwise the view ends in fog.
+  [keephill] keep-walk-e looking +z from (50, -18) -> 3/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 2 that hit average 37 m
+WARN TERMINUS [keephill] "keep-walk-e" looking +z: 3/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [keephill] keep-walk-e looking -z from (50, -18) -> 4/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 1 that hit average 29.87 m
+WARN TERMINUS [keephill] "keep-walk-e" looking -z: 4/5 rays leave the city 36 m out and hit nothing at all — this axis runs off the edge of the town. That terminus belongs to the surrounds owner ("southgate"): a treeline, a ridge, a wall, something that says the town stops here on purpose. Otherwise the view ends in fog.
+  [millreach] mr-n-lane looking +z from (-36, -12) -> 4/5 rays land on "bark-store" [owner: millreach], the 5 that hit average 10.41 m
+  [millreach] mr-n-lane looking -z from (-36, -12) -> 4/5 rays land on "yew-trees" [owner: chapelclose], the 5 that hit average 10.01 m
+  [millreach] mr-walk-n looking +z from (-50, -12) -> 4/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 1 that hit average 45 m
+WARN TERMINUS [millreach] "mr-walk-n" looking +z: 4/5 rays hit NOTHING inside 45 m with 66 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [millreach] mr-walk-n looking -z from (-50, -12) -> 3/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 2 that hit average 39.32 m
+WARN TERMINUS [millreach] "mr-walk-n" looking -z: 3/5 rays leave the city 42 m out and hit nothing at all — this axis runs off the edge of the town. That terminus belongs to the surrounds owner ("southgate"): a treeline, a ridge, a wall, something that says the town stops here on purpose. Otherwise the view ends in fog.
+28 terminating sight lines walked at 1.7 m eye, 5-ray fan across each socket's width, 45 m reach. The rule is editorial and is stated in references/city-scale.md: every terminating sight line must land on a subject somebody composed.
+
+RESULT: PASS — plan, anchors, seams, spatial audit, routes, budgets, surrounds, sight corridors, landmarks and interactions all green
+exit 0
