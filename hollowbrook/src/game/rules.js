@@ -253,7 +253,14 @@ export class SiegeRun {
       n.shelter = o.def.shelter ?? n.shelter;
       n.escort = null;
       n.x = clamp(n.x, o.def.to[0] - 3, o.def.to[0] + 3);
-      this.emit('npc-sheltered', { id: n.id, name: n.name, pos: { x: n.x, y: n.y, z: n.z } });
+      /* the payoff is COMPOSED FOR WHERE THE PLAYER STANDS: at the door, at
+       * the NPC's chest, on the ground the door is on.  The first cut emitted
+       * the feet at a stale y (the Reeve walked up 5.2 m to the keep with
+       * n.y still at the market's 0), which projected two frame-heights
+       * below the lens from the spot the escort ends at (play gate, NDC y
+       * -2.18); the errand review's rule, again. */
+      n.y = this.world.groundAt(n.x, n.z, null);
+      this.emit('npc-sheltered', { id: n.id, name: n.name, pos: { x: n.x, y: n.y + 1.3, z: n.z } });
     }
     // mutate THEN emit (errand review r1): the save the shell writes on this
     // event must already say the objective is done

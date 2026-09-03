@@ -490,7 +490,13 @@ if (import.meta.env.DEV) {
     for (let f = 0; f < 4; f += 1) {
       const scale = feel.hitstop.scale(TICK); hitstop = Math.max(hitstop, 1 - scale);
       shakePx = Math.max(shakePx, feel.shake.trauma * feel.shake.trauma * 0.35 * pxPerM);
-      stepper.frame(TICK * scale); fps.applyCamera(stepper.alpha, TICK); camera.updateMatrixWorld(true);
+      /* the WORLD IS FROZEN for the four measured frames: only the feel bus,
+       * the views and the HUD advance.  With the run ticking, whatever was
+       * walking in the frame (a knot of cutpurses crossing the square, Mika
+       * on her escort) moved pixels that were charged to the event, and the
+       * ladder's order wandered run to run by more than a rung (integration:
+       * kill-reaver/kill-hexer swapped places on consecutive runs). */
+      camera.updateMatrixWorld(true);
       enemyView?.update(TICK * scale, r, camera); weapons?.update(TICK * scale, r); feel.update(TICK * scale, TICK); hud.update(r, TICK, { yaw: camera.rotation.y });
       pipeline.render();
       const after = legibility.grabColour();
