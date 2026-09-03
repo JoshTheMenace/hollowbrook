@@ -175,8 +175,7 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
   };
 
   /* ---- where to stand for the next thirty seconds --------------------- */
-  const arenaHold = () => {
-    const wave = run.wave;
+  const arenaHold = (wave = run.wave) => {
     const a = w.arenas[wave.arena];
     const p = run.player;
     // the arena's own modal ground, so "high" means high HERE and not high
@@ -321,9 +320,9 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
       // the hold spot when nothing is close enough to matter
       if (!st.holdSpot || run.time - st.holdAt > 12) { st.holdSpot = arenaHold(); st.holdAt = run.time; }
       let goal = null; let goalW = 0;
-      if (nd > 11) {
+      if (nd > 7) {
         const gd = Math.hypot(st.holdSpot[0] - p.x, st.holdSpot[1] - p.z);
-        if (gd > 2.5) { goal = st.holdSpot; goalW = 2.0; }
+        if (gd > 2.5) { goal = st.holdSpot; goalW = nd > 11 ? 2.0 : 1.2; }
       }
       const want = nd < 7 || dodge || goal;
       if (want) {
@@ -372,13 +371,14 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
         }
       }
     }
-    // done, or nothing to do: walk to where the next wave is fought
+    // done, or nothing to do: walk to the HOLD SPOT of the next wave's arena —
+    // the rim, the keep — not its centre.  A bot that waits for the wave in
+    // the sunk square never gets out of it: once a body is within reach the
+    // fight logic will not walk to high ground (a trace showed the expert
+    // dying at (-7.8, -9.5), y -1.4, through all of wave 4)
     const next = C.waves[Math.min(C.waves.length - 1, run.waveIndex + 1)];
-    const a = w.arenas[next.arena];
-    const g = w.gates[next.gates[0]];
-    const cx = (a.rect.x0 + a.rect.x1) / 2; const cz = (a.rect.z0 + a.rect.z1) / 2;
-    const ax = cx - g.at[0]; const az = cz - g.at[1]; const l = Math.hypot(ax, az) || 1;
-    return walkTo([cx + ax / l * 5, cz + az / l * 5], { stopAt: 1.5 });
+    if (!st.nextHold || st.nextHoldWave !== next.id) { st.nextHold = arenaHold(next); st.nextHoldWave = next.id; }
+    return walkTo(st.nextHold, { stopAt: 1.5 });
   };
 
   const bellDir = () => {

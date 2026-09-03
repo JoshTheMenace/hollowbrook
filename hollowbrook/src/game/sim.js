@@ -200,14 +200,25 @@ export function measureRealised(world) {
       if (run.events.some((e) => e.name === 'lance-fired')) { minHold = hold; break; }
     }
     rows.push({ name: 'lance.charge', contract: C.lance.charge, measured: minHold * TICK });
-    const run = mk(); const st = new Stepper(run, { input: () => ({ ...idleIn(), charge: true }) });
-    run.player.x = 0; run.player.z = 40; run.player.yaw = 0; run.player.pitch = 0;
-    st.ticks(Math.round(C.lance.charge / TICK) + 1);
-    const l = run.lances[0]; const z0 = l ? l.z : NaN; st.ticks(60);
-    rows.push({ name: 'lance.speed', contract: C.lance.speed, measured: run.lances[0] ? (z0 - run.lances[0].z) : NaN });
-    st.ticks(400);
-    const fires = run.events.filter((e) => e.name === 'lance-fired').map((e) => e.tick);
-    rows.push({ name: 'lance.cooldown', contract: C.lance.cooldown, measured: fires.length >= 2 ? (fires[1] - fires[0]) * TICK - C.lance.charge : NaN });
+    // the lance fires ON RELEASE at full charge: hold 55 ticks, let go, then read the flight
+    {
+      let t = 0;
+      const run = mk(); const st = new Stepper(run, { input: () => ({ ...idleIn(), charge: t++ < 55 }) });
+      run.player.x = 0; run.player.z = 40; run.player.yaw = 0; run.player.pitch = 0;
+      st.ticks(56);
+      const l = run.lances[0]; const z0 = l ? l.z : NaN; st.ticks(60);
+      rows.push({ name: 'lance.speed', contract: C.lance.speed, measured: run.lances[0] ? (z0 - run.lances[0].z) : NaN });
+    }
+    // cooldown: the earliest second release that fires, minus the charge
+    let cd = NaN;
+    for (let R = 200; R <= 280; R += 1) {
+      let t = 0;
+      const run = mk(); const st = new Stepper(run, { input: () => { t += 1; return { ...idleIn(), charge: t <= 55 || (t > 60 && t <= R) }; } });
+      st.ticks(R + 2);
+      const fires = run.events.filter((e) => e.name === 'lance-fired').map((e) => e.tick);
+      if (fires.length >= 2) { cd = (fires[1] - fires[0]) * TICK - C.lance.charge; break; }
+    }
+    rows.push({ name: 'lance.cooldown', contract: C.lance.cooldown, measured: cd });
     let u = 0; const run2 = mk(); const st2 = new Stepper(run2, { input: () => ({ ...idleIn(), charge: u++ < 40 }) });
     st2.ticks(60);
     rows.push({ name: 'lance.earlyRelease', contract: 0, measured: run2.events.filter((e) => e.name === 'lance-fired').length });
