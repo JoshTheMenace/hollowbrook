@@ -426,8 +426,10 @@ export function torch({ seed = 'torch', h = 2.0, lit = true, post = true } = {})
   P.add(M.ironDark, cyl(0.11, 0.11, 0.05, 0, h - 0.38, 0, { seg: 9, open: true }));
   P.add(M.oakDark, cyl(0.045, 0.055, 0.55, 0, h - 0.22, 0, { seg: 6 }));
   if (lit) {
-    P.add(M.ember, cyl(0.085, 0.02, 0.3, 0, h + 0.16, 0, { seg: 7 }));
-    P.add(M.lit, cyl(0.05, 0.012, 0.16, 0, h + 0.11, 0, { seg: 6 }));
+    // (radiusTOP, radiusBOTTOM): a flame narrows toward the sky — the same
+    // parasol as hayRick and brazier, fixed at integration
+    P.add(M.ember, cyl(0.02, 0.085, 0.3, 0, h + 0.16, 0, { seg: 7 }));
+    P.add(M.lit, cyl(0.012, 0.05, 0.16, 0, h + 0.11, 0, { seg: 6 }));
   }
   P.flush(g, { receive: false });
   tagProp(g, 'torch', { flameY: h + 0.16, footprint: { x0: -0.2, z0: -0.2, x1: 0.2, z1: 0.2 } });

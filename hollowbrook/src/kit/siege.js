@@ -1125,8 +1125,8 @@ export function wallTorch({ seed = 'wall-torch', lit = false, reach = 0.4, groun
   const flame = new THREE.Group();
   const F = parts();
   F.add(M.emberDeep, cyl(0.1, 0.07, 0.1, 0, 0.66, reach, { seg: 7 }));
-  F.add(glow != null ? glowing(glow, glow, 0.95) : M.ember, cyl(0.085, 0.02, 0.34, 0, 0.86, reach, { seg: 7 }));
-  F.add(M.lit, cyl(0.05, 0.012, 0.18, 0, 0.8, reach, { seg: 6 }));
+  F.add(glow != null ? glowing(glow, glow, 0.95) : M.ember, cyl(0.02, 0.085, 0.34, 0, 0.86, reach, { seg: 7 }));   // narrow at the sky
+  F.add(M.lit, cyl(0.012, 0.05, 0.18, 0, 0.8, reach, { seg: 6 }));
   F.flush(flame, { receive: false, cast: false });
   g.add(flame);
 
@@ -1183,8 +1183,8 @@ export function beaconCage({ seed = 'beacon', h = 3.4, r: R = 0.46, lit = false,
   const flame = new THREE.Group();
   const F = parts();
   F.add(M.emberDeep, cyl(R * 0.9, R * 0.7, 0.24, 0, cy + R * 0.1, 0, { seg: 10 }));
-  F.add(glow != null ? glowing(glow, glow, 0.95) : M.ember, cyl(R * 1.0, R * 0.2, 1.25, 0, cy + R * 0.9, 0, { seg: 9 }));
-  F.add(M.lit, cyl(R * 0.6, R * 0.08, 0.8, 0, cy + R * 0.72, 0, { seg: 8 }));
+  F.add(glow != null ? glowing(glow, glow, 0.95) : M.ember, cyl(R * 0.2, R * 1.0, 1.25, 0, cy + R * 0.9, 0, { seg: 9 }));   // narrow at the sky
+  F.add(M.lit, cyl(R * 0.08, R * 0.6, 0.8, 0, cy + R * 0.72, 0, { seg: 8 }));
   F.flush(flame, { receive: false, cast: false });
   g.add(flame);
 
@@ -1661,8 +1661,8 @@ export function campFire({ seed = 'camp-fire', r: R = 0.8, lit = true, ctx = nul
   /* narrow and tall.  At 0.6 R the flame was a 0.96 m wide trapezoid of flat
    * saturated orange and it was the loudest object in any frame with a camp
    * in it — a fire reads by being TALLER than it is wide, not by being big. */
-  F.add(M.ember, cyl(R * 0.4, R * 0.09, 0.82, 0, 0.52, 0, { seg: 8 }));
-  F.add(M.lit, cyl(R * 0.2, R * 0.04, 0.5, 0, 0.42, 0, { seg: 7 }));
+  F.add(M.ember, cyl(R * 0.09, R * 0.4, 0.82, 0, 0.52, 0, { seg: 8 }));   // (radiusTOP, radiusBOTTOM): narrow at the sky
+  F.add(M.lit, cyl(R * 0.04, R * 0.2, 0.5, 0, 0.42, 0, { seg: 7 }));
   F.flush(flame, { receive: false, cast: false });
   g.add(flame);
 

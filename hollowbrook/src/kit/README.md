@@ -703,3 +703,11 @@ each is named, because which tool finds a class of bug is the reusable part.
   DOM stub exists and `kit/mats.js` builds canvas textures at import, so
   `mats.glass` is required rather than defaulted, and asking for `glass: true`
   without it throws with the material named.
+
+- **The brazier's parasol was in four more props (fixed at integration).**
+  `torch` (props.js), `wallTorch`, `beaconCage` and `campFire` (siege.js) all
+  wrote their flame as `cyl(rBIG, rSMALL, …)` — wide at the sky, a point in
+  the coals — exactly the `hayRick` / `brazier` argument-order trap, found by
+  the evidence re-shoot after the brazier fix ("an apex-down orange funnel in
+  most gate frames town-wide").  When one prop has the cone the wrong way up,
+  grep every `cyl(` under a flame for the same pair.
