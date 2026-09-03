@@ -99,12 +99,16 @@ export const HEXBOLT_RANGE = 22;
  * Captain has his own time.  The run holds an entry whose time has come
  * until `alive < peakAlive`, which is what makes peakAlive a real cap.
  */
-/* w1 arrives in THREE knots of four, not four of three: with the composed
- * town's cover the novice referee ended wave 1 at 100 HP six seeds out of
- * six (curve window 45-90) — a knot of three at a 12 m engagement is killed
- * one body at a time before it closes (death trace, integration). */
-const GROUPS = { w1: [4, 4, 4], w2: [3, 3, 3, 4], w3: [4, 4, 4, 4], w4: [4, 4, 3, 5], w5: [4, 5, 4, 5], w6: [5, 4, 5, 5] };
-const WINDOW = { w1: 0.6, w2: 0.6, w3: 0.5, w4: 0.55, w5: 0.55, w6: 0.6 };   // the table exhausts by this fraction of the wave
+/* INTEGRATION (death traces on the composed town).  w2 arrives in knots of
+ * TWO over 85 % of the wave, not four knots of three-and-four over 60 %: the
+ * novice referee killed ~8 of the market's 18 before it died at every seed
+ * (arrivals 16 per 80 s against 8 kills per 80 s), and the wave's measured
+ * pressure was 0.52 against a designed 0.43 — the same change moves both
+ * toward the design.  w1 in three knots of four was tried and reverted: the
+ * novice still ended it at 100 HP (a sprinting player outruns a cutpurse on
+ * 28 m of open cobble), so the knot size was not the lever there. */
+const GROUPS = { w1: [3, 3, 3, 3], w2: [2, 2, 2, 2, 2, 2, 2, 2, 2], w3: [4, 4, 4, 4], w4: [4, 4, 3, 5], w5: [4, 5, 4, 5], w6: [5, 4, 5, 5] };
+const WINDOW = { w1: 0.6, w2: 0.85, w3: 0.5, w4: 0.55, w5: 0.55, w6: 0.6 };   // the table exhausts by this fraction of the wave
 
 export function expandWave(w) {
   const order = [];

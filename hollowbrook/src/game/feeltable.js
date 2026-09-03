@@ -20,11 +20,14 @@ export const FEEL = Object.freeze({
   'bolt-fired':        { sfx: 'bolt-fire', sfxOpts: { vol: 0.5 } },
   'bolt-miss':         { sfx: 'bolt-miss', sfxOpts: { vol: 0.35 } },
   'bolt-hit':          { sfx: 'bolt-hit', sfxOpts: { vol: 0.7 }, burst: { count: 4, color: '#f2d6a8', color2: '#b8482e', speed: 1.6, up: 1.0, ttl: 0.3, size: 0.06 } },
-  'lance-fired':       { sfx: 'lance-fire', sfxOpts: { vol: 0.8 }, shake: 0.05, burst: { count: 6, color: '#ffb877', color2: '#e3823f', speed: 1.2, up: 0.6, ttl: 0.35, size: 0.4 } },
-  'kill-cutpurse':     { sfx: 'kill-light', sfxOpts: { vol: 0.7 }, burst: { count: 8, color: '#b8482e', color2: '#f2d6a8', speed: 2.0, up: 1.6, ttl: 0.45, size: 0.24 }, text: () => 'cutpurse down', textOpts: { color: '#f2d6a8' } },
-  'player-hurt':       { sfx: 'hurt', sfxOpts: (d) => ({ vol: 0.5 + Math.min(0.4, (d.damage ?? 12) / 60) }), shake: 0.25, burst: { count: 10, color: '#b8482e', color2: '#6c2a1e', speed: 1.0, up: 0.4, ttl: 0.3, size: 0.2 } },
+  // burst SIZE is not in the static magnitude (count is), so it is the
+  // rendered-space dial: the play gate orders the ladder by pixels moved,
+  // and a 0.4 m muzzle puff out-rendered a cutpurse kill (integration)
+  'lance-fired':       { sfx: 'lance-fire', sfxOpts: { vol: 0.8 }, shake: 0.05, burst: { count: 6, color: '#ffb877', color2: '#e3823f', speed: 1.2, up: 0.6, ttl: 0.35, size: 0.2 } },
+  'kill-cutpurse':     { sfx: 'kill-light', sfxOpts: { vol: 0.7 }, burst: { count: 8, color: '#b8482e', color2: '#f2d6a8', speed: 2.0, up: 1.6, ttl: 0.45, size: 0.34 }, text: () => 'cutpurse down', textOpts: { color: '#f2d6a8' } },
+  'player-hurt':       { sfx: 'hurt', sfxOpts: (d) => ({ vol: 0.5 + Math.min(0.4, (d.damage ?? 12) / 60) }), shake: 0.25, burst: { count: 10, color: '#b8482e', color2: '#6c2a1e', speed: 1.0, up: 0.4, ttl: 0.4, size: 0.34 } },
   'kill-hexer':        { sfx: 'kill-hexer', sfxOpts: { vol: 0.8 }, shake: 0.2, burst: { count: 4, color: '#62ead8', color2: '#b8482e', speed: 2.2, up: 2.0, ttl: 0.5, size: 0.3 }, text: () => 'hexer down', textOpts: { color: '#9ef0e4' } },
-  'kill-reaver':       { sfx: 'kill-heavy', sfxOpts: { vol: 0.8 }, shake: 0.1, hitstop: 0.0075, burst: { count: 10, color: '#b8482e', color2: '#f2d6a8', speed: 2.4, up: 1.8, ttl: 0.5, size: 0.24 }, text: () => 'reaver down', textOpts: { color: '#f2d6a8' } },
+  'kill-reaver':       { sfx: 'kill-heavy', sfxOpts: { vol: 0.8 }, shake: 0.1, hitstop: 0.0075, burst: { count: 10, color: '#b8482e', color2: '#f2d6a8', speed: 2.4, up: 1.8, ttl: 0.5, size: 0.42 }, text: () => 'reaver down', textOpts: { color: '#f2d6a8' } },
   'kill-shieldbearer': { sfx: 'kill-heavy', sfxOpts: { vol: 0.9, rate: 0.85 }, shake: 0.2, hitstop: 0.0325, burst: { count: 14, color: '#b8482e', color2: '#dcb75a', speed: 2.6, up: 2.0, ttl: 0.55, size: 0.24 }, text: () => 'shieldbearer down', textOpts: { color: '#f2d6a8' } },
   'lance-multikill':   { sfx: 'multikill', sfxOpts: { vol: 1.0 }, shake: 0.25, hitstop: 0.06, burst: { count: 16, color: '#ffb877', color2: '#b8482e', speed: 3.0, up: 2.4, ttl: 0.6, size: 0.24 }, text: (d) => `${d.count} in one lance`, textOpts: { color: '#ffd9a0', rise: 60, ttl: 1.2 } },
   'wave-cleared':      { sfx: 'wave-clear', sfxOpts: { vol: 1.0 }, shake: 0.2, hitstop: 0.075, burst: { count: 18, color: '#ffd9a0', color2: '#dcb75a', speed: 2.0, up: 3.0, ttl: 0.9, size: 0.24 }, text: (d) => `${d.name ?? 'the wave'} — held`, textOpts: { color: '#ffd9a0', rise: 70, ttl: 1.6 } },

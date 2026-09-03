@@ -82,10 +82,13 @@ try {
     check('ladder:composite', composite.double > composite.single * 1.5, `a double lance kill (kill x2 + multikill) renders ${composite.double.toFixed(0)} vs a single kill ${composite.single.toFixed(0)}`);
 
     /* ---- 1. play-camera legibility ---- */
-    const pc = await page.evaluate(() => window.__playCheck({ w1: 60, w4: 110 }));
+    // w1 runs 90 s, not 60: the segment must CROSS the sightings it judges,
+    // and at 60 s only five bodies had been seen (need >= 6) — the table's
+    // third knot lands at 54 s (nightbloom TRAPS: a segment must cross its events)
+    const pc = await page.evaluate(() => window.__playCheck({ w1: 90, w4: 110 }));
     for (const s of pc.segments) console.log(`  segment w${s.wave} ${s.seconds}s: frames ${s.frames} visibleFrac ${s.visibleFrac} p10 ${s.p10Frac} firstSight p90 ${s.p90FirstSightSec}s (${s.sightings}) legSamples ${s.legSamples} legibleFrac ${s.legibleFrac} eliteFrames ${s.eliteFrames} eliteLegible ${s.eliteLegibleFrac} eliteBodyOnly ${s.eliteBodyLegibleFrac} xrayMarkers ${s.xrayMarkers} captainSeen ${s.captainSeen}`);
     const L = pc.thresholds; const [s1, s4] = pc.segments;
-    check('play:visible', s1.visibleFrac >= L.visibleFrac && s4.visibleFrac >= L.visibleFrac, `in-frustum fraction (<= 20 m, frames with >= 3 near) w1 ${s1.visibleFrac} / w4 ${s4.visibleFrac} (need >= ${L.visibleFrac})`);
+    check('play:visible', s1.visibleFrac !== null && s4.visibleFrac !== null && s1.visibleFrac >= L.visibleFrac && s4.visibleFrac >= L.visibleFrac, `in-frustum fraction (<= 20 m; frames with >= ${s1.nearFloor} near in w1 [${s1.frames} frames], >= ${s4.nearFloor} in w4 [${s4.frames}]) w1 ${s1.visibleFrac ?? 'INSUFFICIENT FRAMES'} / w4 ${s4.visibleFrac ?? 'INSUFFICIENT FRAMES'} (need >= ${L.visibleFrac}, >= 10 frames each)`);
     check('play:first-sight', s1.p90FirstSightSec <= L.p90FirstSightSec && s1.sightings >= 6, `spawn -> first sight p90 ${s1.p90FirstSightSec} s over ${s1.sightings} sightings (need <= ${L.p90FirstSightSec} s, >= 6)`);
     check('play:legible', s4.legSamples >= 5 && s4.legibleFrac >= L.legibleFrac, `legible fraction ${s4.legibleFrac} over ${s4.legSamples} samples (px >= ${L.minPx}, sep >= ${L.minSep}; need >= ${L.legibleFrac})`);
     check('play:elite', s4.eliteFrames >= 10 && s4.eliteLegibleFrac >= L.eliteFrac, `Captain legible-as-elite ${s4.eliteLegibleFrac} over ${s4.eliteFrames} frames (marker px >= ${L.eliteMarkerPx}; body-only ${s4.eliteBodyLegibleFrac}; x-ray markers ${s4.xrayMarkers}); segment crossed the Captain: ${s4.captainSeen >= 1}`);

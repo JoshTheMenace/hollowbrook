@@ -515,6 +515,18 @@ export const keephill = defineDistrict({
       from: -18, to: 40.25, side: 'n', ctx, plan, seed: 'keep-curtain-n1',
       endCaps: ['none', 'none'], name: 'curtain-n-west',
     });
+    /* INTEGRATION: the plan's `o3-relight-wall` point at (30, -50.4) — the game
+     * lights "braziers with setLit within 3 m" of it (src/game/INTERFACES.md)
+     * and no district had put one there.  Built UNLIT against the outer
+     * parapet, no collider (keephill's walk-brazier call: the walk's free band
+     * is 1.71 m and a boxed brazier would wall it), so the point stays
+     * standable and the relight beat has something to light. */
+    {
+      const rb = brazier({ seed: 'kh-relight-brazier', r: 0.36, h: 0.66, lit: false, ctx });
+      rb.position.set(30, 5.0, -50.4);
+      ctx.add(rb, 'relight-brazier');
+    }
+
     curtainWall({
       from: 43.05, to: 48.85, side: 'n', ctx, plan, seed: 'keep-curtain-n2',
       endCaps: ['none', 'tower'], name: 'curtain-n-east',
@@ -555,22 +567,29 @@ export const keephill = defineDistrict({
      * ============================================================== */
     {   // the lower ward: west face + the west half of the south face
       const pts = [[-14.28, -48.4], [-14.28, -21.72], [-2.6, -21.72]];
-      ctx.add(wallRun({
+      // tagged: a terminus the check-city pass can name (it read "untagged mesh")
+      const rw = wallRun({
         points: pts, h: 3.1, thick: 0.5, piers: pierEvery(pts, 13.0),
         mat: M.curtain, copingMat: M.coping, ctx,
-      }), 'ward-revetment-w');
+      });
+      rw.userData.kind = 'revetment';
+      ctx.add(rw, 'ward-revetment-w');
     }
     {   // the east half of the south face, round to the allure's foot
       const pts = [[2.7, -21.72], [16.28, -21.72], [16.28, -28.1]];
-      ctx.add(wallRun({
+      const rs = wallRun({
         points: pts, h: 3.1, thick: 0.5, piers: pierEvery(pts, 20.0),
         mat: M.curtain, copingMat: M.coping, ctx,
-      }), 'ward-revetment-s');
+      });
+      rs.userData.kind = 'revetment';
+      ctx.add(rs, 'ward-revetment-s');
     }
-    ctx.add(wallRun({
+    const rne = wallRun({
       points: [[16.28, -43.7], [16.28, -48.4]], h: 3.1, thick: 0.5,
       mat: M.curtain, copingMat: M.coping, ctx,
-    }), 'ward-revetment-ne');
+    });
+    rne.userData.kind = 'revetment';
+    ctx.add(rne, 'ward-revetment-ne');
 
     /* the keep's own curtain: the south face east of climb 2, and one L
      * from the west of climb 2 round to the north-east angle.  Top 6.20,
@@ -1143,7 +1162,11 @@ export const keephill = defineDistrict({
      * 11. THE PRACTICALS.  Warm, small and OFF the axes: a torch on the
      *     gate's own centre line is the thing you look past to the keep.
      * ============================================================== */
-    for (const [i, [x, z]] of [[-3.6, -24.4], [-7.3, -33.4], [12.4, -43.4]].entries()) {
+    /* INTEGRATION: torch 0 moved (-3.6, -24.4) -> (-5.1, -25.4).  Its post
+     * stood on the line from the ward's west strip to the ward gate — the
+     * arena's declared approach (amendment A1) — and cost the-keep two
+     * cells of arena visibility (52 -> 54 of 131, measured by ablation). */
+    for (const [i, [x, z]] of [[-5.1, -25.4], [-7.3, -33.4], [12.4, -43.4]].entries()) {
       ctx.add(seat(torch({ seed: `ward-torch-${i}`, h: 2.15, lit: true, post: true }), x, z), `ward-torch-${i}`);
     }
     {

@@ -142,8 +142,16 @@ export function buildWorld(vignette, plan, { scene = null } = {}) {
   const enterables = Object.fromEntries(plan.districts.flatMap((d) => (d.enterable ?? []).map((e) => [e.building, e])));
   const interactions = Object.fromEntries(plan.districts.flatMap((d) => (d.interactions ?? []).map((i) => [i.name, { ...i, district: d.id }])));
 
+  /* registered interiors (hollowShell -> ctx.interiorFloors): a room is a
+   * shelter for an NPC and a dead end for the player — the referee's hold
+   * heuristic scored the Reeve's Hall as the market's best high ground
+   * (rim height, far from the gate) and died in its doorway three times a
+   * run (death trace, integration).  A player does not hold inside a room
+   * with one door; the policy reads this list so it does not either. */
+  const interiors = (vignette.interiorFloors ?? []).map((r) => ({ x0: r.x0, z0: r.z0, x1: r.x1, z1: r.z1, name: r.name }));
+  const inRoom = (x, z) => interiors.some((r) => x > r.x0 - 0.6 && x < r.x1 + 0.6 && z > r.z0 - 0.6 && z < r.z1 + 0.6);
   return {
-    plan, game, gates, arenas, enterables, interactions, grid, colliders, blockers, cover,
+    plan, game, gates, arenas, enterables, interactions, grid, colliders, blockers, cover, interiors, inRoom,
     groundAt, terrainAt, clear, rect,
     spawn: game.player.spawn, spawnYaw: game.player.yaw ?? 0,
     posts: game.npc_posts, objectives: game.objectives,

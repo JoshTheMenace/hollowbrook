@@ -630,7 +630,7 @@ export class SiegeRun {
     const ws = this.stats.waves[this.waveIndex];
     ws.kills += 1; ws.lastKillTick = this.tick;
     if (this.waveTime <= 60 && ws.attempts === 1) ws.earlyKills += 1;   // the first attempt only: a restart re-feeds the table
-    if (e.firstHitTick !== null) this.stats.ttk.push({ kind: e.kind, wave: this.waveIndex, s: (this.tick - e.firstHitTick) * TICK, dist: Math.hypot(e.x - this.player.x, e.z - this.player.z) });
+    if (e.firstHitTick !== null) this.stats.ttk.push({ kind: e.kind, wave: this.waveIndex, by, s: (this.tick - e.firstHitTick) * TICK, dist: Math.hypot(e.x - this.player.x, e.z - this.player.z) });
     if (e.kind === 'hexer' && this.stats.firstHexerDeath === null) this.stats.firstHexerDeath = { wave: this.waveIndex, t: this.waveTime };
     const pos = { x: e.x, y: e.y + BODY[e.kind].height * e.scale * 0.6, z: e.z };
     // literal emit sites: the feel lint greps call sites for names, by design

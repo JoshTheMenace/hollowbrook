@@ -567,6 +567,12 @@ export const marketlow = defineDistrict({
     glowAt(R.x1 - 0.03, -1.40, Math.PI / 2, 1.0, 0.9, true);
     const eastGlow = [glowAt(R.x1 - 0.03, 1.40, Math.PI / 2, 1.0, 0.9, false)];
     ctx.add(hallWindows, 'guildhall-windows');
+    /* INTEGRATION: town light 0 (src/game/INTERFACES.md) — the Reeve's Hall
+     * is the first light the town loses: its always-on window cards go dark
+     * for good.  The bell's own `setHallLit` still brings the lanterns up. */
+    hallWindows.userData.townLight = 0;
+    const wasOn = new Map(hallWindows.children.map((c) => [c, c.visible]));
+    hallWindows.userData.setLit = (on) => { for (const c of hallWindows.children) c.visible = on ? wasOn.get(c) : false; };
     ctx.add(interior, 'guildhall-interior');
     registerInterior(ctx, interior, { door: shell.doorway, name: 'guildhall' });
 

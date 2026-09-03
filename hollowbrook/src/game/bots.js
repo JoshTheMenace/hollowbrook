@@ -91,6 +91,10 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
   // engagement discipline: a bolt at 20 m under a ±16° hand is a wasted
   // reload; the policy lets melee come to 12 m, reaches for hexers at their
   // own hold band and the Captain a little further
+  // MEASURED BOTH WAYS (integration): letting melee in to 8 m on the theory
+  // that a ±16° hand only lands ~10 % at 12 m made every seed WORSE (novice
+  // back to dying in wave 2, expert 4/6 -> 0/6 wins) — the range the bolts
+  // miss at is also the range the knot is still walking in.  12 m stays.
   const ENGAGE = { cutpurse: 12, reaver: 12, shieldbearer: 12, hexer: 18, captain: 16 };
   const chooseTarget = (list) => {
     const p = run.player;
@@ -107,6 +111,18 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
     return best;
   };
 
+  /* a spot to hold is open ground: not inside a registered room (one door,
+   * no escape — see world.inRoom) and not a pocket with fewer than 5 of
+   * its 8 neighbours open (a corner between a wall and a cart). */
+  const holdable = (grid, i, j, x, z) => {
+    if (w.inRoom?.(x, z)) return false;
+    let open = 0;
+    for (let dj = -1; dj <= 1; dj += 1) for (let di = -1; di <= 1; di += 1) {
+      if (!di && !dj) continue;
+      if (grid.inside(i + di, j + dj) && grid.open[grid.index(i + di, j + dj)]) open += 1;
+    }
+    return open >= 5;
+  };
   const edgeNear = (grid, i, j) => {
     // 1 when a cell within 0.7 m drops or climbs over a step — do not stand on a lip
     const y = grid.y[grid.index(i, j)];
@@ -130,7 +146,7 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
     for (let x = a.rect.x0 + 1; x <= a.rect.x1 - 1; x += 2) {
       for (let z = a.rect.z0 + 1; z <= a.rect.z1 - 1; z += 2) {
         const [i, j] = w.grid.toCell(x, z);
-        if (!w.grid.inside(i, j) || !w.grid.open[w.grid.index(i, j)]) continue;
+        if (!w.grid.inside(i, j) || !w.grid.open[w.grid.index(i, j)] || !holdable(w.grid, i, j, x, z)) continue;
         const y = w.grid.y[w.grid.index(i, j)];
         const dg = Math.hypot(x - g.at[0], z - g.at[1]);
         const s = (y - level) * 6 + Math.min(dg, 40) * 0.25 - edgeNear(w.grid, i, j) * 4;
@@ -143,6 +159,7 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
     return best ?? [(a.rect.x0 + a.rect.x1) / 2, (a.rect.z0 + a.rect.z1) / 2];
   };
 
+  const inArena = (k, m = 2) => { const a = w.arenas[run.wave.arena]; return k.x >= a.rect.x0 - m && k.x <= a.rect.x1 + m && k.z >= a.rect.z0 - m && k.z <= a.rect.z1 + m; };
   const shouldRetreat = (seen, p) => {
     let near = 0; let melee = 0;
     for (const k of seen) { const d = Math.hypot(k.x - p.x, k.z - p.z); if (k.kind !== 'hexer' && d < 7) near += 1; if (k.kind !== 'hexer' && d < 3.2) melee += 1; }
@@ -155,7 +172,7 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
     for (let x = a.rect.x0 + 1; x <= a.rect.x1 - 1; x += 3) {
       for (let z = a.rect.z0 + 1; z <= a.rect.z1 - 1; z += 3) {
         const [i, j] = w.grid.toCell(x, z);
-        if (!w.grid.inside(i, j) || !w.grid.open[w.grid.index(i, j)]) continue;
+        if (!w.grid.inside(i, j) || !w.grid.open[w.grid.index(i, j)] || !holdable(w.grid, i, j, x, z)) continue;
         const y = w.grid.y[w.grid.index(i, j)];
         let dmin = Infinity;
         for (const k of seen) dmin = Math.min(dmin, Math.hypot(k.x - x, k.z - z));
@@ -168,6 +185,33 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
     return best ?? [p.x, p.z];
   };
 
+  /* A STEP WITH ITS EYES OPEN.  The first cut backed off straight along the
+   * line from the nearest enemy and sidestepped a hexbolt at right angles —
+   * both blind to the ground, and every novice death trace in the composed
+   * town ended in a corner (the rim's north-west pocket, the slot behind
+   * the hall) that one of those blind steps had walked into.  This samples
+   * eight headings 1.6 m out, drops any that is closed or not holdable
+   * (world.inRoom, < 5 open neighbours) and scores the rest: far from the
+   * known melee, roughly along the wish direction, nearer the hold spot. */
+  const bestStep = (wishX, wishZ, seen, out) => {
+    const p = run.player; const grid = w.grid;
+    let best = null; let bs = -Infinity;
+    for (let k = 0; k < 8; k += 1) {
+      const a = (k / 8) * Math.PI * 2;
+      const dx = Math.cos(a); const dz = Math.sin(a);
+      const x = p.x + dx * 1.6; const z = p.z + dz * 1.6;
+      const [i, j] = grid.toCell(x, z);
+      if (!grid.inside(i, j) || !grid.open[grid.index(i, j)] || !holdable(grid, i, j, x, z)) continue;
+      if (Math.abs(grid.y[grid.index(i, j)] - p.y) > C.player.step + 0.05 && grid.y[grid.index(i, j)] > p.y) continue;
+      let dmin = Infinity;
+      for (const kk of seen) if (kk.kind !== 'hexer') dmin = Math.min(dmin, Math.hypot(kk.x - x, kk.z - z));
+      let s = Math.min(dmin, 12) + (dx * wishX + dz * wishZ) * 3;
+      if (st.holdSpot) s -= Math.hypot(st.holdSpot[0] - x, st.holdSpot[1] - z) * 0.08;
+      if (s > bs) { bs = s; best = [dx, dz]; }
+    }
+    if (!best) { worldToLocal(wishX, wishZ, st.yaw, out); return; }
+    worldToLocal(best[0], best[1], st.yaw, out);
+  };
   const walkTo = (target, out, { stopAt = 1.0, sprint = false } = {}) => {
     const p = run.player;
     if (Math.hypot(target[0] - p.x, target[1] - p.z) <= stopAt) return true;
@@ -197,14 +241,26 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
     // a hexer's staff-glow (0.7 s) and a bolt in the air are both on screen:
     // the counterplay is a sidestep
     let threat = null;
+    // (tried and reverted at integration: sidestepping the Captain's dash
+    // telegraph the way a hexer cast is sidestepped changed nothing for the
+    // novice and cost the expert two wins of six — measured, seeds 1-6)
     for (const k of seen) if (k.kind === 'hexer' && k.e.state === 'cast') threat = k;
     for (const h of run.hexbolts) {
       const dx = p.x - h.x; const dz = p.z - h.z; const d = Math.hypot(dx, dz);
       if (d < 14 && (dx * h.dx + dz * h.dz) / (d || 1) > 0.85) threat = { x: h.x, z: h.z };
     }
-    if (move && threat) {
+    /* HOLD THE ARENA.  Every death trace of the novice in the composed town
+     * ended OUTSIDE the wave's arena: a chain of hexbolt sidesteps and
+     * "back off along the line" moves walked it out of the market into a
+     * side lane or a pocket behind the hall, where the next knot met it.
+     * A player defending a square does not leave it; when the feet are
+     * outside the rect the only move is back to the hold spot. */
+    if (move && !inArena(p, 6)) {
+      if (!st.holdSpot) st.holdSpot = arenaHold();
+      walkTo(st.holdSpot, mv, { stopAt: 1.5, sprint: true });
+    } else if (move && threat) {
       const ax = p.x - threat.x; const az = p.z - threat.z; const l = Math.hypot(ax, az) || 1;
-      worldToLocal(-az / l * st.scanDir, ax / l * st.scanDir, st.yaw, mv);
+      bestStep(-az / l * st.scanDir, ax / l * st.scanDir, seen, mv);
       mv.sprint = true;
       st.dodgeUntil = run.tick + Math.round(0.6 / TICK);
     } else if (move && run.tick < st.dodgeUntil) {
@@ -221,10 +277,13 @@ export function makeBot(run, profile, { aim = true, move = true, seed = 7 } = {}
         // back off along the line, strafing a little so a windup misses
         const ax = p.x - nearest.x; const az = p.z - nearest.z; const l = Math.hypot(ax, az) || 1;
         const sx = -az / l * st.scanDir; const sz = ax / l * st.scanDir;
-        worldToLocal(ax / l * 0.85 + sx * 0.5, az / l * 0.85 + sz * 0.5, st.yaw, mv);
+        bestStep(ax / l * 0.85 + sx * 0.5, az / l * 0.85 + sz * 0.5, seen, mv);
         mv.sprint = p.hp < 60 || nd < 2.6;
         st.scanDir = run.tick % 240 < 120 ? 1 : -1;
-      } else if (st.target && st.target.kind === 'hexer' && Math.hypot(st.target.x - p.x, st.target.z - p.z) > 14 && !nearest) {
+      } else if (st.target && st.target.kind === 'hexer' && Math.hypot(st.target.x - p.x, st.target.z - p.z) > 14 && !nearest && inArena(st.target)) {
+        // go for a hexer — inside the arena.  A hexer holding 18 m out in a
+        // side lane was walking the novice out of the market into millreach's
+        // lanes, where the next knot met it (death trace, integration)
         walkTo([st.target.x, st.target.z], mv, { stopAt: 10 });
       } else if (!st.holdSpot || run.tick % 600 === 0) {
         st.holdSpot = arenaHold();

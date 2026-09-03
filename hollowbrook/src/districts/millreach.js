@@ -366,6 +366,18 @@ export const millreach = defineDistrict({
      * the view WEST along the south walk then leaves the town and hits
      * nothing: 4 of 5 rays, 36 m out, fog.  Carried to 51.2 the west
      * parapet returns across the end of the south walk and closes it. */
+    /* INTEGRATION: the plan's `o3-relight-wall` point at (-50.4, 20) — the game
+     * lights "braziers with setLit within 3 m" of it (src/game/INTERFACES.md)
+     * and no district had put one there.  Built UNLIT against the outer
+     * parapet, no collider (keephill's walk-brazier call: the walk's free band
+     * is 1.71 m and a boxed brazier would wall it), so the point stays
+     * standable and the relight beat has something to light. */
+    {
+      const rb = villageProps.brazier({ seed: 'mr-relight-brazier', r: 0.36, h: 0.66, lit: false, ctx });
+      rb.position.set(-50.4, 5.0, 20);
+      ctx.add(rb, 'relight-brazier');
+    }
+
     curtainWall({
       from: -12, to: 51.2, side: 'w', ctx, plan, seed: 'mr-curtain-w',
       endCaps: ['none', 'none'], name: 'curtain-west',

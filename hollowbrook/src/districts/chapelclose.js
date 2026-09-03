@@ -597,6 +597,18 @@ function buildWall(ctx, plan) {
    * place the walk turns; SIEGE.md's geometry pushes it out along the
    * diagonal, where it touches the outer corner, reads as a tower ON the
    * corner from every angle, and leaves the walk behind it. */
+  /* INTEGRATION: the plan's `o3-relight-wall` point at (-50.4, -30) — the game
+   * lights "braziers with setLit within 3 m" of it (src/game/INTERFACES.md)
+   * and no district had put one there.  Built UNLIT against the outer
+   * parapet, no collider (keephill's walk-brazier call: the walk's free band
+   * is 1.71 m and a boxed brazier would wall it), so the point stays
+   * standable and the relight beat has something to light. */
+  {
+    const rb = brazier({ seed: 'cc-relight-brazier', r: 0.36, h: 0.66, lit: false, ctx });
+    rb.position.set(-50.4, 5.0, -30);
+    ctx.add(rb, 'relight-brazier');
+  }
+
   curtainWall({
     from: -50.6, to: -18, side: 'n', ctx, plan,
     endCaps: ['tower', 'none'], seed: 'cc-curtain-n', name: 'curtain-north',
@@ -1384,6 +1396,17 @@ function buildAlmshouse(ctx) {
     door: JOINERY.oakStain, shutter: JOINERY.doveGrey, litWindows: 2, chimney: true,
   });
   place(ctx, row, { x: -25.8, z: -44.9, yaw: 0, name: 'almshouse' });
+
+  /* INTEGRATION: one of the town's THREE LIGHTS (src/game/INTERFACES.md):
+   * `userData.townLight = 2` on the building whose windows go dark for
+   * good when a light is lost.  The lit panes are the pooled `M.lit`
+   * meshes inside the generator's group; `setLit(false)` hides them. */
+  {
+    const panes = [];
+    row.traverse((o) => { if (o.isMesh && o.material === M.lit) panes.push(o); });
+    row.userData.townLight = 2;
+    row.userData.setLit = (on) => { for (const m of panes) m.visible = !!on; };
+  }
 
   const front = -44.9 + row.userData.d / 2;    // -41.9, the arcade's outer line
   const gy = ctx.groundAt(-25.8, front + 0.9);

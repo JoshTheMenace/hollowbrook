@@ -21,6 +21,10 @@ export async function withPage(pagePath, fn, { readyExpr = 'true', timeout = 300
   const browser = await puppeteer.launch({
     executablePath: CHROME,
     headless: 'new',
+    // the play gate's draw-call step renders 5 x 45 s of frames inside ONE
+    // evaluate; puppeteer's default 180 s protocol timeout killed it on the
+    // composed town (integration) — a gate must not fail on its own clock
+    protocolTimeout: 900000,
     args: ['--use-angle=metal', '--enable-gpu', '--window-size=1280,800'],
   });
   try {
