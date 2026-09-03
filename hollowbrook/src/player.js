@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { colliderBlocks } from './builders.js';
 
 const EYE = 1.62;
 const RADIUS = 0.34;
@@ -49,6 +50,10 @@ export class Walker {
 
   resolve() {
     for (const collider of this.colliders) {
+      // `top` / `bottom` (the siege kit's parapets and gatehouse piers): a
+      // collider you are standing ON, or one 5 m over your head, is not a
+      // wall.  colliderBlocks is the ONE copy of that arithmetic.
+      if (!colliderBlocks(collider, this.position.x, this.position.z, this.position.y, RADIUS)) continue;
       const x0 = collider.x0 - RADIUS;
       const x1 = collider.x1 + RADIUS;
       const z0 = collider.z0 - RADIUS;
@@ -73,7 +78,10 @@ export class Walker {
     const was = this.position[axis];
     this.position[axis] += delta;
     this.resolve();
-    const ground = this.groundAt(this.position.x, this.position.z);
+    /* the THIRD argument is what lets a gate passage be walked THROUGH
+     * while the wall-walk crosses 5 m over it: a platform out of reach
+     * above the feet is one you are underneath. */
+    const ground = this.groundAt(this.position.x, this.position.z, this.position.y);
     if (ground - this.position.y > STEP) {
       this.position[axis] = was;      // too high to step onto: it is a wall
       this.resolve();

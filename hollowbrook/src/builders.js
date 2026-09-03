@@ -32,8 +32,24 @@ export function createBuilder(root) {
       root.add(object);
       return object;
     },
-    collide(x0, z0, x1, z1) {
-      colliders.push({ x0: Math.min(x0, x1), z0: Math.min(z0, z1), x1: Math.max(x0, x1), z1: Math.max(z0, z1) });
+    /**
+     * A wall.  `top` and `bottom` are OPTIONAL and were added for the siege
+     * kit; leave both out and the behaviour is exactly what it always was —
+     * a full-height wall at every feet height.  See `colliderBlocks`.
+     *
+     *   top     the collider's own upper surface.  A walker whose feet are
+     *           at or above it (within one STEP) is STANDING ON IT, not
+     *           walking into it — which is what lets a gatehouse's piers be
+     *           solid stone from the road and the wall-walk cross over them.
+     *   bottom  the collider's lower edge.  A walker more than 1.9 m below
+     *           it walks straight underneath — which is what lets a parapet
+     *           fence the walk 5 m up without walling the street below it.
+     */
+    collide(x0, z0, x1, z1, top = undefined, bottom = undefined) {
+      const c = { x0: Math.min(x0, x1), z0: Math.min(z0, z1), x1: Math.max(x0, x1), z1: Math.max(z0, z1) };
+      if (top !== undefined && top !== null) c.top = top;
+      if (bottom !== undefined && bottom !== null) c.bottom = bottom;
+      colliders.push(c);
     },
     /**
      * A walkable raised surface: axis-aligned box top at height `top`.
@@ -54,11 +70,21 @@ export function createBuilder(root) {
      * Ground height at (x, z): the max over registered platforms, else 0.
      * The test is inclusive on all four edges — treads that merely *meet*
      * would otherwise be a knife edge a grid sampler falls through.
+     *
+     * `fromY` is OPTIONAL and is what makes two walkable levels possible: a
+     * platform more than 0.55 m above the feet you already have is one you
+     * are UNDERNEATH, not one you are standing on.  Pass it for anything
+     * that walks (the player, a fill); omit it to seat a prop on the
+     * ground, which is what every builder here does.  composeCity replaces
+     * this with the terrain-backed version of the same contract.
      */
-    groundAt(x, z) {
+    groundAt(x, z, fromY = null) {
       let y = 0;
       for (const p of platforms) {
-        if (x >= p.x0 && x <= p.x1 && z >= p.z0 && z <= p.z1 && p.top > y) y = p.top;
+        if (x < p.x0 || x > p.x1 || z < p.z0 || z > p.z1) continue;
+        if (p.top <= y) continue;
+        if (fromY !== null && p.top > fromY + 0.55) continue;
+        y = p.top;
       }
       return y;
     },
@@ -111,6 +137,31 @@ export function createBuilder(root) {
       };
     },
   };
+}
+
+/* ---- the collider contract ----------------------------------------------
+ * ONE predicate, shared by everything that walks the collider list: the
+ * player (src/player.js), the route fill (scripts/check-city.mjs), the nav
+ * grid (src/game/nav.js) and the siege kit's own probes.  A second copy of
+ * this arithmetic is a second world that one of the gates does not look at.
+ *
+ * A collider with neither `top` nor `bottom` blocks at every height, which
+ * is every collider this town had before the siege kit.
+ */
+export const COLLIDE = Object.freeze({ radius: 0.34, step: 0.38, under: 1.9 });
+
+/**
+ * Does collider `c` stop a walker standing at (x, z) with their feet at
+ * `feetY`?  Pass `feetY` as null/undefined for the old height-blind test.
+ */
+export function colliderBlocks(c, x, z, feetY = null, radius = COLLIDE.radius) {
+  if (!(x > c.x0 - radius && x < c.x1 + radius && z > c.z0 - radius && z < c.z1 + radius)) return false;
+  if (feetY === null || feetY === undefined) return true;
+  // standing ON it (a gatehouse pier under the wall-walk) is not walking into it
+  if (c.top !== undefined && feetY >= c.top - COLLIDE.step) return false;
+  // well underneath it (the street under a parapet 5 m up)
+  if (c.bottom !== undefined && feetY < c.bottom - COLLIDE.under) return false;
+  return true;
 }
 
 /* ---- geometry helpers --------------------------------------------------- */

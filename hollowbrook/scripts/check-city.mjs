@@ -231,12 +231,17 @@ try {
       }
     }
   }
-  const blocked = (x, z) => {
+  /* `y` is the feet height the fill has carried to this cell.  A collider
+   * with `top` (a gatehouse pier UNDER the wall-walk) or `bottom` (a parapet
+   * 5 m up over a street) is not a wall at every height — `colliderBlocks`
+   * in src/builders.js is the one copy of that arithmetic, shared with the
+   * player and with the nav grid.  Called with y === null it is exactly the
+   * old height-blind check. */
+  const { colliderBlocks } = await import('../src/builders.js');
+  const blocked = (x, z, y = null) => {
     const list = buckets.get(bkey(Math.floor(x / GRID), Math.floor(z / GRID)));
     if (!list) return false;
-    for (const c of list) {
-      if (x > c.x0 - RADIUS && x < c.x1 + RADIUS && z > c.z0 - RADIUS && z < c.z1 + RADIUS) return true;
-    }
+    for (const c of list) if (colliderBlocks(c, x, z, y, RADIUS)) return true;
     return false;
   };
 
@@ -248,7 +253,7 @@ try {
   const cj = (z) => Math.round((z - fillRect.z0) / CELL);
   const W = ci(fillRect.x1) + 1;
   const D = cj(fillRect.z1) + 1;
-  if (blocked(seed[0], seed[1])) {
+  if (blocked(seed[0], seed[1], groundAt(seed[0], seed[1]))) {
     FAIL(`the fill seed (${seed.join(', ')}) — "${seedWp.name}" — is inside a collider`);
   } else {
     // visited keyed on (cell, height bucket): one bit per cell cannot verify
@@ -271,8 +276,11 @@ try {
         if (ni < 0 || nj < 0 || ni >= W || nj >= D) continue;
         const nx = fillRect.x0 + ni * CELL;
         const nz = fillRect.z0 + nj * CELL;
-        if (blocked(nx, nz)) continue;
-        const ny = groundAt(nx, nz);
+        /* the third argument is the feet height the fill has carried here:
+         * a platform out of reach above them is one this walker is
+         * UNDERNEATH (the gate passage, with the wall-walk over it). */
+        const ny = groundAt(nx, nz, y);
+        if (blocked(nx, nz, ny)) continue;
         if (ny - y > STEP) continue; // too tall a rise to climb
         const k = `${ni},${nj},${Math.round(ny / 0.3)}`;
         if (seen.has(k)) continue;

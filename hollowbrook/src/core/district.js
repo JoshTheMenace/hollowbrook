@@ -238,11 +238,31 @@ export function composeCity({ plan, districts, ctx, terrainMaterials = null, onl
    * which is wrong the moment the ground goes below datum (a harbour bed, a
    * moor).  Route it through the terrain instead: the terrain is the floor,
    * and whatever a district lays on top raises it. */
-  const groundAt = (x, z) => {
+  /**
+   * `fromY` IS WHAT MAKES TWO WALKABLE LEVELS POSSIBLE, and Hollowbrook has
+   * exactly one place that needs them: the gate passage, with the wall-walk
+   * crossing 5 m over it.  A platform is only offered to somebody who could
+   * actually step up onto it (`REACH_UP` above their feet); anybody further
+   * below is UNDERNEATH it and gets the surface beneath instead.
+   *
+   * Without it the gatehouse's deck platform is the ground over the whole
+   * passage footprint, the walk is continuous and the GATE IS SEALED — and
+   * neither the geometry nor a rendered frame shows it, because the walk
+   * that seals it is the same walk that has to be there.
+   *
+   * OMIT IT and the answer is exactly the old max-over-everything one,
+   * which is what a builder seating a prop on the ground wants.  Anything
+   * that WALKS must pass it: the player, the route fill, the nav grid.
+   */
+  const REACH_UP = 0.55;
+  const groundAt = (x, z, fromY = null) => {
     let y = terrain.terrainHeightAt(x, z);
     for (const p of ctx.platforms) {
       if (p.owner === 'terrain') continue;
-      if (x >= p.x0 && x <= p.x1 && z >= p.z0 && z <= p.z1 && p.top > y) y = p.top;
+      if (x < p.x0 || x > p.x1 || z < p.z0 || z > p.z1) continue;
+      if (p.top <= y) continue;
+      if (fromY !== null && p.top > fromY + REACH_UP) continue;
+      y = p.top;
     }
     return y;
   };
