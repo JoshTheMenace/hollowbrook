@@ -50,13 +50,29 @@ export {
 export { bigTree, treeStand, smallTree, hedgeRun } from './trees.js';
 
 export {
-  villageProps, lightPool, hitbox, interactive, lanternString,
+  villageProps, lightPool, withPools, hitbox, interactive, lanternString,
   bracketLantern, postLantern, torch, brazier,
   wellHead, cart, hayBale, hayRick, barrel, barrelStack, crate, crateStack,
   sackStack, logPile, chickenCoop, beehive, shrineStone,
   fenceRun, bannerPole, ladder, washingLine, marketStall,
   trough, mountingBlock, waymarker, kitchenGarden,
 } from './props.js';
+
+/* THE SIEGE KIT — everything a walled town under attack needs that a fair
+ * does not.  Read `SIEGE.md` in this folder before your first curtain wall:
+ * the wall-walk is TERRAIN and these generators dress it, and the parapet
+ * colliders carry `bottom` (and the gatehouse's piers carry `top`) for
+ * reasons that are not optional. */
+export {
+  SIEGE, curtainWall, gatehouse, stairTurret, barricade,
+  wallTorch, beaconCage, lantern,
+  arrowSlit, arrowSlitAt,
+  siegeProps, placeCover, campFire, tent,
+} from './siege.js';
+
+/* the collider contract the siege kit added: ONE predicate, shared by the
+ * player, the route fill and the nav grid */
+export { colliderBlocks, COLLIDE } from '../builders.js';
 
 export {
   signKit, TENANTS, NOTICES, DEVICES, tenant, canvasFor,

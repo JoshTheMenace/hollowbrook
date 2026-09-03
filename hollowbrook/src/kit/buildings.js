@@ -1080,6 +1080,11 @@ export function roundTower({
   wall = 'granite', wallColor = null, cap = 'cone', capH = null, bands = 2,
   windows = null, door = null, doorColor = JOINERY.oakStain, finial = true,
   corbel = true, machicolation = false, capMat = null, glowColor = null,
+  /* Hollowbrook's keep: `bell` (a colour, or true for brass) hangs a real
+   * bell in an open belfry on the head — it wants `cap: 'none'`; `beacon`
+   * (true, or a bearing in radians) throws a bracketed platform out of the
+   * shaft for a `beaconCage` to stand on. */
+  bell = null, beacon = false,
 } = {}) {
   const rr = rng(seed).fork('shape');
   const group = new THREE.Group();
@@ -1237,10 +1242,80 @@ export function roundTower({
     }
   }
 
+  /* ---- the bell, and the beacon bracket (Hollowbrook's keep) -----------
+   * `bell` hangs a real bell on a real axle in an open belfry on the tower
+   * head, and `userData.bellPivot` is a LIVE group: swing it from an
+   * interaction, exactly as `temple` is swung.
+   *
+   * IT WANTS `cap: 'none'`.  A belfry standing on a cone is a hat on a hat;
+   * with a cap the belfry is built on top of it and says so, but the shape
+   * that reads is an open head.
+   *
+   * `beacon` throws a bracketed platform out of the shaft at a bearing, for
+   * a `beaconCage` to stand on — `userData.beaconAt` is where. */
+  const bellPivot = new THREE.Group();
+  let bellY = null;
+  if (bell) {
+    const baseY = cap === 'none' ? top.y + (machicolation ? 0.56 : 0.02) : capTop;
+    const bellMat = typeof bell === 'number' ? painted(bell) : M.brass;
+    const bw = Math.min(1.9, top.rad * 1.25);
+    const bh = 1.9;
+    const cxT = top.cx;
+    const czT = top.cz;
+    for (const s of [-1, 1]) P.add(M.graniteWarm, bx(0.34, bh, 0.44, cxT + s * bw / 2, baseY + bh / 2, czT));
+    P.add(M.graniteWarm, bx(bw + 0.6, 0.26, 0.52, cxT, baseY + bh + 0.13, czT));
+    P.add(M.graniteDark, bx(bw + 0.9, 0.14, 0.72, cxT, baseY + bh + 0.33, czT));
+    const axleY = baseY + bh - 0.3;
+    P.add(M.ironDark, cyl(0.05, 0.05, bw + 0.3, cxT, axleY, czT, { seg: 7, rz: Math.PI / 2 }));
+    bellPivot.position.set(cxT, axleY, czT);
+    const BP = parts();
+    BP.add(M.ironDark, bx(0.09, 0.22, 0.09, 0, -0.11, 0));
+    // the bell: a solid of revolution, mouth widest, with a lip
+    const prof = [[0.10, 0.0], [0.19, -0.16], [0.27, -0.36], [0.34, -0.56], [0.37, -0.7]];
+    for (let i = 0; i < prof.length - 1; i += 1) {
+      const [r0, y0] = prof[i];
+      const [r1, y1] = prof[i + 1];
+      BP.add(bellMat, cyl(r0, r1, y0 - y1, 0, -0.22 + (y0 + y1) / 2, 0, { seg: 12, open: true }));
+    }
+    BP.add(bellMat, cyl(0.39, 0.35, 0.09, 0, -0.22 - 0.745, 0, { seg: 12 }));
+    BP.add(M.ironDark, cyl(0.04, 0.04, 0.5, 0, -0.22 - 0.5, 0, { seg: 5 }));
+    BP.flush(bellPivot, { receive: false });
+    bellPivot.name = 'bell-pivot';
+    group.add(bellPivot);
+    bellY = axleY;
+    // the rope, down where a hand reaches it
+    P.add(M.rope, cyl(0.02, 0.02, baseY - 1.2, cxT + 0.34, (baseY - 1.2) / 2 + 1.1, czT, { seg: 5 }));
+  }
+
+  let beaconAt = null;
+  if (beacon) {
+    const a = typeof beacon === 'number' ? beacon : 0;
+    const R = at(0.94);
+    const nx = Math.sin(a);
+    const nz = Math.cos(a);
+    const px = R.cx + nx * R.rad;
+    const pz = R.cz + nz * R.rad;
+    const reach = 1.15;
+    const ry = Math.atan2(nx, nz);
+    const py = R.y - 0.15;
+    // two rakers and a deck, built between joints
+    for (const s of [-1, 1]) {
+      P.add(M.oakDark, tubeGeo([px - nz * s * 0.5, py - 1.0, pz + nx * s * 0.5],
+        [px + nx * reach - nz * s * 0.42, py, pz + nz * reach + nx * s * 0.42], 0.075, 5));
+    }
+    P.add(M.oakDark, bx(1.3, 0.12, reach + 0.35, px + nx * (reach * 0.55), py + 0.06, pz + nz * (reach * 0.55), { ry, seg: 2 }));
+    for (const s of [-1, 1]) {
+      P.add(M.ironDark, bx(0.06, 0.72, 0.06, px + nx * (reach * 0.9) - nz * s * 0.6, py + 0.42, pz + nz * (reach * 0.9) + nx * s * 0.6, { ry }));
+    }
+    P.add(M.ironDark, bx(1.3, 0.06, 0.06, px + nx * (reach * 0.9), py + 0.76, pz + nz * (reach * 0.9), { ry }));
+    beaconAt = [px + nx * (reach * 0.55), py + 0.12, pz + nz * (reach * 0.55)];
+  }
+
   P.flush(group);
   group.userData = {
     kind: 'round-tower', r, h, rTop, lean, topY: top.y, capTop, doorAt,
     topCentre: [top.cx, top.y, top.cz],
+    bellPivot: bell ? bellPivot : null, bellY, beaconAt,
     footprint: { x0: -r - 0.16, z0: -r - 0.16, x1: r + 0.16, z1: r + 0.16 },
   };
   return group;

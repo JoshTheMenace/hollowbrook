@@ -114,7 +114,7 @@ export function lightPool({ r = 1.5, y = 0.02, ember = false, opacity = 0.5 } = 
  * `prop` tag, and the pools are siblings of the body. The audit sees the
  * body; the renderer sees both; nothing has to remember anything.
  */
-function withPools(body, pools) {
+export function withPools(body, pools) {
   if (!pools || !pools.length) return body;
   const outer = new THREE.Group();
   outer.name = `${body.name || 'prop'}-lit`;
@@ -395,6 +395,17 @@ export function torch({ seed = 'torch', h = 2.0, lit = true, post = true } = {})
 /**
  * A BRAZIER: an iron basket of coals on three legs, with logs and an ember
  * pool. The gate's interaction and the forge's evening fire.
+ *
+ * IT SWITCHES.  `userData.setLit(bool)` is the relight beat: the flame, the
+ * bed of coals and the ember pool are built whatever `lit` says and merely
+ * HIDDEN when it is false, because a fire you can light has to have
+ * something to become.  (Building them on demand would mean merging
+ * geometry inside a frame, and the first version of this — `if (lit)`
+ * around the flame — made `setLit(true)` a silent no-op on every unlit
+ * brazier in the town, which is exactly the beat the game needs.)
+ *
+ * `userData.practical = true` is how the day-night rig finds every switching
+ * light in the town without a district registering anything.
  */
 export function brazier({ seed = 'brazier', r: R = 0.36, h = 0.62, lit = true, ctx = null } = {}) {
   const rr = rng(seed);
@@ -412,23 +423,43 @@ export function brazier({ seed = 'brazier', r: R = 0.36, h = 0.62, lit = true, c
     P.add(M.barkDark, cyl(0.045, 0.05, R * rr.range(0.9, 1.3), rr.range(-0.1, 0.1), h + 0.14 + i * 0.03, rr.range(-0.1, 0.1),
       { seg: 5, rz: Math.PI / 2, ry: a }));
   }
-  if (lit) {
-    P.add(M.ember, cyl(R * 0.62, R * 0.18, 0.42, 0, h + 0.4, 0, { seg: 8 }));
-    P.add(M.lit, cyl(R * 0.34, R * 0.08, 0.24, 0, h + 0.32, 0, { seg: 7 }));
-  }
   P.flush(g, { receive: false });
+  /* the fire itself, in its OWN group, so it can be switched. Coals under
+   * the flame: a fire drawn in one tone is a paper cut-out. */
+  const flame = new THREE.Group();
+  flame.name = 'brazier-flame';
+  const F = parts();
+  F.add(M.emberDeep, cyl(R * 0.5, R * 0.44, 0.1, 0, h + 0.12, 0, { seg: 9 }));
+  F.add(M.ember, cyl(R * 0.62, R * 0.18, 0.42, 0, h + 0.4, 0, { seg: 8 }));
+  F.add(M.lit, cyl(R * 0.34, R * 0.08, 0.24, 0, h + 0.32, 0, { seg: 7 }));
+  F.flush(flame, { receive: false, cast: false });
+  flame.visible = lit;
+  g.add(flame);
   tagProp(g, 'brazier', { fireY: h + 0.4, footprint: { x0: -R, z0: -R, x1: R, z1: R } });
-  const glowPart = lit ? lightPool({ r: 2.6, ember: true, opacity: 0.46 }) : null;
-  if (glowPart) glowPart.position.y = 0.03;
-  const out = withPools(g, glowPart ? [glowPart] : []);
-  if (ctx && lit) {
-    // a fire is never still: the pool breathes, which is enough at this
-    // distance and costs one number a frame
+  const glowPart = lightPool({ r: 2.6, ember: true, opacity: 0.46 });
+  glowPart.position.y = 0.03;
+  glowPart.visible = lit;
+  let isLit = lit;
+  g.userData.practical = true;
+  g.userData.lit = lit;
+  g.userData.setLit = (on) => {
+    isLit = !!on;
+    flame.visible = isLit;
+    glowPart.visible = isLit;
+    g.userData.lit = isLit;
+  };
+  const out = withPools(g, [glowPart]);
+  if (ctx) {
+    /* A fire is never still — but it BREATHES BY SIZE, not by opacity.
+     * `lightPool` hands back a mesh on the SHARED pooled material, so
+     * `glowPart.material.opacity = k` was writing the opacity of every warm
+     * ember pool in the town: six districts' braziers fighting over one
+     * number, and whichever updater ran last won the frame. */
     let t = rr.range(0, 6);
     ctx.update((dt) => {
+      if (!isLit) return;
       t += dt;
-      const k = 0.42 + Math.sin(t * 2.1) * 0.05 + Math.sin(t * 5.3) * 0.03;
-      if (glowPart) glowPart.material.opacity = k;
+      glowPart.scale.setScalar(1 + Math.sin(t * 2.1) * 0.035 + Math.sin(t * 5.3) * 0.02);
     });
   }
   return out;

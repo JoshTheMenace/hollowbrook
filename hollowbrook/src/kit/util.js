@@ -320,9 +320,17 @@ export function place(ctx, group, { x, z, yaw = 0, y, collide = true, sink = 0.0
     const r = rotRect(u.footprint, yaw, x, z);
     ctx.collide(r.x0, r.z0, r.x1, r.z1);
   }
+  /* A declared collider rect may carry `top` and `bottom` — the siege kit's
+   * gatehouse piers (solid from the road, walked OVER at 5 m) and its
+   * parapets (a fence on the walk, not a wall across the street below).
+   * They are absolute heights above the group's origin, so they are lifted
+   * by the same `base - sink` the platforms are. */
   for (const rect of u.colliders ?? []) {
     const r = rotRect(rect, yaw, x, z);
-    ctx.collide(r.x0, r.z0, r.x1, r.z1);
+    const lift = base - sink;
+    ctx.collide(r.x0, r.z0, r.x1, r.z1,
+      rect.top === undefined ? undefined : lift + rect.top,
+      rect.bottom === undefined ? undefined : lift + rect.bottom);
   }
   for (const rect of u.platforms ?? []) {
     const r = rotRect(rect, yaw, x, z);
