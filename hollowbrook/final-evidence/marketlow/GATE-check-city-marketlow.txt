@@ -1,0 +1,73 @@
+
+== plan ==
+PASS plan valid — 6 districts
+
+== build (composeCity anchors assert during it) ==
+PASS built in order: marketlow
+
+== seams ==
+seam check: 4 socket pairs involving marketlow
+PASS gate-road <> market-road-s [road] at (0, 16) — southgate <-> marketlow
+PASS market-road-n <> keep-road-s [road] at (0, -18) — marketlow <-> keephill
+PASS market-lane-w <> mr-market-lane [path] at (-18, 6) — marketlow <-> millreach
+PASS market-lane-e <> wr-market-lane [path] at (18, 4) — marketlow <-> wardrow
+PASS — ground continuous and corridors clear at every socket
+
+== spatial audit (marketlow) ==
+spatial audit: 73 units (73 tagged, 0 pooled clusters, 6 runs, 4 of them raked), 359752 triangles, 4284 seam samples (612 inside colliders skipped, 130 inside 1 registered interior)
+PASS no spatial defects inside marketlow
+
+== flood fill (marketlow) ==
+fill: 24424 cells reachable from "the well" (1, -3) over x -30..30, z -30..28 at 0.35 m, radius 0.34, step 0.38 — 24424 visits, 106 colliders
+PASS [marketlow] the well (1, -3)
+PASS [marketlow] the north steps (0, -13.5)
+PASS [marketlow] the guild hall porch (-14.2, 5.5)
+PASS [marketlow] the east stair head (15, -2)
+PASS [marketlow] the ramp foot (0, 7)
+
+== budgets ==
+PASS [marketlow] 356 meshes / 440, 50500 triangles / 160000, 82 colliders, 2 platforms
+
+== enterable interiors ==
+1 interior registered in the scene, 1 declared in the plan
+PASS [marketlow] "guildhall" interior "guildhall" — 15 dressed props, cull radius 25 m
+PASS [marketlow] "guildhall" doorway 0.91 m of walkable ground through the opening
+PASS [marketlow] "guildhall" interior waypoint "the guild hall floor" (-14.2, 0) reached through the doorway
+PASS [marketlow] "guildhall" interior camera "guildhall-interior" shows "guildhall-hearth"
+
+== surrounds coverage (the whole footprint, not the parcels) ==
+sampled 7744 points at 1.5 m over x -66..66, z -66..66 (footprint_m 132×132); floor threshold y -4.4
+PASS ground everywhere in the footprint — nothing ends in a cut, surrounds owner "southgate"
+
+== sight corridors ==
+PASS gate-sees-keep — 72 m clear at y 8.5 across ±3 m [crosses southgate, marketlow, keephill]
+PASS market-sees-tower — 49.52 m clear at y 9 across ±3 m [crosses marketlow, chapelclose]
+
+== landmark contracts ==
+no landmark contracts declared for marketlow
+
+== interactions ==
+PASS [marketlow] 3 interactables registered for 2 declared
+
+== boundary features (declared vs. built) ==
+skipped — "marketlow" is composed against stub massing, so a shared edge has no real neighbour on it
+
+== terminating sight lines (what closes each view — advisory) ==
+  [marketlow] market-road-s looking +z from (0, 16) -> 5/5 rays land on "district:southgate:massing-0" [owner: southgate], the 5 that hit average 31.5 m
+WARN TERMINUS [marketlow] "market-road-s" looking +z: 5/5 rays land on "district:southgate:massing-0" [owner: southgate], which carries no userData.kind — it is an untagged mesh, not a composed subject. What closes a view should be something a kit generator made on purpose.
+  [marketlow] market-road-s looking -z from (0, 16) -> 3/5 rays land on "terrain:treads" [owner: terrain], the 5 that hit average 38.41 m
+  [marketlow] market-road-n looking +z from (0, -18) -> 5/5 rays land on "(nothing — open sky or fog)" [owner: nobody], nothing within 45 m
+WARN TERMINUS [marketlow] "market-road-n" looking +z: 5/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [marketlow] market-road-n looking -z from (0, -18) -> 3/5 rays land on "terrain:treads" [owner: terrain], the 5 that hit average 4.41 m
+WARN TERMINUS [marketlow] "market-road-n" looking -z: the view closes at 4.41 m on "terrain:treads". That is a wall in the face rather than a terminus — check the frame from this socket.
+  [marketlow] market-lane-w looking +x from (-18, 6) -> 4/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 1 that hit average 5.61 m
+WARN TERMINUS [marketlow] "market-lane-w" looking +x: 4/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+  [marketlow] market-lane-w looking -x from (-18, 6) -> 3/5 rays land on "district:millreach:massing-3" [owner: millreach], the 5 that hit average 24.9 m
+WARN TERMINUS [marketlow] "market-lane-w" looking -x: 3/5 rays land on "district:millreach:massing-3" [owner: millreach], which carries no userData.kind — it is an untagged mesh, not a composed subject. What closes a view should be something a kit generator made on purpose.
+  [marketlow] market-lane-e looking +x from (18, 4) -> 5/5 rays land on "terrain:ground" [owner: terrain], the 5 that hit average 30.76 m
+WARN TERMINUS [marketlow] "market-lane-e" looking +x: 5/5 rays land on bare terrain 30.76 m out. A ground plate is not a subject; the view along this axis ends on nothing built.
+  [marketlow] market-lane-e looking -x from (18, 4) -> 4/5 rays land on "(nothing — open sky or fog)" [owner: nobody], the 1 that hit average 28.8 m
+WARN TERMINUS [marketlow] "market-lane-e" looking -x: 4/5 rays hit NOTHING inside 45 m with 72 m of town still to cross. The view out of this socket ends in fog. Give it something composed to land on — a landmark face, a gate, a tree stand, a wall with a reason.
+8 terminating sight lines walked at 1.7 m eye, 5-ray fan across each socket's width, 45 m reach. The rule is editorial and is stated in references/city-scale.md: every terminating sight line must land on a subject somebody composed.
+
+RESULT: PASS — plan, anchors, seams, spatial audit, routes, budgets, surrounds, sight corridors, landmarks and interactions all green

@@ -1,0 +1,40 @@
+14 registered interactables
+PASS interact:southgate:"the portcullis winch":registered — registered as "the portcullis winch"
+PASS interact:southgate:"the gate brazier":registered — registered as "the gate brazier"
+PASS interact:marketlow:"the market bell":registered — registered as "the market bell"
+PASS interact:marketlow:"the well bucket":registered — registered as "the well bucket"
+PASS interact:keephill:"the bell rope":registered — registered as "the bell rope"
+PASS interact:keephill:"the beacon cage":registered — registered as "the beacon cage"
+PASS interact:millreach:"the mill brake":registered — registered as "the mill brake"
+PASS interact:chapelclose:"the ward stone":registered — registered as "the ward stone"
+PASS interact:wardrow:"the lane barricade":registered — registered as "the lane barricade"
+PASS interact:wardrow:"the forge bellows":registered — registered as "the forge bellows"
+PASS interact:the portcullis winch:placed — registered at (-4.7, 43.8) in southgate
+PASS interact:the portcullis winch:effect — 2 objects changed within 8 m of the prompt site
+PASS interact:the gate brazier:placed — registered at (5.5, 44.0) in southgate
+PASS interact:the gate brazier:effect — 2 objects changed within 8 m of the prompt site
+PASS interact:guildhall-door:placed — registered at (-14.2, 2.9) in marketlow
+PASS interact:guildhall-door:effect — 1 object changed within 8 m of the prompt site
+PASS interact:the market bell:placed — registered at (-12.2, 7.0) in marketlow
+PASS interact:the market bell:effect — 18 objects changed within 8 m of the prompt site
+PASS interact:the well bucket:placed — registered at (1.0, -2.3) in marketlow
+PASS interact:the well bucket:effect — 2 objects changed within 8 m of the prompt site
+PASS interact:wardens-hall-door:placed — registered at (2.0, -35.4) in keephill
+PASS interact:wardens-hall-door:effect — 1 object changed within 8 m of the prompt site
+PASS interact:the bell rope:placed — registered at (8.6, -41.0) in keephill
+PASS interact:the bell rope:effect — 2 objects changed within 8 m of the prompt site
+PASS interact:the beacon cage:placed — registered at (-2.8, -41.6) in keephill
+PASS interact:the beacon cage:effect — 2 objects changed within 8 m of the prompt site
+PASS interact:the mill brake:placed — registered at (-37.0, 22.5) in millreach
+PASS interact:the mill brake:effect — 1 object changed within 8 m of the prompt site
+PASS interact:chapel-door:placed — registered at (-30.0, -19.4) in chapelclose
+PASS interact:chapel-door:effect — 1 object changed within 8 m of the prompt site
+PASS interact:the ward stone:placed — registered at (-33.0, -17.0) in chapelclose
+PASS interact:the ward stone:effect — 3 objects changed within 8 m of the prompt site
+PASS interact:smithy-door:placed — registered at (31.0, -5.4) in wardrow
+PASS interact:smithy-door:effect — 1 object changed within 8 m of the prompt site
+PASS interact:the forge bellows:placed — registered at (31.0, -4.0) in wardrow
+PASS interact:the forge bellows:effect — 3 objects changed within 8 m of the prompt site
+PASS interact:the lane barricade:placed — registered at (40.0, 22.2) in wardrow
+PASS interact:the lane barricade:effect — 2 objects changed within 8 m of the prompt site
+RESULT: PASS

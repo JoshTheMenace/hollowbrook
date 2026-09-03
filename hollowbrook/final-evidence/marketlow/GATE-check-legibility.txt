@@ -1,0 +1,18 @@
+== vista ownership (6 vista cameras) ==
+PASS from-the-road — subject "district:keephill:bell-tower", owned by "southgate"
+PASS over-the-market — subject "district:keephill:wardens-hall", owned by "marketlow"
+PASS from-the-keep — subject "district:southgate:gatehouse", owned by "keephill"
+PASS down-the-row — subject "district:wardrow:eastgate", owned by "wardrow"
+PASS along-the-wall — subject "district:millreach:mill", owned by "millreach"
+PASS the-close — subject "district:chapelclose:wizard-tower", owned by "chapelclose"
+
+== pixel legibility (run in the page — there is no framebuffer here) ==
+  const v = window.__vignette;
+  console.log(v.checkAllVistas({ polish: v.setPolishHaze }).report);
+
+The gate is SILHOUETTE SEPARATION: the median luma difference, in the graded frame,
+along the part of the subject's outline that stands against open sky (floor 40).
+It also reports the subject's pixel share (an absence floor only — measured NOT to
+discriminate: the failing vista's subject was LARGER than the working one's), how
+much of the silhouette is occluded and by what class, the frame's class histogram,
+and whether the polish haze COSTS the subject contrast.
