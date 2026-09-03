@@ -30,5 +30,26 @@ const walk = (a, b, path) => {
 walk(contract, CONTRACT, 'CONTRACT');
 for (const d of diffs) console.log(`FAIL ${d}`);
 for (const e of extras.slice(0, 20)) console.log(`WARN code carries ${e} that the contract does not declare`);
-console.log(diffs.length ? `RESULT: FAIL (${diffs.length} drifts)` : 'RESULT: PASS — code matches the contract leaf for leaf');
-process.exit(diffs.length ? 1 : 0);
+console.log(diffs.length ? `source: FAIL (${diffs.length} drifts)` : 'source: PASS — code matches the contract leaf for leaf');
+
+/* REALISED constants (coordinator directive): a source constant that says
+ * 22 m/s certifies nothing about what the verb delivers.  Measure the
+ * delivered numbers in the running rules through the real accumulator —
+ * sprint/walk/charging speed over held input, bolt cadence and magazine and
+ * reload from the event ticks, lance charge time, early-release, projectile
+ * speed, cooldown — and hold them within 2 % (one tick of quantisation on
+ * the timings). */
+let realisedFails = 0;
+try {
+  const { bootWorld, measureRealised } = await import('../src/game/sim.js');
+  const world = await bootWorld();
+  for (const row of measureRealised(world)) {
+    const tol = Math.max(0.02 * Math.abs(row.contract), 1 / 60 + 1e-6);
+    const ok = Number.isFinite(row.measured) && Math.abs(row.measured - row.contract) <= tol;
+    if (!ok) realisedFails += 1;
+    console.log(`${ok ? 'PASS' : 'FAIL'} realised ${row.name}: contract ${row.contract}, delivered ${Number.isFinite(row.measured) ? row.measured.toFixed(3) : 'NaN'} (tol ±${tol.toFixed(3)}, rules tick 1/60)`);
+  }
+} catch (e) { realisedFails += 1; console.log(`FAIL realised: could not measure — ${e.message}`); }
+const total = diffs.length + realisedFails;
+console.log(total ? `RESULT: FAIL (${total})` : 'RESULT: PASS — source and delivered values match the contract');
+process.exit(total ? 1 : 0);
