@@ -58,6 +58,10 @@ export const CONTRACT = Object.freeze({
   },
   save: { key: 'hollowbrook-v1', v: 1 },
   legibility: { visibleFrac: 0.7, legibleFrac: 0.6, minPx: 14, minSep: 0.09, eliteFrac: 0.9, eliteMarkerPx: 10, combatRange: 20, p90FirstSightSec: 5 },
+  // TTK windows, novice referee, first-damage -> death, p25 of committed
+  // kills within 15 m (amendment A6: the cutpurse floor is one crossbow
+  // interval by construction — a two-bolt body dies 0.36 s after first damage)
+  ttk: { cutpurse: [0.36, 1.8], reaver: [1.6, 3.0], hexer: [1.2, 2.4], shieldbearer: [2.5, 8.0], captain: [12, 22] },
   drawCallsMax: 1400,
 });
 
@@ -95,7 +99,11 @@ export const HEXBOLT_RANGE = 22;
  * Captain has his own time.  The run holds an entry whose time has come
  * until `alive < peakAlive`, which is what makes peakAlive a real cap.
  */
-const GROUPS = { w1: [3, 3, 3, 3], w2: [3, 3, 3, 4], w3: [4, 4, 4, 4], w4: [4, 4, 3, 5], w5: [4, 5, 4, 5], w6: [5, 4, 5, 5] };
+/* w1 arrives in THREE knots of four, not four of three: with the composed
+ * town's cover the novice referee ended wave 1 at 100 HP six seeds out of
+ * six (curve window 45-90) — a knot of three at a 12 m engagement is killed
+ * one body at a time before it closes (death trace, integration). */
+const GROUPS = { w1: [4, 4, 4], w2: [3, 3, 3, 4], w3: [4, 4, 4, 4], w4: [4, 4, 3, 5], w5: [4, 5, 4, 5], w6: [5, 4, 5, 5] };
 const WINDOW = { w1: 0.6, w2: 0.6, w3: 0.5, w4: 0.55, w5: 0.55, w6: 0.6 };   // the table exhausts by this fraction of the wave
 
 export function expandWave(w) {

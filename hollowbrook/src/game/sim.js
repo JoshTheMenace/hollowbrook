@@ -136,9 +136,10 @@ export async function runReferee({ detail = false, seeds = 6, log = console.log 
   const lances = median(exp.flatMap((r) => r.lancesFired.slice(0, r.reachedWave)));
   check('curve-lances', lances >= cv.expertLancesPerWave, `expert lances per wave median ${lances} (need ≥ ${cv.expertLancesPerWave})`);
   // TTK windows (p25 of committed kills within 15 m, novice) — reported, gated loosely
-  const ttkAll = nov.flatMap((r) => r.ttk).filter((t) => t.dist <= 15);
-  const TTK = { cutpurse: [0.9, 1.8], reaver: [1.6, 3.0], hexer: [1.2, 2.4], shieldbearer: [2.5, 8.0], captain: [12, 22] };
-  for (const [kind, [lo, hi]] of Object.entries(TTK)) {
+  // crossbow kills only (amendment A8): a lance one-shots any body under 120
+  // HP, so its "time to kill" is 0 s by construction and grades nothing
+  const ttkAll = nov.flatMap((r) => r.ttk).filter((t) => t.dist <= 15 && t.by !== 'lance');
+  for (const [kind, [lo, hi]] of Object.entries(C.ttk)) {   // the contract's own windows (amendment A6)
     const v = pct(ttkAll.filter((t) => t.kind === kind).map((t) => t.s), 0.25);
     check(`ttk-${kind}`, Number.isFinite(v) && v >= lo * 0.5 && v <= hi * 1.5, `${kind} TTK p25 ${f2(v)} s over ${ttkAll.filter((t) => t.kind === kind).length} kills (window ${lo}–${hi}, gated at ×0.5..×1.5)`);
   }

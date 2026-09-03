@@ -47,7 +47,7 @@ only and never certifies winnability.
 
 | kind | rig | HP | speed | attack | TTK window @ ≤15 m |
 |---|---|---|---|---|---|
-| cutpurse | KayKit Rogue | 68 (2 bolts) | 4.4 | melee 12, windup 0.45, reach 1.5 | 0.9–1.8 s |
+| cutpurse | KayKit Rogue | 68 (2 bolts) | 4.4 | melee 12, windup 0.45, reach 1.5 | 0.36–1.8 s (amendment A6: a two-bolt body's first-damage→death floor is one crossbow interval by construction) |
 | reaver | KayKit Barbarian | 136 (4) | 3.2 | melee 22, windup 0.65, knockback 1.2 m | 1.6–3.0 s |
 | shieldbearer | KayKit Knight | 204 (6) | 2.4 | melee 18, windup 0.55; bolts from within 60° of its facing do half | flank 2.5–4.5 s / front 5–8 s |
 | hexer | KayKit Mage | 102 (3) | 2.8, holds 9–12 m | hexbolt 16 dmg, 9 m/s, every 2.2 s, 0.7 s staff-glow telegraph | 1.2–2.4 s |
@@ -160,7 +160,55 @@ the sim and its referee, audio content, HUD, persistence shell, evidence.
 
 ## Amendment log
 
-(none yet)
+Each amendment carries the FAILED number it answers, and each is applied in
+its own commit before the code that reads it (nightbloom TRAPS: an
+amendment may not claim a gate that is not in the tree at the commit it
+cites; substrate and build get their own second).
+
+- **A1 (2026-09-03) per-arena approach declarations.** `game.arenas[].approach`
+  may be `{ gate, points, why }`: the entry the wave actually uses to reach
+  the arena. Failed numbers, full city, threshold 40 %: the-close 0/146 cells
+  (0 %) with ALL chapelclose groups hidden; the-keep 70/298 (23 %), ceiling
+  33 % with all keephill hidden and 88 % with every district hidden;
+  the-mill 75/292 (25.7 %) — 28.1 % once the gate stopped sampling the
+  gatehouse deck — with a 35 % ceiling. All three were measured against a gate
+  60–100 m away across other districts. The threshold does not move.
+- **A2 (2026-09-03) coordinate corrections measured by district agents.**
+  `the market bell` (-12, 6.5) → (-12.2, 7.0): the plan's point measured
+  -0.525, a stair tread. `the portcullis winch` (-5, 46.5) → (-4.7, 43.8):
+  the plan's point was inside the west gate turret's drum. `the well`
+  waypoint is the well's south kerb (the well stands at (1, -1.5)).
+- **A3 (2026-09-03) anchors are asserted from their promised height**, and the
+  east gate carries two at (50, 22): the passage floor (0.0) and the deck
+  (5.0). Failed number: `ANCHOR FAILED in district "wardrow" at (50, 22):
+  expected 0 ±0.05, groundAt returned 5.000`, which wardrow met with a 30 mm
+  slot in the deck. Closed at integration; proven by `scripts/probe-decks.mjs`.
+- **A4 (2026-09-03) keephill's almoner's house massing** (34, -30) → (30, -25.2)
+  as built, off the keep-sees-eastgate line.
+- **A5 (2026-09-03) `siege.under_wall_exceptions`.** check-siege
+  `surrounds:under-wall` read 4/188 moor samples blocked by southgate's two
+  mural drums; the drums have nowhere else to stand (the kit's turrets stood on
+  the terrain's stair, and inside the wall they filled the bowman's gallery).
+  Declared by rect; a sealed sample outside a declared rect still fails.
+- **A6 (2026-09-03) TTK window for two-bolt bodies.** The cutpurse window was
+  0.9–1.8 s at a ×0.5 gate floor of 0.45 s; a 68 HP body under a 34-damage,
+  0.36 s crossbow dies one interval after first damage whenever two bolts land,
+  so the p25 of committed kills sits on that floor BY CONSTRUCTION. Failed
+  number: `ttk-cutpurse p25 0.38 s over 136 kills`. The window is 0.36–1.8 s,
+  carried in the machine block as `ttk` (read by `sim.js`, held by
+  `check-contract-drift`); the game's numbers are untouched.
+- **A7 (2026-09-03) the keep's arena rect is the mound**, x -16..17 (was
+  -16..46). The old rect was 61 % yew close — 183 of 299 open cells on ground
+  the mound's cliffs hide the climbs from (2 of them saw any climb; the ward
+  saw 25/76, the platform 28/40). Wave 6 is fought on the ward and the
+  platform; the close is the vixen's ground. Failed number under A1 alone:
+  52/299 (17 %).
+- **A8 (2026-09-03) TTK is measured over crossbow kills.** The emberlance
+  does 120 in one hit, so any body under 120 HP it touches dies 0.00 s after
+  first damage — a fact about the lance, not a time to kill. Failed number:
+  `ttk-hexer p25 0.00 s over 10 kills` (window 1.2–2.4). The referee keeps
+  `by` on every kill record and the TTK rows read bolt kills only; lances are
+  graded by `curve-lances`.
 
 ## Machine-readable numbers (parsed by `check-contract-drift.mjs`)
 
@@ -206,6 +254,7 @@ the sim and its referee, audio content, HUD, persistence shell, evidence.
                "winnable": { "noviceWinsOf6": 3, "noviceMedianLightsLost": 2, "expertWinsOf6": 6, "expertEndHp": 45, "aimOnlyLosesByWave": 3, "moveOnlyLosesByWave": 1, "doNothingDiesBySec": 90, "headroomKillsPerMin": 1.6 } },
   "save": { "key": "hollowbrook-v1", "v": 1 },
   "legibility": { "visibleFrac": 0.7, "legibleFrac": 0.6, "minPx": 14, "minSep": 0.09, "eliteFrac": 0.9, "eliteMarkerPx": 10, "combatRange": 20, "p90FirstSightSec": 5 },
+  "ttk": { "cutpurse": [0.36, 1.8], "reaver": [1.6, 3.0], "hexer": [1.2, 2.4], "shieldbearer": [2.5, 8.0], "captain": [12, 22] },
   "drawCallsMax": 1400
 }
 ```

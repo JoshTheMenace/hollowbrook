@@ -897,7 +897,16 @@ export function validatePlan(plan) {
         if (!r || !isNum(r.x0) || !isNum(r.z0) || !isNum(r.x1) || !isNum(r.z1) || r.x0 >= r.x1 || r.z0 >= r.z1) fail(`${w}: rect must be { x0, z0, x1, z1 }`);
         else if (r.x0 < e.x0 - EPS || r.x1 > e.x1 + EPS || r.z0 < e.z0 - EPS || r.z1 > e.z1 + EPS) fail(`${w}: rect is not inside "${a.district}"'s envelope`);
         for (const k of ['min_cover', 'min_elevation', 'min_landmarks']) if (!isNum(a[k]) || a[k] < 0) fail(`${w}: ${k} must be a non-negative number`);
-        if (!gateIds.has(a.approach)) fail(`${w}: approach "${a.approach}" is not a gate`);
+        /* amendment A1: an approach is the ENTRY THE WAVE USES to reach this
+         * arena — a gate id, or { gate, points: [[x, z], ...], why } when the
+         * arena is reached through the town rather than straight from a gate */
+        const ap = typeof a.approach === 'string' ? { gate: a.approach } : a.approach;
+        if (!ap || !gateIds.has(ap.gate)) fail(`${w}: approach ${JSON.stringify(a.approach)} must be a gate id or { gate, points, why } with a real gate`);
+        else if (typeof a.approach !== 'string') {
+          if (!Array.isArray(ap.points) || ap.points.length < 2 || !ap.points.every((p) => isVec(p, 2))) fail(`${w}: approach.points must be >= 2 points [x, z] the wave passes on its way in`);
+          else if (!ap.points.every(([x, z]) => x >= e.x0 - 2 && x <= e.x1 + 2 && z >= e.z0 - 2 && z <= e.z1 + 2)) fail(`${w}: approach.points must lie within 2 m of "${a.district}"'s envelope — they are where the wave ENTERS the arena`);
+          if (!isStr(ap.why)) fail(`${w}: approach.why — say which entry the wave uses and why the gate's own points do not apply`);
+        }
       }
       const districtsWithArena = new Set([...(game.arenas ?? [])].map((a) => a.district));
       for (const id of ids) if (!districtsWithArena.has(id)) warn(`${gw}: district "${id}" has no arena — every district is a level in a siege`);

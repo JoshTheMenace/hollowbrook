@@ -16,4 +16,7 @@ if (!fs.existsSync(new URL('../src/game/sim.js', import.meta.url))) {
   notBuilt('simulate-siege', 'src/game/sim.js + src/game/rules.js', 'No headless siege exists yet; winnability and the designed curves are unmeasured, not passed.');
 }
 const { runReferee } = await import('../src/game/sim.js');
-process.exit(await runReferee({ detail: process.argv.includes('--detail') }) ? 0 : 1);
+// `runReferee` returns { ok, checks, ... }: an object is always truthy, so the
+// first cut of this line exited 0 on eighteen FAIL rows.  A gate that cannot
+// fail is not a gate (integration finding).
+process.exit((await runReferee({ detail: process.argv.includes('--detail') })).ok ? 0 : 1);

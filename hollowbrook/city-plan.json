@@ -124,6 +124,10 @@
       "south-gate": { "district": "southgate", "gap": { "x0": -3.5, "x1": 3.5, "z0": 48.8, "z1": 51.2 }, "passage": { "x0": -3.5, "x1": 3.5, "z0": 47.6, "z1": 52.4 } },
       "east-gate":  { "district": "wardrow",   "gap": { "x0": 48.8, "x1": 51.2, "z0": 18.5, "z1": 25.5 }, "passage": { "x0": 47.6, "x1": 52.4, "z0": 18.5, "z1": 25.5 } }
     },
+    "under_wall_exceptions": [
+      { "district": "southgate", "rect": { "x0": -9.6, "z0": 50.4, "x1": -5.2, "z1": 54.6 }, "reason": "AMENDMENT A5: the west mural drum at (-7.4, 52.5) r 1.7 stands in the ditch by design — the kit gatehouse's own turrets stood on the terrain's stair, and a drum inside the wall filled the bowman's gallery; check-siege surrounds:under-wall read 4/188 samples blocked by the two drums and the coordinator accepted it" },
+      { "district": "southgate", "rect": { "x0": 5.2, "z0": 50.4, "x1": 9.6, "z1": 54.6 }, "reason": "the east mural drum at (7.4, 52.5) r 1.7 — same decision" }
+    ],
     "corner_towers": [
       { "id": "sw-tower", "district": "millreach",   "at": [-50.0, 50.0] },
       { "id": "nw-tower", "district": "chapelclose", "at": [-50.0, -50.0] },
@@ -222,7 +226,7 @@
         { "name": "the siege road", "x": 0, "z": 58 }
       ],
       "interactions": [
-        { "name": "the portcullis winch", "at": [-5.0, 46.5] },
+        { "name": "the portcullis winch", "at": [-4.7, 43.8], "$comment": "AMENDMENT A2: (-5, 46.5) is inside the west gate turret's drum (r 1.6 at (-5.6, 46.6)); the windlass stands in the muster ground 0.32 m clear of the only route to the stair foot" },
         { "name": "the gate brazier", "at": [5.5, 44.0] }
       ],
       "landmarks_citywide": [
@@ -256,14 +260,14 @@
         { "x": 15, "z": -8, "expect_top": 0.0, "tol": 0.05 }
       ],
       "waypoints": [
-        { "name": "the well", "x": 1, "z": -3 },
+        { "name": "the well", "x": 1, "z": -3, "$comment": "AMENDMENT A2: the well itself stands at (1, -1.5) (marketlow); this waypoint is its south kerb, where a walker stands" },
         { "name": "the north steps", "x": 0, "z": -13.5 },
         { "name": "the guild hall porch", "x": -14.2, "z": 5.5 },
         { "name": "the east stair head", "x": 15, "z": -2 },
         { "name": "the ramp foot", "x": 0, "z": 7 }
       ],
       "interactions": [
-        { "name": "the market bell", "at": [-12.0, 6.5] },
+        { "name": "the market bell", "at": [-12.2, 7.0], "$comment": "AMENDMENT A2: (-12, 6.5) measured -0.525, the fourth tread of the west stair; the frame stands on the rim at (-12.3, 7.55) and the hitbox is centred here" },
         { "name": "the well bucket", "at": [1.0, -3.0] }
       ],
       "landmarks_citywide": [],
@@ -325,7 +329,7 @@
       "massing": [
         { "x": 0, "z": -38.5, "w": 9, "d": 6.4, "h": 7.5 },
         { "x": 10, "z": -40, "w": 4.8, "d": 4.8, "h": 14 },
-        { "x": 34, "z": -30, "w": 7, "d": 6, "h": 6 },
+        { "x": 30, "z": -25.2, "w": 7, "d": 6, "h": 6, "$comment": "AMENDMENT A4: the almoner's house as built (keephill moved it off the keep-sees-eastgate line)" },
         { "x": 50, "z": -50, "w": 5, "d": 5, "h": 10.5 }
       ],
       "enterable": [
@@ -448,7 +452,8 @@
         { "x": 50, "z": 0, "expect_top": 5.0, "tol": 0.05 },
         { "x": 47.3, "z": 41.5, "expect_top": 5.0, "tol": 0.05 },
         { "x": 36, "z": 50, "expect_top": 5.0, "tol": 0.05 },
-        { "x": 50, "z": 22, "expect_top": 0.0, "tol": 0.05 }
+        { "x": 50, "z": 22, "expect_top": 0.0, "tol": 0.05, "$comment": "the passage floor under the east gate" },
+        { "x": 50, "z": 22, "expect_top": 5.0, "tol": 0.05, "$comment": "AMENDMENT A3: the gatehouse DECK over the same point. composeCity asserts an anchor FROM its promised height (groundAt(x, z, expect_top)), so both levels at one (x, z) are contracts; the two-argument check made the 0.0 promise unsatisfiable under a deck and wardrow shipped a 30 mm slot in the deck to meet it" }
       ],
       "waypoints": [
         { "name": "the row lane", "x": 36, "z": 20 },
@@ -503,9 +508,16 @@
       { "id": "gate-square", "district": "southgate",   "rect": { "x0": -16, "z0": 18, "x1": 16, "z1": 47 },  "min_cover": 6, "min_elevation": 6,  "min_landmarks": 1, "approach": "south-gate" },
       { "id": "the-market",  "district": "marketlow",   "rect": { "x0": -17, "z0": -17, "x1": 17, "z1": 15 }, "min_cover": 8, "min_elevation": 20, "min_landmarks": 0, "approach": "south-gate" },
       { "id": "the-row",     "district": "wardrow",     "rect": { "x0": 20, "z0": -16, "x1": 47, "z1": 47 },  "min_cover": 6, "min_elevation": 6,  "min_landmarks": 1, "approach": "east-gate" },
-      { "id": "the-mill",    "district": "millreach",   "rect": { "x0": -47, "z0": -10, "x1": -20, "z1": 47 }, "min_cover": 6, "min_elevation": 6,  "min_landmarks": 1, "approach": "south-gate" },
-      { "id": "the-close",   "district": "chapelclose", "rect": { "x0": -47, "z0": -47, "x1": -20, "z1": -14 }, "min_cover": 6, "min_elevation": 6, "min_landmarks": 1, "approach": "east-gate" },
-      { "id": "the-keep",    "district": "keephill",    "rect": { "x0": -16, "z0": -47, "x1": 46, "z1": -20 }, "min_cover": 8, "min_elevation": 30, "min_landmarks": 2, "approach": "south-gate" }
+      { "id": "the-mill",    "district": "millreach",   "rect": { "x0": -47, "z0": -10, "x1": -20, "z1": 47 }, "min_cover": 6, "min_elevation": 6,  "min_landmarks": 1,
+        "approach": { "gate": "south-gate", "points": [[-19.0, 34.0], [-30.0, 34.0], [-46.6, 40.0], [-45.2, 30.0]],
+          "why": "AMENDMENT A1. The wave reaches the mill from the gate square along the mill lane (sg-w-lane at (-18, 34)) and then runs the wall lane under the west wall; the south gate's own approach points are 60 m away behind southgate's massing (measured 25.7 % full city, ceiling 35 % with every millreach mesh hidden)." } },
+      { "id": "the-close",   "district": "chapelclose", "rect": { "x0": -47, "z0": -47, "x1": -20, "z1": -14 }, "min_cover": 6, "min_elevation": 6, "min_landmarks": 1,
+        "approach": { "gate": "east-gate", "points": [[-19.5, -30.1], [-21.6, -30.1], [-24.0, -30.1]],
+          "why": "AMENDMENT A1. Wave 5 enters the close through the 3.7 m east gap at x -21.6 (z -31.95..-28.25) off the keep lane; the east gate is 100 m away across the market and the mound and measured 0/146 cells with ALL chapelclose groups hidden — geography, not cover." } },
+      { "id": "the-keep",    "district": "keephill",    "rect": { "x0": -16, "z0": -47, "x1": 17, "z1": -20 }, "min_cover": 8, "min_elevation": 30, "min_landmarks": 2,
+        "$comment": "AMENDMENT A7: the arena is the MOUND — the lower ward (x -14..16) and the keep platform — not the yew close east of it, which is the vixen's ambient ground and 183 of the old rect's 299 open cells, on ground the mound's cliffs hide the climbs from (measured: 2 of those 183 cells saw any climb; the ward saw 25/76, the platform 28/40).",
+        "approach": { "gate": "south-gate", "points": [[0.0, -19.5], [0.0, -24.7], [4.0, -27.4], [4.0, -32.6]],
+          "why": "AMENDMENT A1. Wave 6 comes up the mound's own climbs (keep-climb-1 foot to head, keep-climb-2 foot to head); the ward has exactly one approach because the mound has no walkable skirts (keephill header). The south gate's points are 100 m away and measured 23 % with a structural ceiling of 33 % (ablation: all keephill hidden 33 %, all districts hidden 88 %). Threshold stays 40 %." } }
     ],
     "npc_posts": [
       { "id": "reeve",       "character": "elder",  "district": "marketlow",   "at": [-13.2, 5.2],  "facing": [1, 0],  "role": "objective-giver", "shelter": "guildhall",    "performer": true },
